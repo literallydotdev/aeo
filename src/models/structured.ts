@@ -134,6 +134,19 @@ export type StructuredTransport = {
   }>;
 };
 
+/** The reasoning effort a role asks for, however its provider takes it. */
+const reasoningEffortOf = (
+  role: InternalModelRoleConfig,
+): string | undefined => {
+  const { openai, gateway } = role.providerOptions;
+  const gatewayEffort =
+    gateway && 'effort' in gateway.reasoning
+      ? gateway.reasoning.effort
+      : undefined;
+
+  return openai?.reasoningEffort ?? gatewayEffort;
+};
+
 const reportedNumber = (value: unknown): number | undefined => {
   const number =
     typeof value === 'string' && value.trim() ? Number(value) : value;
@@ -190,9 +203,9 @@ const gateway = createGateway({
  * A pinned profile names the gateway routes a family may use (`gateway.only`);
  * `AEO_GATEWAY_ROUTE_DENYLIST` (comma-separated route names) removes routes from
  * that list at call time without touching the pin, because route health is
- * operational, not part of what was admitted. Measured 2026-09-12: DeepInfra
- * passed a one-object probe and then refused the evidence reviewer's request
- * with no output, three times, on an execution whose pin already named it. A
+ * operational, not part of what was admitted: a route can pass a one-object
+ * probe and then refuse a real request with no output, on an execution whose
+ * pin already names it. A
  * denylist that would empty the allowlist is ignored rather than dispatching
  * with none.
  */
@@ -478,7 +491,7 @@ export const generateStructured = async <T>(
     callId,
     role: input.roleName,
     requestedModel: input.role.model,
-    reasoningEffort: input.role.providerOptions.openai?.reasoningEffort,
+    reasoningEffort: reasoningEffortOf(input.role),
     profileDigest: internalModelRoleDigest(input.role),
     ...reservation,
   });
@@ -546,7 +559,7 @@ export const generateStructured = async <T>(
       assertModelCallActive(signal, error);
       await input.accounting.settle(callId, {
         requestedModel: input.role.model,
-        reasoningEffort: input.role.providerOptions.openai?.reasoningEffort,
+        reasoningEffort: reasoningEffortOf(input.role),
         durationMs: Date.now() - start,
         costUsd: 0,
         inputTokens: 0,
@@ -563,7 +576,7 @@ export const generateStructured = async <T>(
           ...billed.usage,
           callId,
           requestedModel: input.role.model,
-          reasoningEffort: input.role.providerOptions.openai?.reasoningEffort,
+          reasoningEffort: reasoningEffortOf(input.role),
           durationMs: Date.now() - start,
           valid: false,
         };
@@ -606,7 +619,7 @@ export const generateStructured = async <T>(
     ...result.usage,
     callId,
     requestedModel: input.role.model,
-    reasoningEffort: input.role.providerOptions.openai?.reasoningEffort,
+    reasoningEffort: reasoningEffortOf(input.role),
     durationMs: Date.now() - start,
   };
   await journal(input.journal, {

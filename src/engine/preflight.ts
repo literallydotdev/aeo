@@ -7,10 +7,20 @@ import {
   versionForSurface,
 } from '../probes/agent-clis';
 import {
+  agentSurfaces,
   isAgentSurface,
   type AeoAgentSurface,
   type AeoSurface,
 } from '../schema';
+import {
+  codexBinaryVersion,
+  resolveCodexBinary,
+} from '../codex-workflow/codex-binary';
+import {
+  describeSupportedModels,
+  findSupportedModel,
+  recommendedModelId,
+} from '../models/supported-models';
 import type { Settings } from './env-file';
 
 // ============================================================================
@@ -99,11 +109,69 @@ const directoryCheck = async (dir: string): Promise<PreflightCheck> => {
   }
 };
 
+/** The model audit.json names, or the recommended one: refused when it is
+ * not on the supported list, which the detail then prints. */
+export const modelCheck = (model: string | undefined): PreflightCheck => {
+  const id = model ?? recommendedModelId;
+  const supported = findSupportedModel(id);
+
+  if (!supported) {
+    return {
+      name: 'model',
+      ok: false,
+      detail: [
+        `${id} is not supported; use one of:`,
+        ...describeSupportedModels(),
+      ].join('\n    '),
+    };
+  }
+
+  return {
+    name: 'model',
+    ok: true,
+    detail: [
+      `${supported.id}${model === undefined ? ' (recommended; audit.json names none)' : ''}`,
+      supported.stageRuntimeVerifiedAt === null
+        ? 'not yet verified on the Codex stage runtime through the gateway'
+        : `verified on the Codex stage runtime ${supported.stageRuntimeVerifiedAt}`,
+    ].join('; '),
+  };
+};
+
+/** The Codex the stages run: this package's own, unless overridden. */
+const codexCheck = async (): Promise<PreflightCheck> => {
+  try {
+    const binary = resolveCodexBinary();
+    const version = await codexBinaryVersion(binary);
+    const origin =
+      binary.source === 'dependency'
+        ? "the package's own pinned dependency"
+        : `AEO_CODEX_BIN=${binary.path}`;
+
+    return {
+      name: 'codex (stage runtime)',
+      ok: version !== null,
+      detail:
+        version === null
+          ? `${binary.path} did not start; reinstall literally-aeo`
+          : `${version}, from ${origin}`,
+    };
+  } catch (err) {
+    return {
+      name: 'codex (stage runtime)',
+      ok: false,
+      detail: `not installed with the package (${err instanceof Error ? err.message : String(err)}); reinstall literally-aeo`,
+    };
+  }
+};
+
 /** runPreflight checks what a run over these surfaces needs locally. */
 export const runPreflight = async (args: {
   surfaces: readonly AeoSurface[];
   settings: Settings;
   dir: string;
+  /** audit.json's `model`; absent means the recommended model. */
+  model?: string;
   /** Full grounding researches through the pinned search provider. */
   groundingSearch?: boolean;
 }): Promise<PreflightCheck[]> => {
@@ -118,13 +186,9 @@ export const runPreflight = async (args: {
       ok: nodeMajor >= minimumNodeMajor,
       detail: `${process.version} (${minimumNodeMajor} or newer required)`,
     },
-    {
-      // Every stage session runs on the Codex CLI, whatever is measured.
-      name: 'codex CLI',
-      ok: versions.codex !== null,
-      detail:
-        versions.codex ?? 'not found on PATH; the workflow stages need it',
-    },
+    modelCheck(args.model),
+    // Every stage session runs on Codex, whatever is measured.
+    await codexCheck(),
     settingCheck(gatewaySetting, settings),
   ];
 
@@ -147,6 +211,25 @@ export const runPreflight = async (args: {
         version === null
           ? `\`${cliNameForSurface(surface)}\` not found on PATH`
           : `${cliNameForSurface(surface)} ${version}; ${auth.kind === 'variable' ? `authenticates with ${auth.name}` : 'uses the CLI login on this machine, checked by a canary before the run'}`,
+    });
+  }
+
+  // Which coding-agent CLIs this machine has, for a config that would
+  // measure them: what to install or log in to, or what to leave out.
+  for (const surface of agentSurfaces) {
+    if (agents.includes(surface)) {
+      continue;
+    }
+
+    const version = versionForSurface(surface, versions);
+
+    checks.push({
+      name: `${surface} CLI`,
+      ok: true,
+      detail:
+        version === null
+          ? `\`${cliNameForSurface(surface)}\` not installed; needed only when the config measures coding agents`
+          : `${cliNameForSurface(surface)} ${version} installed; this config does not measure it`,
     });
   }
 

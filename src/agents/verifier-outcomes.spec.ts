@@ -5,7 +5,7 @@ import {
   createMemoryModelAccounting,
 } from '../models/accounting';
 import { ModelCallAbortError } from '../models/errors';
-import { resolveInternalModelProfile } from '../models/profiles';
+import { testModelProfileFixture } from '../models/profile-fixture';
 import {
   structuredCallReservation,
   type StructuredTransport,
@@ -22,8 +22,7 @@ import {
   verifierChunks,
 } from './verifier';
 
-const profile =
-  resolveInternalModelProfile('astra-grounding-v1').roles.premiseVerifier;
+const profile = testModelProfileFixture().roles.premiseVerifier;
 const fact = (id: string, size = 10) => {
   return {
     factId: id,

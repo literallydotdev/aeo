@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { NoObjectGeneratedError } from 'ai';
 import { createMemoryModelAccounting } from './accounting';
-import { resolveInternalModelProfile } from './profiles';
+import { testModelProfileFixture } from './profile-fixture';
 import {
   StructuredOutputMissingError,
   generateStructured,
@@ -48,7 +48,10 @@ const createBilledAnswer = (finishReason: 'stop' | 'length' = 'stop') => {
       inputTokenDetails: { cacheReadTokens: 64 },
       outputTokenDetails: { reasoningTokens: 900 },
     },
-    response: { id: 'request-1', modelId: 'accounts/fireworks/models/glm-5p3' },
+    response: {
+      id: 'request-1',
+      modelId: 'provider-route/models/served-variant',
+    },
     finishReason,
     providerMetadata: { gateway: { cost: '0.0421' } },
     toolCalls: [],
@@ -72,7 +75,7 @@ const createUnmatchedAnswer = (finishReason: 'stop' | 'length' = 'stop') => {
         text: prose,
         response: {
           id: 'request-1',
-          modelId: 'accounts/fireworks/models/glm-5p3',
+          modelId: 'provider-route/models/served-variant',
           timestamp: new Date(0),
         },
         usage: createBilledAnswer(finishReason).usage as never,
@@ -93,7 +96,7 @@ const createCall = () => {
 
   const input = {
     roleName: 'copy',
-    role: resolveInternalModelProfile('glm-harness-v1', {}).roles.copy,
+    role: testModelProfileFixture().roles.copy,
     schema: z.object({ headline: z.string() }).strict(),
     prompt: 'Write the report copy.',
     accounting,
@@ -137,7 +140,7 @@ describe('structured - generateStructured() with a billed answer that matches no
       outputTokens: 3400,
       cachedInputTokens: 64,
       reasoningTokens: 900,
-      resolvedModel: 'accounts/fireworks/models/glm-5p3',
+      resolvedModel: 'provider-route/models/served-variant',
       requestId: 'request-1',
     });
   });
@@ -255,10 +258,9 @@ describe('structured - generateStructured() with a tool call naming a schema act
 });
 
 describe('structured - generateStructured() with a route that refuses the request', () => {
-  // Measured 2026-09-12: the DeepInfra route for DeepSeek V4.1 Flash ended
-  // the stream with finish reason "error" and no text, three times in a
-  // row, and the failure looked identical to a schema miss. The error must
-  // carry the route and how it ended so the log names it.
+  // A gateway route can end the stream with finish reason "error" and no
+  // text, which looks identical to a schema miss. The error must carry the
+  // route and how it ended so the log names it.
   it('should report the resolved route, the error finish and zero output on the refusal', async () => {
     const { input, accounting } = createCall();
     const usage = {
@@ -270,7 +272,7 @@ describe('structured - generateStructured() with a route that refuses the reques
 
     const response = {
       id: 'request-2',
-      modelId: 'deepseek-ai/DeepSeek-V4.1-Flash',
+      modelId: 'provider-route/refusing-variant',
     };
 
     provider.generateText.mockResolvedValue({
@@ -299,7 +301,7 @@ describe('structured - generateStructured() with a route that refuses the reques
     expect(error).toMatchObject({
       text: '',
       usage: {
-        resolvedModel: 'deepseek-ai/DeepSeek-V4.1-Flash',
+        resolvedModel: 'provider-route/refusing-variant',
         finishReason: 'error',
         outputTokens: 0,
         costUsd: 0.002371,

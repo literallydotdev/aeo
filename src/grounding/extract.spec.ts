@@ -3,7 +3,7 @@ import {
   createMemoryModelAccounting,
   ModelBudgetError,
 } from '../models/accounting';
-import { resolveInternalModelProfile } from '../models/profiles';
+import { testModelProfileFixture } from '../models/profile-fixture';
 import {
   StructuredOutputMissingError,
   type StructuredTransport,
@@ -22,7 +22,7 @@ import {
 // extractClaimCandidates can observe (candidates, coverage, diagnostics,
 // the cache and the ledger), never about how batches are scheduled.
 
-const role = resolveInternalModelProfile().roles.perception;
+const role = testModelProfileFixture().roles.perception;
 const deadlineAt = '2099-01-01T00:00:00.000Z';
 
 /** An answer shaped the way evaluation-fixtures materialises one: the digest

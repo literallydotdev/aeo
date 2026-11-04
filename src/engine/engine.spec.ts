@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { canonicalDigest } from '../bundle/json';
 import { writeEnv } from '../lib/env';
 import { readAuthorEvidence } from './author';
@@ -12,13 +12,19 @@ import {
   toAuditConfig,
 } from './audit-file';
 import { readSettings } from './env-file';
-import { resolveRunBudget } from './budget';
+import {
+  BudgetCapMissingError,
+  readFrozenBudget,
+  resolveRunBudget,
+  RunModelChangedError,
+} from './budget';
 import {
   planLocalRun,
   runDirectoryState,
   usesGroundingSearch,
 } from './local-run';
 import { runPreflight } from './preflight';
+import { auditCopyFile, recordRunConfiguration } from './run-configuration';
 import { exampleAuditFile } from './templates';
 
 let root: string;
@@ -163,6 +169,16 @@ describe('env-file - readSettings()', () => {
 });
 
 describe('preflight - runPreflight()', () => {
+  // The check only needs a Codex that starts; the dependency's own binary is
+  // tested in codex-binary.spec.ts.
+  beforeEach(() => {
+    vi.stubEnv('AEO_CODEX_BIN', process.execPath);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('should ask for the DataForSEO pair only when AI Overviews are measured', async () => {
     const envFile = path.join(root, 'empty.env');
 
@@ -191,13 +207,16 @@ describe('preflight - runPreflight()', () => {
 
 describe('budget - resolveRunBudget()', () => {
   const policy = { maxUsd: 10, maxTokens: 1_000, maxHours: 2 };
+  const model = 'anthropic/claude-opus-5.5';
   const at = (iso: string) => () => new Date(iso);
 
-  it('should freeze the budget on the first run and keep it on a resume', async () => {
+  it('should freeze the budget and the model on the first run and keep them on a resume', async () => {
     const first = await resolveRunBudget(root, policy, {
+      model,
       now: at('2026-11-03T10:00:00.000Z'),
     });
     const resumed = await resolveRunBudget(root, policy, {
+      model,
       now: at('2026-11-03T15:00:00.000Z'),
     });
 
@@ -207,12 +226,17 @@ describe('budget - resolveRunBudget()', () => {
       deadlineAt: '2026-11-03T12:00:00.000Z',
     });
     expect(resumed.limits).toEqual(first.limits);
+    expect(resumed.model).toBe(model);
   });
 
   it('should NOT amend a run when only audit.json changed, and say so', async () => {
-    await resolveRunBudget(root, policy);
+    await resolveRunBudget(root, policy, { model });
 
-    const edited = await resolveRunBudget(root, { ...policy, maxUsd: 50 });
+    const edited = await resolveRunBudget(
+      root,
+      { ...policy, maxUsd: 50 },
+      { model },
+    );
 
     expect(edited.limits.maxUsd).toBe(10);
     expect(edited.policyDiffers).toBe(true);
@@ -220,10 +244,12 @@ describe('budget - resolveRunBudget()', () => {
 
   it('should raise limits through an amendment and record old and new values', async () => {
     await resolveRunBudget(root, policy, {
+      model,
       now: at('2026-11-03T10:00:00.000Z'),
     });
 
     const amended = await resolveRunBudget(root, policy, {
+      model,
       amendment: { maxUsd: 25, maxHours: 4 },
       now: at('2026-11-03T13:00:00.000Z'),
     });
@@ -241,13 +267,66 @@ describe('budget - resolveRunBudget()', () => {
   });
 
   it('should refuse an amendment that lowers a limit', async () => {
-    await resolveRunBudget(root, policy);
+    await resolveRunBudget(root, policy, { model });
 
     const result = resolveRunBudget(root, policy, {
+      model,
       amendment: { maxTokens: 10 },
     });
 
-    await expect(result).rejects.toThrow(/only raise limits/);
+    await expect(result).rejects.toThrow(/can only be raised/);
+  });
+
+  it('should NOT report audit.json as changed when the cap came from --max-usd, or was raised', async () => {
+    const { maxUsd: _maxUsd, ...uncapped } = policy;
+
+    await resolveRunBudget(root, uncapped, { model, maxUsd: 40 });
+
+    const resumed = await resolveRunBudget(root, uncapped, { model });
+    const raised = await resolveRunBudget(root, uncapped, {
+      model,
+      maxUsd: 60,
+    });
+
+    expect(resumed.policyDiffers).toBe(false);
+    expect(raised.policyDiffers).toBe(false);
+  });
+
+  it('should refuse a new run without an approved cap, writing nothing', async () => {
+    const { maxUsd: _maxUsd, ...uncapped } = policy;
+
+    const result = resolveRunBudget(root, uncapped, { model });
+
+    await expect(result).rejects.toThrow(BudgetCapMissingError);
+    await expect(readFrozenBudget(root)).resolves.toBeUndefined();
+  });
+
+  it('should take the cap from --max-usd, and raise it on a resume as a recorded amendment', async () => {
+    const { maxUsd: _maxUsd, ...uncapped } = policy;
+
+    const first = await resolveRunBudget(root, uncapped, {
+      model,
+      maxUsd: 40,
+    });
+    const raised = await resolveRunBudget(root, uncapped, {
+      model,
+      maxUsd: 60,
+    });
+
+    expect(first.limits.maxUsd).toBe(40);
+    expect(raised.limits.maxUsd).toBe(60);
+    expect(raised.amended?.from.maxUsd).toBe(40);
+  });
+
+  it('should refuse a resume whose audit.json names another model', async () => {
+    await resolveRunBudget(root, policy, { model });
+
+    const result = resolveRunBudget(root, policy, {
+      model: 'anthropic/claude-sonnet-5.5',
+    });
+
+    await expect(result).rejects.toThrow(RunModelChangedError);
+    await expect(result).rejects.toThrow(/rejudge .* --model/);
   });
 });
 
@@ -287,7 +366,12 @@ describe('author - readAuthorEvidence()', () => {
     edit: (file: Record<string, unknown>) => Record<string, unknown>,
   ) => {
     const proposal = { ...exampleFile };
-    const { author: _author, runPolicy: _runPolicy, ...measured } = proposal;
+    const {
+      author: _author,
+      runPolicy: _runPolicy,
+      model: _model,
+      ...measured
+    } = proposal;
     const reference = {
       runId: 'author-run-1',
       proposedDigest: canonicalDigest(measured),
@@ -363,5 +447,27 @@ describe('author - readAuthorEvidence()', () => {
     );
 
     expect(result.kind).toBe('record_missing');
+  });
+});
+
+describe('run-configuration - recordRunConfiguration()', () => {
+  it('should record the model a rejudgment ran with, not the source file', async () => {
+    const configFile = path.join(root, 'source-audit.json');
+    const dir = path.join(root, 'rejudged');
+
+    await mkdir(dir, { recursive: true });
+    await writeFile(configFile, JSON.stringify(exampleFile));
+
+    await recordRunConfiguration({
+      dir,
+      configFile,
+      evidence: { kind: 'manual' },
+      model: 'anthropic/claude-sonnet-5.5',
+    });
+
+    const recorded = await readAuditFile(path.join(dir, auditCopyFile));
+
+    expect(recorded.model).toBe('anthropic/claude-sonnet-5.5');
+    expect(recorded.brand).toEqual(exampleFile.brand);
   });
 });

@@ -4,7 +4,7 @@ import {
   ModelBudgetError,
   type ModelCallAccounting,
 } from '../models/accounting';
-import { resolveInternalModelProfile } from '../models/profiles';
+import { testModelProfileFixture } from '../models/profile-fixture';
 import type { StructuredTransport } from '../models/structured';
 import { contentHash } from '../stores/content-hash';
 import { requireDefined } from '../__fixtures__/require-defined';
@@ -14,7 +14,7 @@ import {
   type ValidatedExtractionBatch,
 } from './extract';
 
-const role = resolveInternalModelProfile().roles.perception;
+const role = testModelProfileFixture().roles.perception;
 const deadlineAt = '2099-01-01T00:00:00.000Z';
 
 const answers = (count: number): SavedAnswer[] => {

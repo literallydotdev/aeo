@@ -4,11 +4,11 @@ import { servedModelOf } from './served-model';
 describe('served-model - servedModelOf()', () => {
   it('should record the upstream route the provider named', () => {
     const served = servedModelOf(
-      'deepseek/deepseek-v4.1-flash',
-      'accounts/fireworks/models/deepseek-v4p1-flash',
+      'provider/open-model',
+      'accounts/upstream/models/open-model-v1',
     );
 
-    expect(served).toBe('accounts/fireworks/models/deepseek-v4p1-flash');
+    expect(served).toBe('accounts/upstream/models/open-model-v1');
   });
 
   it('should NOT record the SDK echoing the requested model as an observation', () => {

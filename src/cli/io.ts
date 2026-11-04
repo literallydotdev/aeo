@@ -18,6 +18,8 @@ const valueOptions = new Set([
   '--port',
   '--brief',
   '--redact',
+  '--max-usd',
+  '--model',
 ]);
 
 export const parseFlags = (argv: readonly string[]): Flags => {

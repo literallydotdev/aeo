@@ -29,6 +29,8 @@ export type ProbeAttemptEnd =
       requestedModel: string | null;
       reportedModel?: string;
       noOverview?: true;
+      /** What the provider reported the attempt cost, when it did. */
+      costUsd?: number;
     }
   | {
       outcome: 'failed' | 'cancelled';

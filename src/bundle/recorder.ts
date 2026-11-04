@@ -18,6 +18,7 @@ import {
   type RunOrigin,
 } from './contracts';
 import { openJournal, putObject, readJournal, type Journal } from './journal';
+import { observedIsolation, type WriterIsolation } from './isolation';
 
 // ============================================================================
 // The execution recorder (specs/aeo-open-source-cli-spec.md §7): the host
@@ -169,6 +170,9 @@ export type OpenRecorderOptions = {
    * run_resumed (spec §7.2): the export claims coverage only for kinds
    * every writer observed. Defaults to the workflow's own. */
   observes?: readonly OperationKind[];
+  /** The boundary this writer runs inside; observed from the process when
+   * the writer does not state it. */
+  isolation?: WriterIsolation;
 };
 
 const frozenMeasurement = (text: string): string | undefined => {
@@ -220,6 +224,7 @@ export const openRecorder = async (
     node: process.version,
     platform: process.platform,
     arch: process.arch,
+    isolation: options.isolation ?? observedIsolation(),
   };
 
   const observes = [...(options.observes ?? workflowOperationKinds)];

@@ -1,6 +1,6 @@
 import { assert, describe, expect, it } from 'vitest';
 import { createMemoryModelAccounting } from '../models/accounting';
-import { resolveInternalModelProfile } from '../models/profiles';
+import { testModelProfileFixture } from '../models/profile-fixture';
 import type { InternalModelContext } from '../models/context';
 import type { StructuredTransport } from '../models/structured';
 import type { AeoVisibility } from '../schema';
@@ -8,7 +8,7 @@ import { extractPerceptionForSection } from './sentiment';
 
 const context = (transport: StructuredTransport): InternalModelContext => {
   return {
-    profile: resolveInternalModelProfile('astra-grounding-v1'),
+    profile: testModelProfileFixture(),
     accounting: createMemoryModelAccounting({
       maxUsd: 100,
       maxTokens: 10_000_000,

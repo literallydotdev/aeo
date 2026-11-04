@@ -5,7 +5,20 @@ import { workflowSecrets } from '../codex-workflow/codex-home';
 import { prepareWorkdir, runWorkflow } from '../codex-workflow/loop';
 import { readAuditFile, type AuditFile } from '../engine/audit-file';
 import { readSettings, type Settings } from '../engine/env-file';
-import { readBudgetAmendment, type BudgetAmendment } from '../engine/budget';
+import {
+  BudgetCapMissingError,
+  readBudgetAmendment,
+  readFrozenBudget,
+  RunModelChangedError,
+  type BudgetAmendment,
+} from '../engine/budget';
+import {
+  describeCostRange,
+  estimateAuthorCost,
+  estimateRunCost,
+  type AuthorCostEstimate,
+  type RunCostEstimate,
+} from '../engine/cost-estimate';
 import {
   openLocalRun,
   planLocalRun,
@@ -34,6 +47,11 @@ import { engineResources } from '../engine/resources';
 import { exampleAuditFile, exampleEnvFile } from '../engine/templates';
 import { getEnvironment, writeEnv } from '../lib/env';
 import { ModelBudgetError } from '../models/accounting';
+import {
+  findSupportedModel,
+  recommendedModelId,
+  resolveSupportedModel,
+} from '../models/supported-models';
 import { hasErrorCode } from '../stores/fs-errors';
 import { formatLine, writeErr, writeOut, type Flags } from './io';
 
@@ -49,6 +67,57 @@ const configPathOf = (flags: Flags) => {
 
 const runDirOf = (flags: Flags) => {
   return path.resolve(flags.options.get('--output') ?? 'audit-run');
+};
+
+/** The amount the operator approved with --max-usd, if any. */
+const maxUsdOf = (flags: Flags): number | undefined => {
+  const value = flags.options.get('--max-usd');
+
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const usd = Number(value.replace(/^\$/, ''));
+
+  if (!Number.isFinite(usd) || usd <= 0) {
+    throw new Error(
+      `Please give --max-usd a positive amount in dollars, such as 40; got ${value}.`,
+    );
+  }
+
+  return usd;
+};
+
+/** The cost lines a person reads, for plan and for a refused run. */
+const estimateLines = (estimate: RunCostEstimate | AuthorCostEstimate) => {
+  const categories: [string, { low: number; high: number } | undefined][] = [
+    [
+      'probes',
+      'probes' in estimate.categories ? estimate.categories.probes : undefined,
+    ],
+    ['Codex stages', estimate.categories.stages],
+    [
+      'host model calls',
+      'hostCalls' in estimate.categories
+        ? estimate.categories.hostCalls
+        : undefined,
+    ],
+    ['search', estimate.categories.search],
+  ];
+
+  return [
+    formatLine(
+      'Estimated cost',
+      `${describeCostRange(estimate)} (an estimate, not a quote; ${estimate.model})`,
+    ),
+    ...categories.flatMap(([label, range]) =>
+      range ? [formatLine(`  ${label}`, describeCostRange(range))] : [],
+    ),
+    formatLine(
+      'Recommended cap',
+      `$${estimate.recommendedCapUsd} (the high end)`,
+    ),
+  ];
 };
 
 /** init writes the two templates beside each other, never over an
@@ -91,12 +160,19 @@ export const runInit = async (flags: Flags) => {
 
 export const runDoctor = async (flags: Flags) => {
   const file = await readAuditFile(configPathOf(flags));
-  const { plan, request } = planLocalRun(file);
+  // An unsupported model is doctor's finding, not its crash: the rest of
+  // the checks still run, against the plan the recommended model would make.
+  const isSupported =
+    findSupportedModel(file.model ?? recommendedModelId) !== undefined;
+  const { plan, request } = planLocalRun(
+    isSupported ? file : { ...file, model: undefined },
+  );
   const settings = await readSettings(flags.options.get('--env-file'));
   const checks = await runPreflight({
     surfaces: plan.surfaces,
     settings,
     dir: runDirOf(flags),
+    model: file.model,
     groundingSearch: usesGroundingSearch(request),
   });
   const ok = checks.every((check) => check.ok);
@@ -128,8 +204,15 @@ export const runPlan = async (flags: Flags) => {
   const dir = runDirOf(flags);
   const state = await runDirectoryState(dir);
   const bySurface = Object.fromEntries(plan.probesBySurface);
+  const model = resolveSupportedModel(file.model);
+  const estimate = estimateRunCost({
+    plan,
+    model,
+    grounding: request.grounding,
+  });
   const summary = {
     brand: config.brand.name,
+    model: model.id,
     sections: config.sections.map((section) => ({
       key: section.key,
       questions: section.prompts.length,
@@ -140,11 +223,10 @@ export const runPlan = async (flags: Flags) => {
     maxPlannedUnits: request.maxPlannedUnits,
     grounding: request.grounding,
     budget: file.runPolicy.budget,
-    // What the budget can actually stop (spec §6): the host's model calls.
-    budgetEnforcedFor: [
-      'host model calls (perception, labels, grounding, copy verifier)',
-    ],
-    budgetRecordedOnly: ['probe answers', 'Codex stage sessions'],
+    // The cap covers every paid call: probes, Codex stage sessions, host
+    // model calls and searches.
+    estimate,
+    recommendedCapUsd: estimate.recommendedCapUsd,
     runDirectory: { path: dir, state },
     digests,
   };
@@ -158,6 +240,7 @@ export const runPlan = async (flags: Flags) => {
   writeOut(
     [
       formatLine('Brand', summary.brand),
+      formatLine('Model', summary.model),
       ...summary.sections.map((section) =>
         formatLine(`Section ${section.key}`, `${section.questions} questions`),
       ),
@@ -175,14 +258,12 @@ export const runPlan = async (flags: Flags) => {
           ? 'full (claims researched and adjudicated)'
           : 'extraction_only (claims inventoried, not researched)',
       ),
+      ...estimateLines(estimate),
       formatLine(
-        'Budget',
-        `${'$'}${summary.budget.maxUsd}, ${summary.budget.maxTokens} tokens, ${summary.budget.maxHours} h`,
-      ),
-      formatLine('  enforced for', summary.budgetEnforcedFor.join('; ')),
-      formatLine(
-        '  recorded, not capped',
-        summary.budgetRecordedOnly.join('; '),
+        'Cap',
+        summary.budget.maxUsd === undefined
+          ? 'none in audit.json; approve one with run --max-usd <amount>'
+          : `${'$'}${summary.budget.maxUsd} (audit.json), covering every paid call`,
       ),
       formatLine('Run directory', `${dir} (${state})`),
       formatLine('Measurement digest', digests.measurement),
@@ -204,10 +285,27 @@ export const runRun = async (flags: Flags) => {
   const amendment = budgetFile
     ? await readBudgetAmendment(path.resolve(budgetFile))
     : undefined;
+  const maxUsd = maxUsdOf(flags);
+  const refused = await refuseWithoutCap({
+    file,
+    dir,
+    maxUsd,
+    estimate: estimateRunCost({
+      plan,
+      model: resolveSupportedModel(file.model),
+      grounding: request.grounding,
+    }),
+  });
+
+  if (refused !== undefined) {
+    return refused;
+  }
+
   const checks = await runPreflight({
     surfaces: plan.surfaces,
     settings,
     dir,
+    model: file.model,
     groundingSearch: usesGroundingSearch(request),
   });
   const failing = checks.filter((check) => !check.ok);
@@ -228,8 +326,44 @@ export const runRun = async (flags: Flags) => {
     configFile: configPathOf(flags),
     dir,
     settings,
+    maxUsd,
     amendment,
   });
+};
+
+/** A run starts only under an amount the operator approved: a new run
+ * directory without --max-usd or runPolicy.budget.maxUsd is refused with
+ * the estimate, before any paid work (exit 2, nothing spent). A resume
+ * keeps the cap it froze. */
+const refuseWithoutCap = async ({
+  file,
+  dir,
+  maxUsd,
+  estimate,
+}: {
+  file: AuditFile;
+  dir: string;
+  maxUsd: number | undefined;
+  estimate: RunCostEstimate;
+}): Promise<number | undefined> => {
+  if (maxUsd !== undefined || file.runPolicy.budget.maxUsd !== undefined) {
+    return undefined;
+  }
+
+  if (await readFrozenBudget(dir)) {
+    return undefined;
+  }
+
+  writeErr(
+    [
+      'Not started: a run needs an approved spending cap. Nothing was spent.',
+      ...estimateLines(estimate),
+      '',
+      `Approve an amount and run again with it, for example: --max-usd ${estimate.recommendedCapUsd}`,
+    ].join('\n'),
+  );
+
+  return 2;
 };
 
 /** author researches a brief and proposes an audit.json (spec §4.1). */
@@ -241,6 +375,36 @@ export const runAuthor = async (flags: Flags, usage: string) => {
   }
 
   const brief = await readBrief(path.resolve(briefFile));
+  const model = resolveSupportedModel(flags.options.get('--model'));
+  const estimate = estimateAuthorCost(model);
+  const maxUsd = maxUsdOf(flags);
+
+  // --estimate is free: it reads the brief and prints what researching it
+  // would cost, and spends nothing.
+  if (flags.switches.has('--estimate') || maxUsd === undefined) {
+    if (flags.switches.has('--json')) {
+      writeOut(
+        JSON.stringify({
+          resultVersion: 1,
+          command: 'author',
+          started: false,
+          estimate,
+          recommendedCapUsd: estimate.recommendedCapUsd,
+        }),
+      );
+    } else {
+      writeOut(
+        [
+          ...estimateLines(estimate),
+          '',
+          `Nothing was spent. To research the brief, approve an amount: --max-usd ${estimate.recommendedCapUsd}`,
+        ].join('\n'),
+      );
+    }
+
+    return flags.switches.has('--estimate') ? 0 : 2;
+  }
+
   const dir = path.resolve(flags.options.get('--output') ?? 'audit-draft');
   const settings = await readSettings(flags.options.get('--env-file'));
   // The author researches through the pinned search provider, so its key
@@ -275,6 +439,8 @@ export const runAuthor = async (flags: Flags, usage: string) => {
     const result = await runLocalAuthor({
       brief,
       dir,
+      model,
+      maxUsd,
       secrets: settings.values(credentialSettingNames),
     });
 
@@ -298,6 +464,14 @@ export const runAuthor = async (flags: Flags, usage: string) => {
   } catch (err) {
     if (err instanceof WriterLockHeldError) {
       writeErr(err.message);
+
+      return 2;
+    }
+
+    if (err instanceof ModelBudgetError) {
+      writeErr(
+        `Stopped at the approved cap of $${maxUsd}: ${err.message}. Nothing more was spent; run the same command with a higher --max-usd to continue.`,
+      );
 
       return 2;
     }
@@ -344,9 +518,33 @@ export const runRejudge = async (flags: Flags, usage: string) => {
     configOption === undefined
       ? await readRecordedAuthorEvidence(sourceDir)
       : undefined;
-  const file = await readAuditFile(configFile);
+  // --model judges the same captures with another model: the method
+  // changes, the measurement does not, and the lineage records both.
+  const modelOption = flags.options.get('--model');
+  const configured = await readAuditFile(configFile);
+  const file =
+    modelOption === undefined
+      ? configured
+      : { ...configured, model: resolveSupportedModel(modelOption).id };
   const settings = await readSettings(flags.options.get('--env-file'));
   const { plan, request } = planLocalRun(file);
+  const maxUsd = maxUsdOf(flags);
+  const refused = await refuseWithoutCap({
+    file,
+    dir,
+    maxUsd,
+    // Nothing is probed again: only the judging and writing are paid.
+    estimate: estimateRunCost({
+      plan: { units: plan.units, probesBySurface: new Map() },
+      model: resolveSupportedModel(file.model),
+      grounding: request.grounding,
+    }),
+  });
+
+  if (refused !== undefined) {
+    return refused;
+  }
+
   const lineage = await prepareRejudgment({
     source: sourceDir,
     target: dir,
@@ -358,6 +556,7 @@ export const runRejudge = async (flags: Flags, usage: string) => {
     surfaces: plan.surfaces,
     settings,
     dir,
+    model: file.model,
     groundingSearch: usesGroundingSearch(request),
   });
   const failing = checks.filter((check) => !check.ok);
@@ -382,6 +581,8 @@ export const runRejudge = async (flags: Flags, usage: string) => {
     configFile,
     dir,
     settings,
+    maxUsd,
+    ...(modelOption !== undefined && { modelOverride: file.model }),
     evidence,
     derivedFromRunId: lineage.runId,
   });
@@ -393,6 +594,10 @@ type ExecuteRunOptions = {
   configFile: string;
   dir: string;
   settings: Settings;
+  /** The cap approved on the command line. */
+  maxUsd?: number;
+  /** The model a rejudgment names outside the configuration file. */
+  modelOverride?: string;
   amendment?: BudgetAmendment;
   /** Author evidence already recorded; read beside configFile otherwise. */
   evidence?: RecordedAuthorEvidence;
@@ -407,6 +612,8 @@ const executeRun = async ({
   configFile,
   dir,
   settings,
+  maxUsd,
+  modelOverride,
   amendment,
   evidence,
   derivedFromRunId,
@@ -417,6 +624,7 @@ const executeRun = async ({
     dir,
     configFile,
     evidence: evidence ?? (await readAuthorEvidence(configFile, file)),
+    ...(modelOverride !== undefined && { model: modelOverride }),
   });
 
   // The copy stage reads its rules and publisher context from the engine,
@@ -440,6 +648,7 @@ const executeRun = async ({
   try {
     const local = await openLocalRun(file, dir, {
       signal: controller.signal,
+      ...(maxUsd !== undefined && { maxUsd }),
       amendment,
       derivedFromRunId,
     });
@@ -456,6 +665,7 @@ const executeRun = async ({
       signal: controller.signal,
       origin: 'local',
       held: local.held,
+      ledger: local.ledger,
     }).catch(async (err: unknown) => {
       await local.held.writer.release();
       await local.source.close();
@@ -511,17 +721,25 @@ const executeRun = async ({
 
     if (
       err instanceof PreflightFailedError ||
-      err instanceof WriterLockHeldError
+      err instanceof WriterLockHeldError ||
+      err instanceof BudgetCapMissingError
     ) {
       writeErr(err.message);
 
       return 2;
     }
 
-    // Spending stops at the limit; the ledger survives for the resume.
+    if (err instanceof RunModelChangedError) {
+      writeErr(err.message);
+
+      return 1;
+    }
+
+    // Spending stops at the cap; the ledger and every banked answer survive
+    // for the resume, which never pays for them again.
     if (err instanceof ModelBudgetError) {
       writeErr(
-        `Stopped at the run's budget: ${err.message}. Raise it with --budget-file <limits.json> and run the same command to resume.`,
+        `Stopped at the run's cap: ${err.message}. Nothing past the cap was dispatched. To continue, approve a higher amount and run the same command with --max-usd <amount> (or --budget-file <limits.json>); literally-aeo status ${dir} shows the spend so far.`,
       );
 
       return 2;

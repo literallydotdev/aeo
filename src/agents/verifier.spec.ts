@@ -1,7 +1,7 @@
 import { assert, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { createMemoryModelAccounting } from '../models/accounting';
-import { resolveInternalModelProfile } from '../models/profiles';
+import { testModelProfileFixture } from '../models/profile-fixture';
 import { structuredCallReservation } from '../models/structured';
 import type { GroundingSource } from '../grounding/schema';
 import type { ReportFact } from './facts';
@@ -79,8 +79,7 @@ const createAccounting = () => {
   });
 };
 
-const astraVerifierProfile =
-  resolveInternalModelProfile('astra-grounding-v1').roles.premiseVerifier;
+const astraVerifierProfile = testModelProfileFixture().roles.premiseVerifier;
 
 const memoryPromptSchema = z.object({
   previousEdits: z.unknown().optional(),
@@ -171,8 +170,7 @@ describe('verifier - verifierChunks()', () => {
     };
   };
   const blocks = Array.from({ length: 7 }, (_, index) => block(index));
-  const base = resolveInternalModelProfile('astra-harness-v1', {}).roles
-    .premiseVerifier;
+  const base = testModelProfileFixture().roles.premiseVerifier;
 
   it('should pack by input size when the role sets no ceiling of its own', () => {
     const chunks = verifierChunks(blocks, base);
@@ -490,7 +488,9 @@ describe('verifier - createRecommendationVerifier() evidence', () => {
     const result = await verify([input]);
 
     expect(result.valid).toBe(false);
-    expect(result.model).toBe('openai/gpt-6-astra');
+    expect(result.model).toBe(
+      testModelProfileFixture().roles.premiseVerifier.model,
+    );
     expect(result.issues).toEqual([
       {
         code: 'premise_unsupported',

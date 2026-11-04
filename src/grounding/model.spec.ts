@@ -1,14 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
+import { testModelProfileFixture } from '../models/profile-fixture';
 import { groundingFixture } from '../agents/__fixtures__/grounding';
 import {
   createMemoryModelAccounting,
   ModelBudgetError,
 } from '../models/accounting';
 import { structuredFailureDiagnostic } from '../models/failure-diagnostics';
-import {
-  internalModelRoleDigest,
-  resolveInternalModelProfile,
-} from '../models/profiles';
+import { internalModelRoleDigest } from '../models/profiles';
 import {
   StructuredOutputMissingError,
   type StructuredTransport,
@@ -45,7 +43,7 @@ const parsePrompt = (prompt: string) => {
 
 describe('model - adjudication scope contract', () => {
   it('should preserve unknown scope and make the new instruction specific to the pinned v2 role', async () => {
-    const profile = resolveInternalModelProfile('astra-grounding-v1', {});
+    const profile = testModelProfileFixture();
     const v2Role = profile.roles.adjudication;
     const v1Role = { ...v2Role, promptVersion: 'adjudication-grounding-v1' };
 
@@ -155,7 +153,7 @@ describe('model - adjudication scope contract', () => {
 // in for the gateway, and the assertions are about what the controller can
 // observe from `decide` and `adjudicate`.
 describe('model - createGatewayGroundingModel()', () => {
-  const profile = resolveInternalModelProfile('astra-grounding-v1', {});
+  const profile = testModelProfileFixture();
   const usage = { costUsd: 0.01, inputTokens: 10, outputTokens: 10 };
   const accounting = () => {
     return createMemoryModelAccounting({

@@ -2,9 +2,14 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import {
+  testModelProfileFixture,
+  testStageModelFixture,
+} from '../models/profile-fixture';
 import { copyFixtureConfig, finalDraft } from '../agents/__fixtures__/copy';
 import type * as StructuredModule from '../models/structured';
 import { generateStructured } from '../models/structured';
+import { hostModels } from './host-models';
 import type * as CopyModule from './copy';
 import { validateCopyDraft } from './copy';
 import { withCopy } from './loop';
@@ -89,7 +94,8 @@ describe('Loop - withCopy() with a durable checkpoint', () => {
         brand: copyFixtureConfig.brand,
         answers: [],
         sections: copyFixtureConfig.sections.map((section) => section.key),
-        root: process.cwd(),
+        stageModel: testStageModelFixture,
+        internalModels: hostModels(testModelProfileFixture()),
         secrets: [],
         log: () => {},
       },

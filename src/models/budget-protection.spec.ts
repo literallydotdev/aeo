@@ -7,10 +7,10 @@ import {
   createMemoryModelAccounting,
 } from './accounting';
 import { withModelBudgetProtection } from './budget-protection';
-import { resolveInternalModelProfile } from './profiles';
+import { testModelProfileFixture } from './profile-fixture';
 
 const profile = () => {
-  const profile = resolveInternalModelProfile();
+  const profile = testModelProfileFixture();
 
   for (const role of Object.values(profile.roles)) {
     role.maxInputTokens = 100;

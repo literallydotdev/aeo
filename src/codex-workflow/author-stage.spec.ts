@@ -2,6 +2,7 @@ import { chmod, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { testStageModelFixture } from '../models/profile-fixture';
 import { syntheticExample } from '../author/examples';
 import {
   authorBrand,
@@ -93,6 +94,7 @@ const workdir = async (previous?: { config: unknown; notes: string }) => {
     dir,
     brand: authorBrand(brief),
     answers: [],
+    stageModel: testStageModelFixture,
     timeoutMs: 20_000,
     research: {
       command: '/usr/bin/env',
@@ -160,7 +162,11 @@ describe('Stage - runStage() for the author stage', () => {
       attempts: 1,
       refusals: 0,
     });
-    expect(run.usage).toEqual({ inputTokens: 500, outputTokens: 50 });
+    expect(run.usage).toEqual({
+      inputTokens: 500,
+      cachedInputTokens: 0,
+      outputTokens: 50,
+    });
 
     const args = (await readFile(path.join(dir, 'fake-args'), 'utf8')).split(
       '\n',
@@ -206,10 +212,18 @@ describe('Stage - runStage() for the author stage', () => {
   it('should register the research server for the author stage only', async () => {
     const { dir } = await workdir();
 
-    expect(codexConfigToml(dir)).not.toContain('mcp_servers');
+    expect(
+      codexConfigToml(dir, { stageModel: testStageModelFixture }),
+    ).not.toContain('mcp_servers');
     await expect(
       runStage(
-        { dir, brand: authorBrand(brief), answers: [], command: '/x' },
+        {
+          dir,
+          brand: authorBrand(brief),
+          answers: [],
+          stageModel: testStageModelFixture,
+          command: '/x',
+        },
         'author',
       ),
     ).rejects.toThrow('research tool server');

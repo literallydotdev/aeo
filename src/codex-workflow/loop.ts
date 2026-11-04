@@ -18,14 +18,19 @@ import { capturePlan } from '../capture-manifest';
 import type { GroundingBundle } from '../grounding/schema';
 import { aeoReportCopySchema, type AeoReportCopy } from '../agents/copy-schema';
 import { aeoSnapshotSchema, type AeoAuditConfig } from '../schema';
-import type { InternalModelRoleConfig } from '../models/profiles';
+import type {
+  CodexStageModel,
+  InternalModelRoleConfig,
+} from '../models/profiles';
 import type { InternalModelContext } from '../models/context';
-import { ModelBudgetError } from '../models/accounting';
+import {
+  ModelBudgetError,
+  type ModelCallAccounting,
+} from '../models/accounting';
 import { GroundingIntegrityError } from '../grounding/validation';
 import { structuredFailureDiagnostic } from '../models/failure-diagnostics';
 import { isObject } from '../lib/type-guards';
 import { aggregateWorkdir, type AggregateInputs } from './aggregate';
-import { codexModel } from './codex-home';
 import { CopyVerificationUnavailableError } from './copy-recovery';
 import { copyEditHistory, editCopyDraft, readCopyEdits } from './copy-editor';
 import { validateStage } from './checks';
@@ -41,7 +46,7 @@ import {
   type FinishResult,
   type GroundRun,
 } from './finish';
-import { hostModels } from './host-models';
+import { hostModels, pinnedProfileOf } from './host-models';
 import type { StageName } from './schemas';
 import type { RunSource } from './run-source';
 import {
@@ -93,13 +98,14 @@ export type WorkflowContext = StageContext & {
  * or a fresh memory budget, recorded either way when the run records (the
  * pinned one is wrapped once, by prepareWorkdir). */
 const hostModelsOf = (
-  ctx: Pick<WorkflowContext, 'internalModels' | 'recorder'>,
+  ctx: Pick<WorkflowContext, 'internalModels' | 'recorder'> &
+    Partial<Pick<WorkflowContext, 'source'>>,
 ): InternalModelContext => {
   if (ctx.internalModels) {
     return ctx.internalModels;
   }
 
-  const models = hostModels();
+  const models = hostModels(pinnedProfileOf(ctx.source?.request.modelProfile));
 
   return ctx.recorder
     ? {
@@ -179,6 +185,14 @@ export const prepareWorkdir = async (
      * it recorded the capture before the workflow (a local run). Its
      * internalModels must already charge through that journal. */
     held?: { writer: WriterLock; recorder: ExecutionRecorder };
+    /** The Codex stages' model for a run whose pinned profile carries none
+     * (one pinned before profiles did). A profile's own always wins. */
+    stageModel?: CodexStageModel;
+    /** The run's ledger, unwrapped: every Codex session is reserved and
+     * settled on it beside the host's model calls (specs/aeo-claude-
+     * operator-spec.md §4.2). A session is a codex_session operation of
+     * its own, so it never goes through the recording wrapper. */
+    ledger?: ModelCallAccounting;
   } = {},
 ): Promise<WorkflowContext> => {
   if (options.held) {
@@ -246,6 +260,14 @@ const prepareLockedWorkdir = async (
         ),
       };
 
+  const stageModel = source.request.modelProfile?.stages ?? options.stageModel;
+
+  if (!stageModel) {
+    throw new Error(
+      'The run pins no Codex stage model: its profile has no `stages` and the caller supplied none.',
+    );
+  }
+
   const log =
     options.log ??
     ((line: string) => {
@@ -274,6 +296,8 @@ const prepareLockedWorkdir = async (
     source,
     secrets: options.secrets ?? [],
     internalModels,
+    stageModel,
+    ...(options.ledger && { accounting: options.ledger }),
     recorder,
     releaseWriter: writer.release,
     signal: options.signal,
@@ -504,6 +528,7 @@ export const finish = async (
     degraded,
     write,
     ground,
+    stageModelId: ctx.stageModel.model,
     internalModels: hostModelsOf(ctx),
     signal: ctx.signal,
     quality,
@@ -605,7 +630,7 @@ export const runOne = async (
     const previous = recordedRunSchema.parse(JSON.parse(raw));
     const run: StageRun = {
       stage,
-      model: codexModel.model,
+      model: ctx.stageModel.model,
       ok: true,
       durationMs: 0,
       usage: null,
@@ -657,6 +682,8 @@ export const deliverableCopy = async (
     draft,
     snapshot: await readSnapshot(ctx.dir),
     secrets: ctx.secrets,
+    verifierRole:
+      inputs.verifierRole ?? hostModelsOf(ctx).profile.roles.premiseVerifier,
     accounting: ctx.internalModels?.accounting,
   });
 
@@ -756,7 +783,7 @@ export const writeReportCopy = async (
     );
     run = {
       stage: 'write',
-      model: codexModel.model,
+      model: ctx.stageModel.model,
       ok: false,
       durationMs: 0,
       usage: null,
@@ -856,7 +883,7 @@ class Scorecard {
       version: 1,
       startedAt: this.#startedAt,
       finishedAt: new Date().toISOString(),
-      model: codexModel.model,
+      model: this.#ctx.stageModel.model,
       answers: this.#ctx.answers.length,
       verdict,
       stages: this.#stages,

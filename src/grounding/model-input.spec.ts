@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createMemoryModelAccounting } from '../models/accounting';
-import { resolveInternalModelProfile } from '../models/profiles';
+import { testModelProfileFixture } from '../models/profile-fixture';
 import {
   structuredCallReservation,
   type StructuredTransport,
@@ -97,7 +97,7 @@ const originalSmallPrompt = (bundle: GroundingBundle) => {
 
 describe('model - adjudication input projection', () => {
   it('should preserve every frozen evaluation prompt byte-for-byte when it fits', async () => {
-    const profile = resolveInternalModelProfile('astra-grounding-v1', {});
+    const profile = testModelProfileFixture();
 
     for (const fixture of groundingEvaluationFixtures) {
       const { bundle } = materializeEvaluationFixture(fixture);
@@ -128,7 +128,7 @@ describe('model - adjudication input projection', () => {
   it.each([2, 6])(
     'should bound %s large escaped Unicode sources by the actual wire reservation, preserving claims and retained sources',
     async (sourceCount) => {
-      const profile = resolveInternalModelProfile('astra-grounding-v1', {});
+      const profile = testModelProfileFixture();
       const { bundle: initial } = materializeEvaluationFixture(firstFixture());
       const initialClaim = requireDefined(
         initial.candidates[0],
@@ -271,7 +271,7 @@ describe('model - adjudication input projection', () => {
   );
 
   it('should fail before reserving or dispatching when required claim data alone exceeds the pinned input cap', async () => {
-    const profile = resolveInternalModelProfile('astra-grounding-v1', {});
+    const profile = testModelProfileFixture();
     const { bundle } = materializeEvaluationFixture(firstFixture());
     const ledger = accounting();
     let dispatched = false;
@@ -300,7 +300,7 @@ describe('model - adjudication input projection', () => {
   });
 
   it('should label every omitted passage and retain its ID when only metadata fits', async () => {
-    const profile = resolveInternalModelProfile('astra-grounding-v1', {});
+    const profile = testModelProfileFixture();
     const { bundle } = materializeEvaluationFixture(firstFixture());
     const retainedPassages = bundle.sources.reduce(
       (sum, source) => sum + source.passages.length,

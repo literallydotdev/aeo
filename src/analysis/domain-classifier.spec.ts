@@ -1,11 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { APICallError } from 'ai';
+import { testModelProfileFixture } from '../models/profile-fixture';
 import type { AeoVisibility, SourceCategory } from '../schema';
 import { createMemoryModelAccounting } from '../models/accounting';
-import {
-  internalModelRoleDigest,
-  resolveInternalModelProfile,
-} from '../models/profiles';
+import { internalModelRoleDigest } from '../models/profiles';
 import type { StructuredTransport } from '../models/structured';
 import {
   domainClassifierVersion,
@@ -202,9 +200,18 @@ describe('domain-classifier - buildDomainLabelsFile()', () => {
   });
 
   it('should record the pinned classifier model and reuses labels only from that model', () => {
-    const glm = resolveInternalModelProfile('glm-harness-v1', {});
-    const astra = resolveInternalModelProfile('astra-harness-v1', {});
-    const context = (profile: typeof glm) => {
+    const pinned = testModelProfileFixture();
+    const other = {
+      ...pinned,
+      roles: {
+        ...pinned.roles,
+        domainClassifier: {
+          ...pinned.roles.domainClassifier,
+          model: 'provider/another-model',
+        },
+      },
+    };
+    const context = (profile: typeof pinned) => {
       return {
         profile,
         accounting: createMemoryModelAccounting({
@@ -217,16 +224,18 @@ describe('domain-classifier - buildDomainLabelsFile()', () => {
     const file = buildDomainLabelsFile({
       analyzerDomains: [],
       modelLabels: { 'zenn.dev': 'social' },
-      model: glm.roles.domainClassifier.model,
+      model: pinned.roles.domainClassifier.model,
       contextHash: 'ctx',
-      modelProfileDigest: internalModelRoleDigest(glm.roles.domainClassifier),
+      modelProfileDigest: internalModelRoleDigest(
+        pinned.roles.domainClassifier,
+      ),
     });
 
-    expect(file.model).toBe('zai/glm-5.3');
-    expect(reusableModelLabels(file, context(glm), 'ctx')).toEqual({
+    expect(file.model).toBe(pinned.roles.domainClassifier.model);
+    expect(reusableModelLabels(file, context(pinned), 'ctx')).toEqual({
       'zenn.dev': 'social',
     });
-    expect(reusableModelLabels(file, context(astra), 'ctx')).toEqual({});
+    expect(reusableModelLabels(file, context(other), 'ctx')).toEqual({});
     // Without a pinned profile the legacy Opus default still applies.
     expect(reusableModelLabels(file)).toEqual({});
     expect(
@@ -339,7 +348,7 @@ describe('domain-classifier - learnDomainLabels()', () => {
       context,
       previous: null,
       internalModels: {
-        profile: resolveInternalModelProfile('astra-grounding-v1', {}),
+        profile: testModelProfileFixture(),
         accounting: createMemoryModelAccounting({
           maxUsd: 50,
           maxTokens: 1_000_000,

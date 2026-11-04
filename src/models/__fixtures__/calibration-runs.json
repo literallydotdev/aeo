@@ -1,0 +1,45 @@
+{
+  "note": "Token usage of four local runs of Literally.dev's own self-audit (2026-11-04), from their journals: every Codex session's reported usage, split into the stages that read answers and the write stage, and the host calls' settled usage. Token counts only; calibration 1 of src/models/cost-coefficients.ts.",
+  "runs": [
+    {
+      "name": "extraction-16",
+      "answers": 16,
+      "grounding": "extraction_only",
+      "stageTokens": {
+        "perAnswer": { "input": 970347, "cachedInput": 686848, "output": 173777 },
+        "perRun": { "input": 275671, "cachedInput": 255488, "output": 10754 }
+      },
+      "hostTokens": { "input": 66559, "output": 128372 }
+    },
+    {
+      "name": "extraction-32",
+      "answers": 32,
+      "grounding": "extraction_only",
+      "stageTokens": {
+        "perAnswer": { "input": 1970968, "cachedInput": 1485056, "output": 318648 },
+        "perRun": { "input": 561402, "cachedInput": 530432, "output": 15040 }
+      },
+      "hostTokens": { "input": 74163, "output": 141152 }
+    },
+    {
+      "name": "full-32",
+      "answers": 32,
+      "grounding": "full",
+      "stageTokens": {
+        "perAnswer": { "input": 1102029, "cachedInput": 830464, "output": 143007 },
+        "perRun": { "input": 757079, "cachedInput": 704768, "output": 26429 }
+      },
+      "hostTokens": { "input": 431507, "output": 360004 }
+    },
+    {
+      "name": "full-16",
+      "answers": 16,
+      "grounding": "full",
+      "stageTokens": {
+        "perAnswer": { "input": 783800, "cachedInput": 563968, "output": 124734 },
+        "perRun": { "input": 452038, "cachedInput": 417280, "output": 22521 }
+      },
+      "hostTokens": { "input": 123521, "output": 208801 }
+    }
+  ]
+}

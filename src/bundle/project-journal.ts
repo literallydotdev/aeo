@@ -8,6 +8,7 @@ import {
   RunOrigin,
   type BundleManifest,
 } from './contracts';
+import { summarizeIsolation, type RunIsolation } from './isolation';
 import { readJournal } from './journal';
 import { sha256Hex } from './json';
 import { runJournalDir } from './recorder';
@@ -61,6 +62,7 @@ export type JournalProjection = {
   origin: RunOrigin;
   trace: BundleManifest['trace'];
   writers: z.infer<typeof runtimeSchema>[];
+  isolation: RunIsolation;
 };
 
 /**
@@ -100,6 +102,7 @@ export const projectJournal = async (
       origin: RunOrigin.LEGACY_IMPORT,
       trace: { coverage: 'none', limitations: legacyTraceLimitations },
       writers: [],
+      isolation: summarizeIsolation([]),
     };
   }
 
@@ -173,6 +176,7 @@ export const projectJournal = async (
     origin: origin.success ? origin.data : RunOrigin.LEGACY_IMPORT,
     trace,
     writers,
+    isolation: summarizeIsolation(events),
   };
 
   return projection;

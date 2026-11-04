@@ -3,6 +3,7 @@ import { hostname, tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import { testModelProfileFixture } from '../models/profile-fixture';
 import { hostModels } from '../codex-workflow/host-models';
 import { createMemoryModelAccounting } from '../models/accounting';
 import { withModelBudgetProtection } from '../models/budget-protection';
@@ -155,7 +156,7 @@ describe('recorder - recordingAccounting()', () => {
     await accounting.reserve({
       callId: 'c1',
       role: 'perception',
-      requestedModel: 'deepseek/v4',
+      requestedModel: 'provider/model',
       reservedUsd: 0.01,
       inputTokens: 100,
       maxOutputTokens: 100,
@@ -194,14 +195,14 @@ describe('recorder - recordingAccounting()', () => {
 });
 
 describe('recorder - generateStructured() through a recording accounting', () => {
-  const role = hostModels().profile.roles.perception;
+  const role = hostModels(testModelProfileFixture()).profile.roles.perception;
   const answer = { claims: ['fast'] };
   const transport: StructuredTransport = <T>() =>
     Promise.resolve({
       output: answer as T,
       text: JSON.stringify(answer),
       usage: {
-        resolvedModel: 'deepseek/v4-0601',
+        resolvedModel: 'provider/model-0601',
         requestId: 'req-1',
         inputTokens: 50,
         outputTokens: 10,
@@ -216,8 +217,11 @@ describe('recorder - generateStructured() through a recording accounting', () =>
     });
     // Wrapped again, as the job's budget protection does: the hook must pass through.
     const accounting = withModelBudgetProtection(
-      recordingAccounting(hostModels().accounting, recorder),
-      hostModels().profile,
+      recordingAccounting(
+        hostModels(testModelProfileFixture()).accounting,
+        recorder,
+      ),
+      hostModels(testModelProfileFixture()).profile,
     );
 
     await generateStructured(
@@ -258,7 +262,7 @@ describe('recorder - generateStructured() through a recording accounting', () =>
     expect(await object(inputs.prompt)).toBe('The answer text.');
     expect(JSON.parse(await object(outputs.payload))).toEqual(answer);
     expect(finished?.payload.details).toMatchObject({
-      resolvedModel: 'deepseek/v4-0601',
+      resolvedModel: 'provider/model-0601',
       requestId: 'req-1',
       responseRecorded: true,
     });

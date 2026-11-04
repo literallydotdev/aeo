@@ -10,7 +10,6 @@ import type { GroundingBundle } from '../grounding/schema';
 import { validateGroundingBundle } from '../grounding/validation';
 import {
   internalModelRoleDigest,
-  resolveInternalModelProfile,
   type InternalModelRoleConfig,
 } from '../models/profiles';
 import { ModelBudgetError } from '../models/accounting';
@@ -260,7 +259,7 @@ export const validateAgentCopy = async (args: {
   runId: string;
   configVersion?: number;
   grounding?: GroundingBundle;
-  verifierProfile?: InternalModelRoleConfig;
+  verifierProfile: InternalModelRoleConfig;
   verifier: RecommendationVerifier;
   previous?: AeoReportCopy | null;
   brandLogo?: AeoReportCopy['brandLogo'];
@@ -343,8 +342,7 @@ export const validateAgentCopy = async (args: {
     };
   }
 
-  const profile =
-    args.verifierProfile ?? resolveInternalModelProfile().roles.premiseVerifier;
+  const profile = args.verifierProfile;
   let catalog;
 
   try {
@@ -776,7 +774,7 @@ export type CopyFactsUnchangedOptions = {
   config: AeoAuditConfig;
   runId: string;
   grounding?: GroundingBundle;
-  verifierProfile?: InternalModelRoleConfig;
+  verifierProfile: InternalModelRoleConfig;
 };
 
 export const copyFactsUnchanged = (
@@ -786,7 +784,7 @@ export const copyFactsUnchanged = (
     config,
     runId,
     grounding,
-    verifierProfile = resolveInternalModelProfile().roles.premiseVerifier,
+    verifierProfile,
   }: CopyFactsUnchangedOptions,
 ): boolean => {
   const facts = new Map(
@@ -869,7 +867,7 @@ export const validateHumanCopy = async (args: {
   configVersion: number;
   grounding: GroundingBundle;
   verifier: RecommendationVerifier;
-  verifierProfile?: InternalModelRoleConfig;
+  verifierProfile: InternalModelRoleConfig;
   secrets?: readonly string[];
   signal?: AbortSignal;
 }): Promise<
@@ -921,8 +919,7 @@ export const validateHumanCopy = async (args: {
     );
   }
 
-  const profile =
-    args.verifierProfile ?? resolveInternalModelProfile().roles.premiseVerifier;
+  const profile = args.verifierProfile;
   let facts: ReportFact[];
 
   try {
@@ -1101,7 +1098,7 @@ export const assertCopyValidation = (args: {
   snapshot: AeoSnapshot;
   runId: string;
   grounding: unknown;
-  verifierProfile?: InternalModelRoleConfig;
+  verifierProfile: InternalModelRoleConfig;
 }): CopyValidationReceipt => {
   const grounding = validateGroundingBundle(args.grounding, {
     reportKey: args.config.reportKey,
@@ -1112,8 +1109,7 @@ export const assertCopyValidation = (args: {
   const provenance = isStoredProvenance(args.provenance)
     ? args.provenance
     : null;
-  const profile =
-    args.verifierProfile ?? resolveInternalModelProfile().roles.premiseVerifier;
+  const profile = args.verifierProfile;
   const verifierPromptVersions: Record<number, number> = {
     3: 1,
     4: 2,

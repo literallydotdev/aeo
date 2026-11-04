@@ -3,12 +3,15 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  testModelProfileFixture,
+  testStageModelFixture,
+} from '../models/profile-fixture';
+import {
   copyFixtureConfig,
   copyFixtureSnapshot,
 } from '../agents/__fixtures__/copy';
 import { groundingFixture } from '../agents/__fixtures__/grounding';
 import { assertCopyValidation } from '../agents/copy-validation';
-import { resolveInternalModelProfile } from '../models/profiles';
 import { deliverableCopy } from './loop';
 
 describe('Loop - deliverableCopy()', () => {
@@ -22,13 +25,14 @@ describe('Loop - deliverableCopy()', () => {
         JSON.stringify(copyFixtureSnapshot),
       );
 
-      const verifierRole = resolveInternalModelProfile().roles.premiseVerifier;
+      const verifierRole = testModelProfileFixture().roles.premiseVerifier;
       const grounding = groundingFixture();
       const result = await deliverableCopy(
         {
           dir,
           brand: copyFixtureConfig.brand,
           answers: [],
+          stageModel: testStageModelFixture,
           secrets: [],
           log: () => {},
         },

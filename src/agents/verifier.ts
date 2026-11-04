@@ -1,10 +1,7 @@
 import { z } from 'zod';
 import type { ModelCallAccounting } from '../models/accounting';
 import type { GroundingSource } from '../grounding/schema';
-import {
-  resolveInternalModelProfile,
-  type InternalModelRoleConfig,
-} from '../models/profiles';
+import type { InternalModelRoleConfig } from '../models/profiles';
 import {
   generateStructured,
   structuredCallReservation,
@@ -25,9 +22,9 @@ const verdictSchema = z
             path: z.string(),
             /** The verdict itself. The premise findings and the flag must
              * agree, and only the flag lets `errors` reject a block: a
-             * passing review may still carry stray text there. Measured
-             * 2026-09-12: GLM wrote "None found." and "none" into `errors`
-             * for blocks it had approved, and each cost a copy generation. */
+             * passing review may still carry stray text there: a measured
+             * model wrote "None found." and "none" into `errors` for blocks
+             * it had approved, and each cost a copy generation. */
             passed: z.boolean(),
             allPremisesCovered: z.boolean(),
             actionAppropriate: z.boolean(),
@@ -315,7 +312,7 @@ export const checkPremiseVerdicts = (
       // A declared premise judged on a related fact rather than the one
       // the writer cited is not refused: the verdict is what matters, the
       // receipt keeps the verifier's own basis, and refusing it cost three
-      // of seven verifications on 2026-09-12 (DeepSeek) for nothing.
+      // of seven verifications in a measured run for nothing.
     }
 
     // The premise findings are the evidence; the block flag follows them. A
@@ -344,12 +341,11 @@ export const checkPremiseVerdicts = (
 
 export const createRecommendationVerifier = (args: {
   accounting: ModelCallAccounting;
-  profile?: InternalModelRoleConfig;
+  profile: InternalModelRoleConfig;
   transport?: StructuredTransport;
   memory?: VerifierMemory;
 }): RecommendationVerifier => {
-  const profile =
-    args.profile ?? resolveInternalModelProfile().roles.premiseVerifier;
+  const { profile } = args;
 
   return async (requested, signal) => {
     const history = (await args.memory?.read()) ?? {};
@@ -530,9 +526,9 @@ export const createRecommendationVerifier = (args: {
  * the caller can classify it.
  *
  * Fitting the input limit is not enough on its own for a reasoning model.
- * Measured 2026-09-11: packing every block that fit into one call left GLM
- * thinking past 40,960 output tokens without returning a verdict, having been
- * billed for all of it. What bounds the call is how many judgements it
+ * Measured: packing every block that fit into one call left a reasoning
+ * model thinking past 40,960 output tokens without returning a verdict,
+ * having been billed for all of it. What bounds the call is how many judgements it
  * contains, not how many bytes.
  */
 export const verifierChunks = (

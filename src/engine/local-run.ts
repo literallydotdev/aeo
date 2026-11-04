@@ -28,7 +28,12 @@ import {
 } from '../probes/agent-clis';
 import { createFileResearchSessionStore } from '../grounding/file-store';
 import { openGroundingRuntime } from '../grounding/grounding-runtime';
-import { createFileModelAccounting } from '../models/accounting';
+import {
+  createFileModelAccounting,
+  type ModelCallAccounting,
+} from '../models/accounting';
+import { resolveSupportedModel } from '../models/supported-models';
+import { chargedProbeTrace } from '../probes/charged-trace';
 import type { InternalModelContext } from '../models/context';
 import { ProbeLimiter } from '../probes/limits';
 import { planRun, type RunPlan } from '../runner';
@@ -134,6 +139,9 @@ export type LocalRun = {
   /** The run's pinned model context: every host call charges its ledger
    * and is recorded in the run journal. */
   internalModels: InternalModelContext;
+  /** The same ledger unwrapped, for the Codex sessions, which the journal
+   * records as operations of their own. */
+  ledger: ModelCallAccounting;
   ground: GroundRun;
   /** The directory's writer lock and its run journal, held from before the
    * first canary: the workflow continues under both (prepareWorkdir held). */
@@ -154,6 +162,8 @@ export const openLocalRun = async (
   dir: string,
   options: {
     signal?: AbortSignal;
+    /** The cap approved on the command line (`run --max-usd`). */
+    maxUsd?: number;
     amendment?: BudgetAmendment;
     derivedFromRunId?: string;
   } = {},
@@ -203,12 +213,14 @@ const openLockedLocalRun = async (
   dir: string,
   {
     signal,
+    maxUsd,
     amendment,
     derivedFromRunId,
     runId,
     held,
   }: {
     signal?: AbortSignal;
+    maxUsd?: number;
     amendment?: BudgetAmendment;
     derivedFromRunId?: string;
     runId: string;
@@ -217,7 +229,9 @@ const openLockedLocalRun = async (
 ): Promise<LocalRun> => {
   const { recorder } = held;
   const budget = await resolveRunBudget(dir, file.runPolicy.budget, {
-    amendment,
+    model: resolveSupportedModel(file.model).id,
+    ...(maxUsd !== undefined && { maxUsd }),
+    ...(amendment && { amendment }),
   });
   const config = toAuditConfig(file);
   const request = {
@@ -237,17 +251,20 @@ const openLockedLocalRun = async (
 
     return Promise.resolve();
   };
+  // One ledger for every paid call of the run: probes, Codex sessions,
+  // host model calls and searches (specs/aeo-claude-operator-spec.md §4.2).
+  const ledger = createFileModelAccounting({
+    filename: path.join(bank, 'model-budget.json'),
+    limits: budget.limits,
+    assertOwned,
+  });
   const grounding = openGroundingRuntime({
     request,
     config,
     analysisStore: stores.analysisStore,
     env: getEnvironment(),
     signal,
-    rawAccounting: createFileModelAccounting({
-      filename: path.join(bank, 'model-budget.json'),
-      limits: budget.limits,
-      assertOwned,
-    }),
+    rawAccounting: ledger,
     store: createFileResearchSessionStore(
       path.join(bank, 'research'),
       assertOwned,
@@ -280,6 +297,7 @@ const openLockedLocalRun = async (
     );
   }
 
+  const probes = chargedProbeTrace(probeTraceOf(recorder, 'probe'), ledger);
   const capture = await captureForRun({
     config,
     request,
@@ -288,10 +306,21 @@ const openLockedLocalRun = async (
     agentCliVersions,
     limiter: new ProbeLimiter(request.limits),
     internalModels,
-    trace: probeTraceOf(recorder, 'probe'),
+    trace: probes.trace,
     signal,
     logContext: { reportKey: config.reportKey, runId, local: true },
+  }).catch((err: unknown) => {
+    // A unit the cap refused fails as unrecorded, and the capture may
+    // report only the shortfall: the cap is the reason, and the run stops
+    // resumable with everything captured so far banked.
+    throw probes.exhausted() ?? err;
   });
+  const exhausted = probes.exhausted();
+
+  if (exhausted) {
+    throw exhausted;
+  }
+
   const captured = (await stores.probeStore.list()).filter(
     (entry): entry is CapturedUnitRecord => entry.status === 'captured',
   );
@@ -315,6 +344,7 @@ const openLockedLocalRun = async (
     source,
     budget,
     internalModels,
+    ledger,
     ground: (manifest, options) => grounding.ground(manifest, options),
     held,
   };

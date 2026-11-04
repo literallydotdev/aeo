@@ -1,7 +1,7 @@
 import { mkdtemp, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import {
   claudeTranscriptDir,
@@ -13,8 +13,8 @@ import { ChildProcessError, childEnv, runChild } from './child-process';
 import { unlimited } from './limits';
 
 // ============================================================================
-// Fake CLI on PATH (hardening spec §6.2): the runner resolves `claude`,
-// `codex` and `cursor-agent` by name, so a directory of symlinks to the
+// Fake CLI on PATH (hardening spec §6.2): the runner resolves `claude` and
+// `cursor-agent` by name, and `codex` through AEO_CODEX_BIN, so a directory of symlinks to the
 // fixture script stands in for all three. Modes exercise the child-process
 // runner (timeout, kill escalation, buffer cap, environment allowlist) and
 // the unit loop (typed outcomes, no argv in messages, banking failures,
@@ -37,9 +37,13 @@ beforeAll(async () => {
   for (const name of ['claude', 'codex', 'cursor-agent']) {
     await symlink(fakeCliPath, path.join(binDir, name));
   }
+
+  // Codex runs from the package's own dependency unless overridden.
+  vi.stubEnv('AEO_CODEX_BIN', path.join(binDir, 'codex'));
 });
 
 afterAll(async () => {
+  vi.unstubAllEnvs();
   await rm(binDir, { recursive: true, force: true });
 
   for (const home of homes) {

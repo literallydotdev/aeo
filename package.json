@@ -1,6 +1,6 @@
 {
   "name": "literally-aeo",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Literally.dev AEO: run an AI visibility audit locally and verify its evidence offline.",
   "type": "module",
   "license": "MIT",
@@ -67,6 +67,7 @@
     "@ai-sdk/gateway": "3.0.177",
     "@ai-sdk/google": "3.0.2",
     "@ai-sdk/openai": "3.0.2",
+    "@openai/codex": "0.150.1",
     "ai": "6.0.77",
     "cheerio": "1.2.0",
     "playwright": "1.62.1",

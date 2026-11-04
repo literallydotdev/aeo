@@ -1,35 +1,44 @@
-import { createMemoryModelAccounting } from '../models/accounting';
-import type { InternalModelContext } from '../models/context';
 import {
-  codexRunnerProfile,
-  configuredModelProfileId,
-  resolveInternalModelProfile,
-  type InternalModelProfileId,
-} from '../models/profiles';
+  createMemoryModelAccounting,
+  type ModelCallAccounting,
+} from '../models/accounting';
+import type { InternalModelContext } from '../models/context';
+import type { InternalModelProfile } from '../models/profiles';
 
 // ============================================================================
 // The host's own model calls in the Codex workflow (perception, source
-// labels, the copy premise verifier) run under a small memory budget per
-// step; there is no run ledger here. The premise verifier follows the role
-// the run pinned at admission, because the publication gate re-checks the
-// copy receipt against that role; a local run has no pin and falls back to
-// the DeepSeek-only profile's verifier. Every admission pins
-// `deepseek-harness-v1` (policy.ts) so no judgment role resolves to a
-// premium model (Andrei, 2026-09-13).
+// labels, the copy premise verifier) when the caller supplies no ledger: a
+// small memory budget per step, on the profile the run pinned. A local run
+// always supplies its ledger; this is the fallback for a host that does
+// not.
 // ============================================================================
 
 export const hostStepMaxUsd = 5;
-export const copyVerifierProfile: InternalModelProfileId = codexRunnerProfile;
+
+/** A fresh memory budget for one host step. */
+export const hostStepAccounting = (): ModelCallAccounting => {
+  return createMemoryModelAccounting({
+    maxUsd: hostStepMaxUsd,
+    maxTokens: 5_000_000,
+    deadlineAt: new Date(Date.now() + 30 * 60_000).toISOString(),
+  });
+};
 
 export const hostModels = (
-  profileId: InternalModelProfileId = configuredModelProfileId(),
+  profile: InternalModelProfile,
 ): InternalModelContext => {
-  return {
-    profile: resolveInternalModelProfile(profileId),
-    accounting: createMemoryModelAccounting({
-      maxUsd: hostStepMaxUsd,
-      maxTokens: 5_000_000,
-      deadlineAt: new Date(Date.now() + 30 * 60_000).toISOString(),
-    }),
-  };
+  return { profile, accounting: hostStepAccounting() };
+};
+
+/** The profile a run pinned; a run without one cannot call a model. */
+export const pinnedProfileOf = (
+  profile: InternalModelProfile | undefined,
+): InternalModelProfile => {
+  if (!profile) {
+    throw new Error(
+      'The run request pins no model profile; the host model steps need one.',
+    );
+  }
+
+  return profile;
 };

@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   appendFile,
   mkdir,
@@ -20,6 +20,13 @@ import { isAuthError } from '../probes/failure';
 import { isObject } from '../lib/type-guards';
 import { getEnvironment, readEnv } from '../lib/env';
 import type { ExecutionRecorder } from '../bundle/recorder';
+import type { ModelCallAccounting } from '../models/accounting';
+import {
+  sessionReservation,
+  type SessionCost,
+} from '../models/cost-coefficients';
+import { tokenCostUsd } from '../models/pricing';
+import type { CodexStageModel } from '../models/profiles';
 import {
   mergeBatches,
   restoreQualificationQuotes,
@@ -27,8 +34,10 @@ import {
   type CheckScope,
   type StageValue,
 } from './checks';
+import { codexArgs, codexBinaryAt, resolveCodexBinary } from './codex-binary';
 import {
-  codexModel,
+  codexGateway,
+  codexStageConfig,
   prepareCodexHome,
   type ResearchServerConfig,
 } from './codex-home';
@@ -74,6 +83,13 @@ import { batchInput } from './batch-input';
 // prompts.ts.
 // ============================================================================
 
+/** Tokens a Codex session reported: cached input is part of input. */
+export type SessionUsage = {
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+};
+
 export type StageRun = {
   stage: StageName;
   model: string;
@@ -81,7 +97,7 @@ export type StageRun = {
    * `degraded` and their answers carry no judgment from this stage. */
   ok: boolean;
   durationMs: number;
-  usage: { inputTokens: number; outputTokens: number } | null;
+  usage: SessionUsage | null;
   errors: string[];
   /** Answer files whose batch never validated: excluded from this stage
    * and every later one, recorded, never a reason to stop the run. */
@@ -107,7 +123,13 @@ export type StageContext = {
   ownedDomains?: readonly string[];
   /** The host stopping the work: sessions are killed and no batch starts. */
   signal?: AbortSignal;
-  /** Overrides for tests: the command to run instead of `codex`. */
+  /** The model every session runs on (the run's pinned stage model). */
+  stageModel: CodexStageModel;
+  /** The run's ledger: every session is reserved before it starts and
+   * settled from its reported tokens. Absent, sessions are not charged. */
+  accounting?: ModelCallAccounting;
+  /** Overrides for tests: the command to run instead of the engine's own
+   * Codex. */
   command?: string;
   timeoutMs?: number;
   /** Answers per Codex session; the default fits the pinned model. */
@@ -186,6 +208,9 @@ export type Batch = {
 type StageSpec = {
   /** Partitioned by answer file, or one session over the whole report. */
   batched: boolean;
+  /** The calibrated workload a session is reserved at on the run's ledger
+   * (src/models/cost-coefficients.ts). */
+  sessionCost: SessionCost;
   /** Judged against the batch's own files, or every answer (the copy must
    * name every configured section). */
   judgedOn: 'batch' | 'all';
@@ -298,6 +323,7 @@ const stageSpecs: Record<StageName, StageSpec> = {
   analyze: {
     ...reportStage,
     batched: true,
+    sessionCost: 'answers',
     judgedOn: 'batch',
     persistent: false,
     sharedInputs: fixedInputs([
@@ -319,6 +345,7 @@ const stageSpecs: Record<StageName, StageSpec> = {
   qualify: {
     ...reportStage,
     batched: true,
+    sessionCost: 'answers',
     judgedOn: 'batch',
     persistent: false,
     sharedInputs: fixedInputs([
@@ -344,6 +371,7 @@ const stageSpecs: Record<StageName, StageSpec> = {
   review: {
     ...reportStage,
     batched: true,
+    sessionCost: 'answers',
     judgedOn: 'batch',
     persistent: true,
     sharedInputs: fixedInputs([
@@ -373,6 +401,7 @@ const stageSpecs: Record<StageName, StageSpec> = {
   write: {
     ...reportStage,
     batched: false,
+    sessionCost: 'report',
     judgedOn: 'all',
     persistent: true,
     // Everything under COPY/, listed at digest time.
@@ -406,6 +435,7 @@ const stageSpecs: Record<StageName, StageSpec> = {
   // read-only sandbox, judged by the host's verdict after it submits.
   author: {
     batched: false,
+    sessionCost: 'brief',
     judgedOn: 'all',
     persistent: true,
     sharedInputs: authorFiles,
@@ -433,6 +463,10 @@ const sumUsage = (usages: readonly StageRun['usage'][]): StageRun['usage'] => {
   return {
     inputTokens: reported.reduce(
       (total, usage) => total + usage.inputTokens,
+      0,
+    ),
+    cachedInputTokens: reported.reduce(
+      (total, usage) => total + usage.cachedInputTokens,
       0,
     ),
     outputTokens: reported.reduce(
@@ -514,7 +548,7 @@ const batchInputsDigest = async (
 ): Promise<string> => {
   const spec = stageSpecs[stage];
   const parts: Record<string, string> = {
-    model: JSON.stringify(codexModel),
+    model: JSON.stringify(codexStageConfig(ctx.stageModel)),
     prompt: stagePrompts[stage],
     version: String(stageVersions[stage]),
     schema: JSON.stringify(stageJsonSchema(stage)),
@@ -596,7 +630,11 @@ const sessionSandbox = (spec: StageSpec) => {
 const eventText = z.string().optional().catch(undefined);
 const eventTokens = z.number().optional().catch(undefined);
 const eventUsage = z
-  .looseObject({ input_tokens: eventTokens, output_tokens: eventTokens })
+  .looseObject({
+    input_tokens: eventTokens,
+    cached_input_tokens: eventTokens,
+    output_tokens: eventTokens,
+  })
   .optional()
   .catch(undefined);
 
@@ -666,6 +704,64 @@ type SessionTarget = {
   attempt?: number;
 };
 
+type SessionCharge = {
+  settle: (usage: SessionUsage | null) => Promise<void>;
+};
+
+/** reserveSession charges one session to the run's ledger before it starts,
+ * at the high estimate for its stage's workload, and returns how to settle
+ * it from the tokens it reports at the stage model's list prices. A session
+ * that reports nothing is settled without a cost, so it keeps charging its
+ * reservation: nothing is recorded that Codex did not report. */
+const reserveSession = async (
+  ctx: StageContext,
+  { stage, batch, attempt }: Pick<SessionTarget, 'stage' | 'batch' | 'attempt'>,
+): Promise<SessionCharge | undefined> => {
+  const { accounting, stageModel } = ctx;
+
+  if (!accounting) {
+    return undefined;
+  }
+
+  const pricing = stageModel.pricingUsdPerMillion;
+  const reserved = sessionReservation({
+    cost: stageSpecs[stage].sessionCost,
+    answers: batch.files.length,
+  });
+  // Unique per session: a resumed run never settles a session it lost
+  // under the old one's reservation.
+  const callId = `codex:${stage}-${batch.index}:${attempt ?? 1}:${randomUUID()}`;
+
+  await accounting.reserve({
+    callId,
+    role: `stage:${stage}`,
+    requestedModel: stageModel.model,
+    reasoningEffort: stageModel.reasoningEffort,
+    reservedUsd: tokenCostUsd(pricing, reserved),
+    inputTokens: reserved.inputTokens,
+    maxOutputTokens: reserved.outputTokens,
+  });
+
+  const charge: SessionCharge = {
+    settle: async (usage) => {
+      await accounting.settle(
+        callId,
+        usage
+          ? {
+              requestedModel: stageModel.model,
+              costUsd: tokenCostUsd(pricing, usage),
+              inputTokens: usage.inputTokens,
+              cachedInputTokens: usage.cachedInputTokens,
+              outputTokens: usage.outputTokens,
+            }
+          : { requestedModel: stageModel.model, valid: false },
+      );
+    },
+  };
+
+  return charge;
+};
+
 /** Run `codex exec` for one session of a batch: a fresh conversation, or
  * the batch's saved one when the stage keeps it and the contract (what the
  * conversation has read) is unchanged. */
@@ -702,7 +798,7 @@ const execCodex = async (
   const contract = sha({
     stage,
     version: stageVersions[stage],
-    model: codexModel,
+    model: codexStageConfig(ctx.stageModel),
     prompt: stagePrompts[stage],
     continuation: sessionPrompt(stage, batch.index, { continuation: true }),
     schema: stageJsonSchema(stage),
@@ -749,8 +845,15 @@ const execCodex = async (
   ];
 
   let threadId: string | null = session?.threadId ?? null;
+  const codexBinary = ctx.command
+    ? codexBinaryAt(ctx.command)
+    : resolveCodexBinary();
 
   ctx.signal?.throwIfAborted();
+
+  // Reserved before the child starts: a session the cap cannot afford is
+  // never started, and the run stops resumable at its budget.
+  const charge = await reserveSession(ctx, { stage, batch, attempt });
 
   // Recorded before the child starts: a session the host loses track of
   // stays an open operation, an unknown outcome, never a silent success.
@@ -765,9 +868,10 @@ const execCodex = async (
       arguments: JSON.stringify(args),
     },
     details: {
-      requestedModel: codexModel.model,
-      provider: codexModel.providerName,
-      reasoningEffort: codexModel.reasoningEffort,
+      requestedModel: ctx.stageModel.model,
+      provider: codexGateway.providerName,
+      reasoningEffort: ctx.stageModel.reasoningEffort,
+      codex: { source: codexBinary.source, version: codexBinary.version },
       sandbox: sessionSandbox(spec),
       resumedThreadId: session?.threadId ?? null,
     },
@@ -782,7 +886,7 @@ const execCodex = async (
   }>((resolve) => {
     // Codex appends piped input to the instruction as context. End the pipe
     // immediately after the complete packet; an open stdin waits forever.
-    const child = spawn(ctx.command ?? 'codex', args, {
+    const child = spawn(codexBinary.command, codexArgs(codexBinary, args), {
       cwd: ctx.dir,
       env,
       detached: true,
@@ -838,6 +942,7 @@ const execCodex = async (
         if (found) {
           usage = {
             inputTokens: found.input_tokens ?? 0,
+            cachedInputTokens: found.cached_input_tokens ?? 0,
             outputTokens: found.output_tokens ?? 0,
           };
         }
@@ -890,6 +995,8 @@ const execCodex = async (
       sessionUsage: result.usage,
     },
   });
+
+  await charge?.settle(result.usage);
 
   if (spec.persistent && threadId) {
     const files = await saveSession(ctx.dir, label, { contract, threadId });
@@ -2200,11 +2307,13 @@ export const runStage = async (
 
   const ctx: StageContext = {
     ...initial,
-    codexEnv: await prepareCodexHome(
-      initial.dir,
-      getEnvironment(),
-      spec.research ? initial.research : undefined,
-    ),
+    codexEnv: await prepareCodexHome(initial.dir, {
+      stageModel: initial.stageModel,
+      env: getEnvironment(),
+      ...(spec.research && initial.research
+        ? { research: initial.research }
+        : {}),
+    }),
   };
 
   const batches = stageBatches(ctx, stage);
@@ -2317,7 +2426,7 @@ export const runStage = async (
 
   const result: StageRun = {
     stage,
-    model: codexModel.model,
+    model: ctx.stageModel.model,
     ok: output !== undefined,
     durationMs: Date.now() - started,
     usage,

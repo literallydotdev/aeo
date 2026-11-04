@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { testModelProfileFixture } from '../models/profile-fixture';
 import { createMemoryModelAccounting } from '../models/accounting';
-import {
-  internalModelRoleDigest,
-  resolveInternalModelProfile,
-} from '../models/profiles';
+import { internalModelRoleDigest } from '../models/profiles';
 import type { StructuredTransport } from '../models/structured';
 import { structuredWireSchema } from '../models/wire-schema';
 import { requireDefined } from '../__fixtures__/require-defined';
@@ -21,7 +19,7 @@ const corruptedId =
   'claim_c7c15e4893a9e17f54650a6448df792bfe01d84b744d72336ecffe3f4ddce897';
 
 const fixture = () => {
-  const profile = resolveInternalModelProfile('astra-grounding-v1', {});
+  const profile = testModelProfileFixture();
   const { bundle: original } = materializeEvaluationFixture(
     requireDefined(groundingEvaluationFixtures[0], 'first fixture'),
   );

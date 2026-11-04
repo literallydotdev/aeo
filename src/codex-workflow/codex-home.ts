@@ -1,23 +1,22 @@
-import { execFile } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { promisify } from 'node:util';
 import { getEnvironment } from '../lib/env';
+import type { CodexStageModel } from '../models/profiles';
+import {
+  codexBinaryVersion,
+  resolveCodexBinary,
+  type CodexBinary,
+} from './codex-binary';
 
 // ============================================================================
 // An isolated Codex home per work directory (specs/aeo-codex-workflow-spec.md
 // §7). Codex reads its configuration, auth and state from CODEX_HOME; giving
 // every run its own, written by the host, means a stage can never inherit the
-// operator's global model, service tier, MCP servers or login. The first
-// three local loops ran on the operator's default (GPT-6 Astra at xhigh on
-// the priority tier) for exactly that reason.
+// operator's global model, service tier, MCP servers or login.
 // ============================================================================
 
-/** The one model the workflow's stages run on: DeepSeek V4.1 Flash through
- * the Vercel AI Gateway, at the highest effort the family takes (the same
- * pin `src/models/profiles.ts` uses for the DeepSeek bulk roles). Part of
- * every stage's inputs digest. */
-export const codexModel = {
+/** The gateway the Codex stages reach their model through. */
+export const codexGateway = {
   provider: 'vercel',
   providerName: 'Vercel AI Gateway',
   baseUrl: 'https://ai-gateway.vercel.sh/v1',
@@ -25,15 +24,26 @@ export const codexModel = {
    * secret the child process sees. */
   apiKeyEnv: 'AI_GATEWAY_API_KEY',
   wireApi: 'responses',
-  model: 'deepseek/deepseek-v4.1-flash',
-  reasoningEffort: 'high',
-  /** The model's context window as the gateway reports it (`/v1/models`,
-   * 2026-09-13). Codex has no metadata for gateway models and otherwise
-   * falls back to a default window, which decides when it compacts the
-   * session history; a qualify or review batch that read ten answers and
-   * their rows would be compacted for no reason. */
-  contextWindow: 1_000_000,
 } as const;
+
+/** Everything a stage's Codex configuration says about its model, in a
+ * fixed key order: part of every stage's inputs digest and session
+ * contract, so a resume reruns a batch only when the model changed. */
+export type CodexStageConfig = typeof codexGateway &
+  Pick<CodexStageModel, 'model' | 'reasoningEffort' | 'contextWindow'>;
+
+export const codexStageConfig = (
+  stageModel: CodexStageModel,
+): CodexStageConfig => {
+  const config: CodexStageConfig = {
+    ...codexGateway,
+    model: stageModel.model,
+    reasoningEffort: stageModel.reasoningEffort,
+    contextWindow: stageModel.contextWindow,
+  };
+
+  return config;
+};
 
 export const codexHomeDir = (workdir: string): string => {
   return path.join(workdir, '.codex-home');
@@ -57,10 +67,16 @@ const tomlString = (value: string): string => {
  * directory is the only writable root: a session must not touch /tmp (an
  * empty /tmp/.git appeared during a run, 2026-09-13), unless the work
  * directory itself lives there, as it does in the container. */
+type CodexConfigOptions = {
+  stageModel: CodexStageModel;
+  research?: ResearchServerConfig;
+};
+
 export const codexConfigToml = (
   workdir: string,
-  research?: ResearchServerConfig,
+  { stageModel, research }: CodexConfigOptions,
 ): string => {
+  const codexModel = codexStageConfig(stageModel);
   const underTmp = workdir === '/tmp' || workdir.startsWith('/tmp/');
 
   return [
@@ -126,16 +142,19 @@ export const codexConfigToml = (
 
 /** Write the isolated home and return the environment a stage runs with:
  * the path, the home, and the gateway key. Nothing else from the host. */
+type PrepareCodexHomeOptions = CodexConfigOptions & {
+  env?: Record<string, string | undefined>;
+};
+
 export const prepareCodexHome = async (
   workdir: string,
-  env: Record<string, string | undefined> = getEnvironment(),
-  research?: ResearchServerConfig,
+  { stageModel, research, env = getEnvironment() }: PrepareCodexHomeOptions,
 ): Promise<Record<string, string>> => {
-  const apiKey = env[codexModel.apiKeyEnv];
+  const apiKey = env[codexGateway.apiKeyEnv];
 
   if (!apiKey) {
     throw new Error(
-      `${codexModel.apiKeyEnv} is not set; the Codex stages run on ${codexModel.model} through the gateway and need it.`,
+      `${codexGateway.apiKeyEnv} is not set; the Codex stages run on ${stageModel.model} through the gateway and need it.`,
     );
   }
 
@@ -147,7 +166,7 @@ export const prepareCodexHome = async (
   await writeFile(path.join(workdir, '.aeo-report-root'), '');
   await writeFile(
     path.join(home, 'config.toml'),
-    codexConfigToml(workdir, research),
+    codexConfigToml(workdir, { stageModel, research }),
   );
 
   return {
@@ -155,27 +174,18 @@ export const prepareCodexHome = async (
     HOME: home,
     CODEX_HOME: home,
     TMPDIR: temporaryDirectory,
-    [codexModel.apiKeyEnv]: apiKey,
+    [codexGateway.apiKeyEnv]: apiKey,
   };
 };
 
-/** The version of the Codex binary the stages spawn, or null when it is not
- * on PATH. This is the binary itself, not a probe worker's login: the
- * stages and the author run it from the host process with an isolated home
- * and the gateway key, so no agent credential is involved. */
+/** The version of the Codex binary the stages spawn, or null when it
+cannot be started. The stages and the author run it from the host process
+with an isolated home and the gateway key, so no agent credential is
+involved. */
 export const codexCliVersion = async (
-  command = 'codex',
+  binary: CodexBinary = resolveCodexBinary(),
 ): Promise<string | null> => {
-  try {
-    const { stdout } = await promisify(execFile)(command, ['--version'], {
-      timeout: 15_000,
-    });
-    const [firstLine] = stdout.trim().split('\n');
-
-    return firstLine === undefined || firstLine === '' ? null : firstLine;
-  } catch {
-    return null;
-  }
+  return codexBinaryVersion(binary);
 };
 
 /** The values the work directory's journals must never carry: the store

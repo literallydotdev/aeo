@@ -8,12 +8,13 @@ export type StructuredImage = {
 
 /** Models that accept image input, with the visual tokens reserved per
  * image before dispatch; settlement uses the provider's reported usage.
- * Opus 4.6's standard vision tier uses at most 1,568 tokens per image
- * (https://platform.claude.com/docs/en/build-with-claude/vision); Kimi K3
- * billed about 700 for a 1024x512 PNG through the gateway on 2026-09-11.
- * 2,048 covers either with framing. */
+ * Claude's standard vision tier uses at most 1,568 tokens per image
+ * (https://platform.claude.com/docs/en/build-with-claude/vision); 2,048
+ * covers that with framing, and the other entries measured below it. */
 const imageTokenReserve: Readonly<Record<string, number>> = {
   'anthropic/claude-opus-4.6': 2048,
+  'anthropic/claude-opus-5.5': 2048,
+  'anthropic/claude-sonnet-5.5': 2048,
   'moonshotai/kimi-k3': 2048,
 };
 

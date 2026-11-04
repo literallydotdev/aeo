@@ -13,7 +13,7 @@ export const admissionFixture = (
     tenantScope: 'operator',
     briefDigest: contentHash('brief'),
     intent: 'report',
-    modelProfileId: 'deepseek-harness-v1',
+    modelProfileId: 'test-profile-v1',
     modelProfileDigest: contentHash('profile'),
     harnessVersion: 1,
     graphVersion: workflowVersion,

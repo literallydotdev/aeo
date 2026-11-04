@@ -14,6 +14,7 @@ import { agentSurfaces, surfaceRunCounts, retrievalLogSchema } from '../schema';
 import { createLog } from '../lib/log';
 import { isRecord } from '../lib/type-guards';
 import { getEnvironment, readEnv } from '../lib/env';
+import { codexArgs, resolveCodexBinary } from '../codex-workflow/codex-binary';
 import type { ProbePromptInput, ProbeResult } from './probes';
 import {
   AgentStreamError,
@@ -321,6 +322,23 @@ const probeForSurface = (surface: AeoAgentSurface): AgentProbeFn => {
   }
 };
 
+/** What to spawn for an agent CLI on this machine. Codex is this package's
+ * own pinned dependency (specs/aeo-claude-operator-spec.md §4.3), run with
+ * the operator's Codex login when it is measured; the others come from
+ * PATH. */
+const localCommand = (
+  command: string,
+  args: readonly string[],
+): { command: string; args: string[] } => {
+  if (command !== 'codex') {
+    return { command, args: [...args] };
+  }
+
+  const binary = resolveCodexBinary();
+
+  return { command: binary.command, args: codexArgs(binary, args) };
+};
+
 const cliVersion = async (
   command: string,
   args: string[],
@@ -340,7 +358,10 @@ const cliVersion = async (
       requireWorkerTransport();
     }
 
-    const { stdout } = await execFileAsync(command, args, { timeout: 15_000 });
+    const local = localCommand(command, args);
+    const { stdout } = await execFileAsync(local.command, local.args, {
+      timeout: 15_000,
+    });
 
     return stdout.trim().split('\n')[0] ?? null;
   } catch {
@@ -1218,7 +1239,8 @@ const execCli = async (
   command: string,
   { cliArgs, cwd, runtime, env, signal }: ExecCliOptions,
 ): Promise<CliOutput> => {
-  const result = await runChild(command, cliArgs, {
+  const local = localCommand(command, cliArgs);
+  const result = await runChild(local.command, local.args, {
     cwd,
     env,
     timeoutMs: runtime.timeoutMs ?? agentProbeTimeoutMs,

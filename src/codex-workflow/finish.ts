@@ -40,18 +40,19 @@ import { StoreConflictError } from '../stores/versions';
 import type { ModelCallAccounting } from '../models/accounting';
 import type { InternalModelContext } from '../models/context';
 import { parseAggregateOutput, type AggregateOutput } from './aggregate';
-import { codexModel } from './codex-home';
 import { stageVersions, workflowVersion } from './schemas';
-import { hostModels } from './host-models';
+import { hostModels, pinnedProfileOf } from './host-models';
 import type { RunSource } from './run-source';
 import type { ReportQuality } from './quality';
 
 /** The snapshot's analyzer provenance: the Codex analyze stage under the
  * workflow version, in a number space of its own (the retired in-process
- * analyzer counted 1 to 8), and the pinned stage model. */
-export const codexAnalyzer = {
-  version: workflowVersion * 100 + stageVersions.analyze,
-  model: codexModel.model,
+ * analyzer counted 1 to 8), and the run's stage model. */
+export const codexAnalyzer = (model: string) => {
+  return {
+    version: workflowVersion * 100 + stageVersions.analyze,
+    model,
+  };
 };
 
 // ============================================================================
@@ -95,6 +96,8 @@ export const finishRun = async (args: {
   /** Files excluded by degraded batches, recorded as partial failures. */
   degraded: readonly string[];
   write: boolean;
+  /** The model ID the Codex stages ran on, the analyzer's provenance. */
+  stageModelId: string;
   /** Factual grounding over the run's manifest (the container job); a
    * source that already carries a bundle needs none. */
   ground?: GroundRun;
@@ -161,7 +164,9 @@ export const finishRun = async (args: {
     })),
   ];
 
-  const internalModels = args.internalModels ?? hostModels();
+  const internalModels =
+    args.internalModels ??
+    hostModels(pinnedProfileOf(source.request.modelProfile));
   const logContext = {
     reportKey: config.reportKey,
     runId: request.runId,
@@ -247,7 +252,7 @@ export const finishRun = async (args: {
     ),
     partialFailures,
     generatedAt: createdAt,
-    analyzer: codexAnalyzer,
+    analyzer: codexAnalyzer(args.stageModelId),
   });
 
   const snapshotFile = path.join(dir, 'OUT', 'snapshot.json');

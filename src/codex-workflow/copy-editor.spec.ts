@@ -8,7 +8,7 @@ import {
   finalDraft,
 } from '../agents/__fixtures__/copy';
 import { createMemoryModelAccounting } from '../models/accounting';
-import { resolveInternalModelProfile } from '../models/profiles';
+import { testModelProfileFixture } from '../models/profile-fixture';
 import { buildFactCatalog } from '../agents/facts';
 import { structuredCallReservation } from '../models/structured';
 import { copyEditCall, editCopyDraft, readCopyEdits } from './copy-editor';
@@ -47,7 +47,7 @@ const directory = async () => {
 describe('CopyEditor - editCopyDraft()', () => {
   it('should let the pinned verifier edit directly and retain its edits when a replacement continues the review', async () => {
     const dir = await directory();
-    const role = resolveInternalModelProfile().roles.premiseVerifier;
+    const role = testModelProfileFixture().roles.premiseVerifier;
     const edited = finalDraft();
     const initial = { ...edited, hero: undefined };
     const checkpoint = vi.fn(async () => {});
@@ -162,7 +162,7 @@ describe('CopyEditor - editCopyDraft()', () => {
       })),
     );
 
-    const role = resolveInternalModelProfile().roles.premiseVerifier;
+    const role = testModelProfileFixture().roles.premiseVerifier;
     const draft = writeOutputSchema.parse(finalDraft());
     const call = copyEditCall({
       draft,
@@ -211,7 +211,7 @@ describe('CopyEditor - editCopyDraft()', () => {
     });
 
     const draft = writeOutputSchema.parse(finalDraft());
-    const base = resolveInternalModelProfile().roles.premiseVerifier;
+    const base = testModelProfileFixture().roles.premiseVerifier;
     const edit = (round: number) => {
       return {
         inputDigest: `d${round}`,

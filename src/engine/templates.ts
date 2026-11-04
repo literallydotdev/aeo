@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import { recommendedModelId } from '../models/supported-models';
 import { auditFileVersion, type auditFileSchema } from './audit-file';
 
 // ============================================================================
@@ -9,6 +10,7 @@ import { auditFileVersion, type auditFileSchema } from './audit-file';
 
 export const exampleAuditFile = {
   version: auditFileVersion,
+  model: recommendedModelId,
   brand: {
     name: 'Northwind Data',
     domain: 'northwind.example',
@@ -42,8 +44,9 @@ export const exampleAuditFile = {
   grounding: 'full',
   runPolicy: {
     maxPlannedUnits: 100,
-    // Caps the host's model calls; probe and stage spend is recorded.
-    budget: { maxUsd: 10, maxTokens: 5_000_000, maxHours: 6 },
+    // No dollar cap here: approve one per run with `run --max-usd`, after
+    // `literally-aeo plan` shows the estimate. It caps every paid call.
+    budget: { maxHours: 12 },
   },
 } satisfies z.input<typeof auditFileSchema>;
 

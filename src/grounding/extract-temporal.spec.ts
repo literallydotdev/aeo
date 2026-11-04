@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createMemoryModelAccounting } from '../models/accounting';
-import { resolveInternalModelProfile } from '../models/profiles';
+import { testModelProfileFixture } from '../models/profile-fixture';
 import type { StructuredTransport } from '../models/structured';
 import { contentHash } from '../stores/content-hash';
 import { requireDefined } from '../__fixtures__/require-defined';
@@ -216,7 +216,7 @@ describe('extract - extractClaimCandidates()', () => {
     const args = {
       answers: [answer(quote)],
       product: 'Deno Deploy',
-      role: resolveInternalModelProfile().roles.perception,
+      role: testModelProfileFixture().roles.perception,
       accounting: createMemoryModelAccounting({
         maxUsd: 10,
         maxTokens: 1_000_000,

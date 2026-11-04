@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createMemoryModelAccounting } from '../models/accounting';
-import { resolveInternalModelProfile } from '../models/profiles';
+import { testModelProfileFixture } from '../models/profile-fixture';
 import type { StructuredTransport } from '../models/structured';
 import { contentHash } from '../stores/content-hash';
 import { requireDefined } from '../__fixtures__/require-defined';
@@ -113,7 +113,7 @@ describe('extract - extractClaimCandidates() diagnostics', () => {
       const run = extractClaimCandidates({
         answers: [fixture.answer],
         product: 'Deno',
-        role: resolveInternalModelProfile().roles.perception,
+        role: testModelProfileFixture().roles.perception,
         accounting: ledger,
         transport,
         batchCache: fromCache
@@ -201,7 +201,7 @@ describe('extract - extractClaimCandidates() diagnostics', () => {
     const result = extractClaimCandidates({
       answers,
       product: 'Deno',
-      role: resolveInternalModelProfile().roles.perception,
+      role: testModelProfileFixture().roles.perception,
       accounting: accounting(),
       transport,
       batchCache: {
@@ -260,7 +260,7 @@ describe('extract - extractClaimCandidates() diagnostics', () => {
     const result = await extractClaimCandidates({
       answers: [answer()],
       product: 'Deno',
-      role: resolveInternalModelProfile().roles.perception,
+      role: testModelProfileFixture().roles.perception,
       accounting: accounting(),
       transport,
       onDiagnostic,
@@ -292,7 +292,7 @@ describe('extract - extractClaimCandidates() diagnostics', () => {
     const result = await extractClaimCandidates({
       answers: [answer(0, formatted)],
       product: 'Deno',
-      role: resolveInternalModelProfile().roles.perception,
+      role: testModelProfileFixture().roles.perception,
       accounting: accounting(),
       transport,
       batchCache: { get: () => Promise.resolve(null), put },
@@ -325,7 +325,7 @@ describe('extract - extractClaimCandidates() diagnostics', () => {
     const result = await extractClaimCandidates({
       answers: [answer()],
       product: 'Deno',
-      role: resolveInternalModelProfile().roles.perception,
+      role: testModelProfileFixture().roles.perception,
       accounting: accounting(),
       transport,
       onDiagnostic: (diagnostic) => {

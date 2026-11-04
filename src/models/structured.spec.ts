@@ -5,7 +5,7 @@ import {
   createMemoryModelAccounting,
   type ModelCallAccounting,
 } from './accounting';
-import { resolveInternalModelProfile } from './profiles';
+import { testModelProfileFixture } from './profile-fixture';
 import { ModelCallAbortError } from './errors';
 import {
   generateStructured,
@@ -23,7 +23,7 @@ const createFixture = () => {
 
   const input: StructuredCallInput<{ valid: boolean }> = {
     roleName: 'adjudication',
-    role: resolveInternalModelProfile('astra-grounding-v1').roles.adjudication,
+    role: testModelProfileFixture().roles.adjudication,
     schema: z.object({ valid: z.boolean() }).strict(),
     prompt: 'Evaluate these saved passages.',
     accounting,
@@ -208,7 +208,7 @@ describe('structured - generateStructured()', () => {
     );
 
     expect(events).toEqual(['reserve', 'owned', 'dispatch', 'owned', 'settle']);
-    expect(result.usage.requestedModel).toBe('openai/gpt-6-astra');
+    expect(result.usage.requestedModel).toBe(input.role.model);
     expect(result.usage.reasoningEffort).toBe('high');
     expect(Object.values(accounting.state.calls)[0]?.usage?.costUsd).toBe(0.1);
   });
@@ -386,7 +386,8 @@ describe('structured - generateStructured()', () => {
     const reservation = structuredCallReservation(input);
 
     expect(reservation.reservedUsd).toBeGreaterThan(
-      (input.role.maxOutputTokens * 50) / 1_000_000,
+      (input.role.maxOutputTokens * input.role.pricingUsdPerMillion.output) /
+        1_000_000,
     );
     expect(reservation.maxOutputTokens).toBe(input.role.maxOutputTokens);
   });

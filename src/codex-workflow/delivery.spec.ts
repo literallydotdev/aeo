@@ -2,6 +2,10 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  testModelProfileFixture,
+  testStageModelFixture,
+} from '../models/profile-fixture';
 import { runWorkflow, type WorkflowContext } from './loop';
 import { isStageFresh, runStage, type StageRun } from './stage';
 import { finishRun } from './finish';
@@ -41,14 +45,18 @@ const context = async (): Promise<WorkflowContext> => {
     answers: [],
     brand: { name: 'Example', domain: 'example.test' },
     sections: [],
-    root: dir,
+    stageModel: testStageModelFixture,
     secrets: [],
     log: () => {},
     checkpoint: vi.fn(async () => {}),
     aggregate: {},
     source: {
       config: { brand: { name: 'Example' }, sections: [] },
-      request: { runId: 'run', configVersion: 1 },
+      request: {
+        runId: 'run',
+        configVersion: 1,
+        modelProfile: testModelProfileFixture(),
+      },
       grounding: null,
     },
   } as unknown as WorkflowContext;

@@ -1,0 +1,87 @@
+import { randomUUID } from 'node:crypto';
+import {
+  ModelBudgetError,
+  type ModelCallAccounting,
+} from '../models/accounting';
+import { probeUsd } from '../models/cost-coefficients';
+import type { ProbeTrace } from './probe-trace';
+
+// ============================================================================
+// Probes on the run's ledger (specs/aeo-claude-operator-spec.md §4.2): every
+// probe attempt is reserved at its surface's high estimate before it is
+// dispatched and settled with the cost the gateway reported; one that
+// reported none keeps charging its estimate. An attempt the cap cannot afford is never
+// dispatched; the run learns of it through `exhausted` and stops resumable,
+// with every answer captured so far banked.
+// ============================================================================
+
+export type ChargedTrace = {
+  trace: ProbeTrace;
+  /** The first refusal of the cap, once an attempt was refused. */
+  exhausted: () => ModelBudgetError | undefined;
+};
+
+export const chargedProbeTrace = (
+  trace: ProbeTrace,
+  ledger: ModelCallAccounting,
+): ChargedTrace => {
+  let refused: ModelBudgetError | undefined;
+
+  const charged: ProbeTrace = {
+    start: async (attempt) => {
+      const estimateUsd = probeUsd[attempt.surface].high;
+      const callId = `probe:${attempt.surface}:${attempt.promptId}:${attempt.runIndex}:${attempt.attempt}:${randomUUID()}`;
+      // The coding-agent surfaces run on the operator's own login.
+      const isPaid = estimateUsd > 0;
+
+      if (isPaid) {
+        try {
+          await ledger.reserve({
+            callId,
+            role: `probe:${attempt.surface}`,
+            ...(attempt.requestedModel !== null && {
+              requestedModel: attempt.requestedModel,
+            }),
+            reservedUsd: estimateUsd,
+            inputTokens: 0,
+            maxOutputTokens: 0,
+          });
+        } catch (error) {
+          if (error instanceof ModelBudgetError) {
+            refused ??= error;
+          }
+
+          throw error;
+        }
+      }
+
+      const handle = await trace.start(attempt);
+
+      return {
+        id: handle.id,
+        end: async (result) => {
+          await handle.end(result);
+
+          if (!isPaid) {
+            return;
+          }
+
+          const reportedUsd =
+            result.outcome === 'succeeded' ? result.costUsd : undefined;
+
+          // Without a reported cost the call keeps charging its estimate,
+          // and the ledger records no cost the provider did not report.
+          await ledger.settle(callId, {
+            ...(attempt.requestedModel !== null && {
+              requestedModel: attempt.requestedModel,
+            }),
+            ...(reportedUsd !== undefined && { costUsd: reportedUsd }),
+            ...(result.outcome !== 'succeeded' && { valid: false }),
+          });
+        },
+      };
+    },
+  };
+
+  return { trace: charged, exhausted: () => refused };
+};

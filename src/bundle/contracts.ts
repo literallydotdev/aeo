@@ -11,9 +11,9 @@ import { canonicalDigest } from './json';
 // ============================================================================
 
 export const toolId = 'literally-aeo';
-// The engine has no package of its own yet (spec §13, Phase 2); bundles
-// name this development version until it does.
-export const toolVersion = '0.1.1';
+// The package version, recorded in every journal and bundle; the build and
+// version.spec.ts refuse a mismatch with package.json.
+export const toolVersion = '0.2.0';
 export const bundleSchemaVersion = 1;
 export const traceSchemaVersion = 1;
 export const canonicalization = 'literally-aeo-canonical-json-v1';

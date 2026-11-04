@@ -2,7 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { credentialDetected } from '../agents/credentials';
 import { capturePlan } from '../capture-manifest';
-import { codexModel } from '../codex-workflow/codex-home';
+import { codexGateway } from '../codex-workflow/codex-home';
 import { stagePrompts } from '../codex-workflow/prompts';
 import { readRunInputs, type RunInputs } from '../codex-workflow/run-inputs';
 import { stageVersions } from '../codex-workflow/schemas';
@@ -19,6 +19,7 @@ import {
   predecessorPrefix,
   type PlanDocument,
 } from './contracts';
+import { isolationLimitations } from './isolation';
 import { canonicalDigest, encodeBundleJson } from './json';
 import { bundlePathError } from './paths';
 import { predecessorDir, readDerivedFrom, type DerivedFrom } from './lineage';
@@ -111,6 +112,21 @@ const runPolicyOf = (request: RunInputs['request']) => {
   return runPolicy;
 };
 
+/** The Codex stages' model as the run pinned it; null for a run whose
+ * profile predates the stage model in the profile (its sessions record the
+ * model they asked for in the journal). */
+const stageModelOf = (inputs: RunInputs) => {
+  const stages = inputs.request.modelProfile?.stages;
+
+  return stages
+    ? {
+        model: stages.model,
+        provider: codexGateway.providerName,
+        reasoningEffort: stages.reasoningEffort,
+      }
+    : null;
+};
+
 const methodOf = async (dir: string, inputs: RunInputs, snapshot: unknown) => {
   const meta =
     isRecord(snapshot) && isRecord(snapshot.meta) ? snapshot.meta : {};
@@ -142,11 +158,7 @@ const methodOf = async (dir: string, inputs: RunInputs, snapshot: unknown) => {
     // a session's own packet is in the journal.
     stagePrompts,
     stageVersions,
-    codexModel: {
-      model: codexModel.model,
-      provider: codexModel.providerName,
-      reasoningEffort: codexModel.reasoningEffort,
-    },
+    codexModel: stageModelOf(inputs),
   };
 
   return method;
@@ -303,9 +315,10 @@ export const projectWorkdir = async (
         version: 1,
         writers: journal.writers,
         agentCliVersions: capture.agentCliVersions,
+        isolation: journal.isolation,
         limitations:
           journal.writers.length > 0
-            ? []
+            ? isolationLimitations(journal.isolation)
             : [
                 'The work directory predates runtime recording; the writers of this run are unknown.',
               ],

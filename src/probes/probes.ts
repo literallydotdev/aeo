@@ -8,6 +8,7 @@ import { chatSurfaces, surfaceRunCounts } from '../schema';
 import { surfaceRetrievalExposure } from '../retrieval';
 import { createLog } from '../lib/log';
 import { servedModelOf } from '../models/served-model';
+import { isObject } from '../lib/type-guards';
 import {
   endAttempt,
   ProbeTraceError,
@@ -141,6 +142,36 @@ type ProbeAnswer = {
   retrieval: RetrievalLog | null;
   noOverview?: true;
   reportedModel?: string;
+  /** What the gateway reported the probe's calls cost; absent when it did
+   * not say. The ledger then settles the probe at its estimate. */
+  reportedCostUsd?: number;
+};
+
+/** The cost the gateway reports in a response's provider metadata. */
+const gatewayCostOf = (metadata: unknown): number | undefined => {
+  const cost =
+    isObject(metadata) && isObject(metadata.gateway)
+      ? metadata.gateway.cost
+      : undefined;
+  const usd = typeof cost === 'string' && cost.trim() ? Number(cost) : cost;
+
+  return typeof usd === 'number' && Number.isFinite(usd) && usd >= 0
+    ? usd
+    : undefined;
+};
+
+/** The reported costs of a probe's calls, summed; absent unless every call
+ * reported one. */
+const reportedCostOf = (
+  costs: readonly (number | undefined)[],
+): { reportedCostUsd?: number } => {
+  if (costs.some((cost) => cost === undefined)) {
+    return {};
+  }
+
+  return {
+    reportedCostUsd: costs.reduce<number>((sum, cost) => sum + (cost ?? 0), 0),
+  };
 };
 
 type ProbeModelConfig = {
@@ -289,11 +320,14 @@ const runSearchRequiredProbe = async (args: {
     retrieval = null;
   }
 
+  const firstCost = gatewayCostOf(first.providerMetadata);
+
   if (first.text.trim().length > 0) {
     return {
       text: withProbeSources(first.text, first.sources),
       retrieval,
       ...served,
+      ...reportedCostOf([firstCost]),
     };
   }
 
@@ -329,9 +363,10 @@ const runSearchRequiredProbe = async (args: {
     abortSignal: AbortSignal.timeout(chatProbeTimeoutMs),
   });
 
-  const [followupText, followupSources] = await Promise.all([
+  const [followupText, followupSources, followupMetadata] = await Promise.all([
     followupStream.text,
     followupStream.sources,
+    followupStream.providerMetadata,
   ]).catch((error: unknown) => {
     throw followupFailure ?? error;
   });
@@ -346,6 +381,7 @@ const runSearchRequiredProbe = async (args: {
       ),
       retrieval,
       ...served,
+      ...reportedCostOf([firstCost, gatewayCostOf(followupMetadata)]),
     };
   }
 
@@ -443,8 +479,14 @@ const buildProbeModels = (args: {
           stream.text,
           stream.sources,
           stream.response,
+          stream.providerMetadata,
         ])
-          .then(([text, sources, response]) => ({ text, sources, response }))
+          .then(([text, sources, response, providerMetadata]) => ({
+            text,
+            sources,
+            response,
+            providerMetadata,
+          }))
           .catch((error: unknown) => {
             throw streamFailure ?? error;
           });
@@ -465,6 +507,7 @@ const buildProbeModels = (args: {
           text: withProbeSources(result.text, result.sources),
           retrieval: unexposedRetrieval('perplexity'),
           ...(reportedModel === undefined ? {} : { reportedModel }),
+          ...reportedCostOf([gatewayCostOf(result.providerMetadata)]),
         };
       },
     },
@@ -744,6 +787,9 @@ const runChatUnit = async (
     requestedModel: chatProbeRequestedModel(model.name),
     ...(answer.reportedModel ? { reportedModel: answer.reportedModel } : {}),
     ...(answer.noOverview ? { noOverview: true as const } : {}),
+    ...(answer.reportedCostUsd === undefined
+      ? {}
+      : { costUsd: answer.reportedCostUsd }),
   });
 
   if (unrecorded !== null) {

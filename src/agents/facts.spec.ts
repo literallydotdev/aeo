@@ -6,7 +6,7 @@ import { aeoAuditConfigSchema, aeoSnapshotSchema } from '../schema';
 import { createGroundingBundle } from '../grounding/validation';
 import { contentHash } from '../stores/content-hash';
 import { structuredCallReservation } from '../models/structured';
-import { resolveInternalModelProfile } from '../models/profiles';
+import { testModelProfileFixture } from '../models/profile-fixture';
 import {
   groundingFixture,
   measurementGroundingFixture,
@@ -61,7 +61,7 @@ describe('facts - projectWriterFactCatalog()', () => {
 
     const reservation = (value: unknown) => {
       return structuredCallReservation({
-        role: resolveInternalModelProfile().roles.copy,
+        role: testModelProfileFixture().roles.copy,
         schema: z.object({ output: z.string() }),
         prompt: JSON.stringify(value),
       });
@@ -100,7 +100,7 @@ describe('facts - projectWriterFactCatalog()', () => {
       return Promise.resolve({
         valid: true,
         errors: [],
-        model: resolveInternalModelProfile().roles.premiseVerifier.model,
+        model: testModelProfileFixture().roles.premiseVerifier.model,
       });
     });
 
@@ -111,6 +111,7 @@ describe('facts - projectWriterFactCatalog()', () => {
       runId: 'run-1',
       grounding: bundle,
       verifier,
+      verifierProfile: testModelProfileFixture().roles.premiseVerifier,
       draft: {
         intro: [
           {

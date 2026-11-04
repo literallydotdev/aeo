@@ -3,7 +3,7 @@ import { APICallError, NoObjectGeneratedError } from 'ai';
 import { z } from 'zod';
 import { createMemoryModelAccounting } from './accounting';
 import { structuredFailureDiagnostic } from './failure-diagnostics';
-import { resolveInternalModelProfile } from './profiles';
+import { testModelProfileFixture } from './profile-fixture';
 import {
   generateStructured,
   StructuredOutputMissingError,
@@ -68,7 +68,7 @@ describe('failure-diagnostics - structuredFailureDiagnostic()', () => {
         generateStructured(
           {
             roleName: 'adjudication',
-            role: resolveInternalModelProfile().roles.adjudication,
+            role: testModelProfileFixture().roles.adjudication,
             schema: z.object({ valid: z.boolean() }),
             prompt: 'Synthetic fixture',
             accounting: createMemoryModelAccounting({
@@ -234,8 +234,7 @@ describe('failure-diagnostics - structuredFailureDiagnostic()', () => {
       generateStructured(
         {
           roleName: 'premiseVerifier',
-          role: resolveInternalModelProfile('opus-grounding-v1').roles
-            .premiseVerifier,
+          role: testModelProfileFixture().roles.premiseVerifier,
           schema: z.object({ valid: z.boolean() }),
           prompt: secret,
           system: secret,
@@ -252,7 +251,9 @@ describe('failure-diagnostics - structuredFailureDiagnostic()', () => {
     expect(line).toContain('Model request failed');
     expect(line).toContain(`callId=${callId}`);
     expect(line).toContain('role=premiseVerifier');
-    expect(line).toContain('model=anthropic/claude-opus-4.6');
+    expect(line).toContain(
+      `model=${testModelProfileFixture().roles.premiseVerifier.model}`,
+    );
     expect(line).toMatch(/durationMs=\d+/);
     expect(line).toContain('classification=timeout');
     expect(line).toContain('errorClass=AI_APICallError');
@@ -280,7 +281,7 @@ describe('failure-diagnostics - structuredFailureDiagnostic()', () => {
       generateStructured(
         {
           roleName: 'adjudication',
-          role: resolveInternalModelProfile().roles.adjudication,
+          role: testModelProfileFixture().roles.adjudication,
           schema: z.object({ valid: z.boolean() }),
           prompt: secret,
           accounting,

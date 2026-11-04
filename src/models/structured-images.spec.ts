@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import sharp from 'sharp';
 import { z } from 'zod';
 import { createMemoryModelAccounting } from './accounting';
-import { resolveInternalModelProfile } from './profiles';
+import { testModelProfileFixture } from './profile-fixture';
 import { generateStructured, structuredCallReservation } from './structured';
 import type { StructuredImage } from './structured-images';
 
@@ -86,7 +86,7 @@ const createFixture = async () => {
 
   return {
     roleName: 'logoDiscovery',
-    role: requireValue(resolveInternalModelProfile().roles.logoDiscovery),
+    role: requireValue(testModelProfileFixture().roles.logoDiscovery),
     schema: z.object({ valid: z.boolean() }).strict(),
     prompt: 'Choose a clear company mark from these candidates.',
     images: [firstImage, secondImage],
@@ -105,7 +105,7 @@ describe('structured - generateStructured() with images', () => {
     const request = getStreamRequest(0);
     const [call] = Object.values(input.accounting.state.calls);
 
-    expect(request.model).toBe('gateway:anthropic/claude-opus-4.6');
+    expect(request.model).toBe(`gateway:${input.role.model}`);
     expect(request.prompt).toBeUndefined();
     expect(request.tools).toBeUndefined();
     expect(request.maxRetries).toBe(0);
@@ -227,7 +227,10 @@ describe('structured - generateStructured() with images', () => {
 
   it('should require a model with a known vision reservation and leave text requests unchanged', async () => {
     const input = await createFixture();
-    const role = resolveInternalModelProfile().roles.copy;
+    const role = {
+      ...testModelProfileFixture().roles.copy,
+      model: 'provider/text-only-model',
+    };
 
     await expect(generateStructured({ ...input, role })).rejects.toThrow(
       'model_image_unsupported',
@@ -242,21 +245,22 @@ describe('structured - generateStructured() with images', () => {
     expect(provider.generateText).toHaveBeenCalledOnce();
   });
 
-  it('should reserve Kimi K3 vision input the same way as Opus', async () => {
+  it('should reserve vision input the same way for every model with a known reservation', async () => {
     const input = await createFixture();
-    const kimi = requireValue(
-      resolveInternalModelProfile('glm-harness-v1', {}).roles.logoDiscovery,
-    );
+    const other = {
+      ...requireValue(testModelProfileFixture().roles.logoDiscovery),
+      model: 'anthropic/claude-sonnet-5.5',
+    };
 
     expect(
-      structuredCallReservation({ ...input, role: kimi }).inputTokens,
+      structuredCallReservation({ ...input, role: other }).inputTokens,
     ).toBe(structuredCallReservation(input).inputTokens);
 
-    await generateStructured({ ...input, role: kimi });
+    await generateStructured({ ...input, role: other });
 
     const request = getStreamRequest(0);
 
-    expect(request.model).toBe('gateway:moonshotai/kimi-k3');
+    expect(request.model).toBe('gateway:anthropic/claude-sonnet-5.5');
     expect(request.messages?.[0]?.content).toHaveLength(5);
   });
 });

@@ -15,6 +15,10 @@ import {
 } from '../codex-workflow/author';
 import { runStage, type StageValue } from '../codex-workflow/stage';
 import { mintRunId } from '../lib/run-id';
+import { authorToolCaps } from '../codex-workflow/author-tools';
+import { createFileModelAccounting } from '../models/accounting';
+import { localStageModel } from '../models/local-profile';
+import type { SupportedModel } from '../models/supported-models';
 import { normalizeDomain } from '../analysis/scoring';
 import { briefSchema } from '../workflow/schema';
 import { allSurfaces, chatSurfaces } from '../schema';
@@ -51,7 +55,14 @@ export type AuthorRecord = z.infer<typeof authorRecordSchema>;
 /** The measurement fields of an audit file, which the digest and the diff
  * compare; the author reference and run policy are not measurement. */
 const proposalOf = (file: AuditFile) => {
-  const { author: _author, runPolicy: _runPolicy, ...measured } = file;
+  // The model is method, not measurement: judging the same answers with
+  // another model is the same measurement.
+  const {
+    author: _author,
+    runPolicy: _runPolicy,
+    model: _model,
+    ...measured
+  } = file;
 
   return measured;
 };
@@ -73,10 +84,15 @@ export type LocalAuthorResult = {
   research: Awaited<ReturnType<typeof readAuthorResearch>>['summary'];
 };
 
-/** runLocalAuthor runs the author session over a brief into `dir`. */
+/** runLocalAuthor runs the author session over a brief into `dir`, on
+ * `model`, under the approved cap: the draft directory's ledger reserves
+ * the research tools' whole search allowance before the session, and the
+ * session itself, so neither can take the run past the cap. */
 export const runLocalAuthor = async (args: {
   brief: AuthorBrief;
   dir: string;
+  model: SupportedModel;
+  maxUsd: number;
   secrets: readonly string[];
   signal?: AbortSignal;
 }): Promise<LocalAuthorResult> => {
@@ -85,6 +101,16 @@ export const runLocalAuthor = async (args: {
 
   try {
     await materializeAuthorWorkdir({ dir, brief });
+
+    const ledger = createFileModelAccounting({
+      filename: path.join(dir, 'BANK', 'model-budget.json'),
+      limits: {
+        maxUsd: args.maxUsd,
+        maxTokens: 20_000_000,
+        deadlineAt: new Date(Date.now() + 2 * 3_600_000).toISOString(),
+      },
+      assertOwned: () => Promise.resolve(),
+    });
 
     const domain = normalizeDomain(brief.website).replace(/^www\./, '');
     const reportKey = `local-${domain.replace(/[^a-z0-9]+/g, '-')}`;
@@ -115,11 +141,26 @@ export const runLocalAuthor = async (args: {
         ? { errors: [result.fatal, ...result.errors], fatal: true }
         : { errors: result.errors };
     };
+    // The research searches spend inside the tool server, which stops at
+    // its own allowance: that allowance is reserved first, and settled
+    // with what the searches cost once the session is over.
+    const researchCallId = `author-research:${runId}`;
+
+    await ledger.reserve({
+      callId: researchCallId,
+      role: 'search:author_research',
+      reservedUsd: authorToolCaps.searchSpendUsd,
+      inputTokens: 0,
+      maxOutputTokens: 0,
+    });
+
     const run = await runStage(
       {
         dir,
         brand: authorBrand(brief),
         answers: [],
+        stageModel: localStageModel(args.model),
+        accounting: ledger,
         timeoutMs: 30 * 60_000,
         research: await researchServerConfig(dir),
         verdict,
@@ -129,6 +170,9 @@ export const runLocalAuthor = async (args: {
       'author',
     );
     const research = (await readAuthorResearch(dir)).summary;
+
+    await ledger.settle(researchCallId, { costUsd: research.spendUsd });
+
     const output = await readAuthorOutput(dir);
 
     if (!run.ok || !output) {
@@ -140,6 +184,7 @@ export const runLocalAuthor = async (args: {
     const { config } = output;
     const proposed = auditFileSchema.parse({
       version: auditFileVersion,
+      model: args.model.id,
       brand: config.brand,
       competitors: config.competitors,
       sections: config.sections,

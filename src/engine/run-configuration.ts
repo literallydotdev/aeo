@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 import { writeFileAtomically } from '../codex-workflow/pending';
+import { isRecord } from '../lib/type-guards';
 
 // ============================================================================
 // What a local run keeps about its own configuration
@@ -50,18 +51,35 @@ export const readRecordedAuthorEvidence = async (
 
 /** recordRunConfiguration writes the run's audit.json and author evidence
  * into its directory, replacing what an earlier invocation wrote. */
+/** The operator's configuration with the model the run actually used. */
+const configWithModel = (text: string, model: string): string => {
+  const config: unknown = JSON.parse(text);
+
+  if (!isRecord(config)) {
+    throw new Error('The configuration to record is not a JSON object.');
+  }
+
+  return `${JSON.stringify({ ...config, model }, null, 2)}\n`;
+};
+
 export const recordRunConfiguration = async ({
   dir,
   configFile,
   evidence,
+  model,
 }: {
   dir: string;
   configFile: string;
   evidence: RecordedAuthorEvidence;
+  /** A model named outside the file (`rejudge --model`): the recorded
+   * configuration is the one the run ran with, not the file's. */
+  model?: string;
 }): Promise<void> => {
+  const text = await readFile(configFile, 'utf8');
+
   await writeFileAtomically(
     path.join(dir, auditCopyFile),
-    await readFile(configFile, 'utf8'),
+    model === undefined ? text : configWithModel(text, model),
   );
   await writeFileAtomically(
     path.join(dir, authorEvidenceFile),

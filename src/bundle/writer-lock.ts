@@ -131,3 +131,30 @@ export const acquireWriterLock = async (
 
   return { takenOver, release };
 };
+
+/** live: the process runs on this host; abandoned: it is gone from this
+ * host; unknown: it belongs to another host, which this one cannot ask. */
+export type WriterLockState = 'live' | 'abandoned' | 'unknown';
+
+/** readWriterLock reports who holds a run directory without taking it:
+ * undefined when no writer does. */
+export const readWriterLock = async (
+  dir: string,
+): Promise<{ owner: WriterLockOwner; state: WriterLockState } | undefined> => {
+  const owner = await readOwner(path.join(dir, writerLockFile)).catch(
+    // A lock torn mid-write reads as an unknown owner, never as no writer.
+    () => ({ host: '', pid: -1, purpose: 'unknown', acquiredAt: '' }),
+  );
+
+  if (owner === undefined) {
+    return undefined;
+  }
+
+  let state: WriterLockState = 'unknown';
+
+  if (owner.host === hostname()) {
+    state = owner.pid > 0 && isProcessAlive(owner.pid) ? 'live' : 'abandoned';
+  }
+
+  return { owner, state };
+};

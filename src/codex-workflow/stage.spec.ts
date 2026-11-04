@@ -14,6 +14,12 @@ import { openRecorder } from '../bundle/recorder';
 import type { AeoAuditConfig } from '../schema';
 import type { CapturedUnitRecord } from '../stores/ports';
 import {
+  createMemoryModelAccounting,
+  ModelBudgetError,
+} from '../models/accounting';
+import { tokenCostUsd } from '../models/pricing';
+import { testStageModelFixture } from '../models/profile-fixture';
+import {
   canonicalizeQualifiedNames,
   mergeBatches,
   validateStage,
@@ -39,7 +45,6 @@ import {
 } from './schemas';
 import { materializeWorkdir, type AnswerFile } from './workdir';
 import { CopyVerificationUnavailableError } from './copy-recovery';
-import { codexModel } from './codex-home';
 
 /** Parses JSON the runner wrote, as the shape the test checks. */
 const parseJson = <T>(text: string): T => {
@@ -132,7 +137,12 @@ const fakeCodex = async (
   {
     missingOutputAttempts = 0,
     missingOutputStderr = 'Reconnecting... 1/5 (stream disconnected before completion: idle timeout waiting for SSE)',
-  }: { missingOutputAttempts?: number; missingOutputStderr?: string } = {},
+    usage = '{"input_tokens":120,"output_tokens":30}',
+  }: {
+    missingOutputAttempts?: number;
+    missingOutputStderr?: string;
+    usage?: string;
+  } = {},
 ): Promise<string> => {
   const script = path.join(dir, 'fake-codex.sh');
   const outputsFile = path.join(dir, 'fake-outputs.json');
@@ -152,7 +162,7 @@ const fakeCodex = async (
       `if [ "$N" -le ${missingOutputAttempts} ]; then echo '${missingOutputStderr}' >&2; exit 0; fi`,
       `echo "$CODEX_HOME" > "${dir}/fake-codex-home"; env | sort > "${dir}/fake-codex-env"`,
       'echo \'{"type":"item.completed","item":{"id":"i1","type":"agent_message","text":"done"}}\'',
-      'echo \'{"type":"turn.completed","usage":{"input_tokens":120,"output_tokens":30}}\'',
+      `echo '{"type":"turn.completed","usage":${usage}}'`,
       `node -e "const o=JSON.parse(require('fs').readFileSync('${outputsFile}','utf8'));require('fs').writeFileSync(process.argv[1], JSON.stringify(o[Math.min(${'$N'}-1,o.length-1)]))" "$OUT"`,
     ].join('\n'),
   );
@@ -172,7 +182,13 @@ const workdir = async (): Promise<Omit<StageContext, 'command'>> => {
 
   await mkdir(path.join(dir, 'JOURNAL'), { recursive: true });
 
-  return { dir, brand, answers, timeoutMs: 20_000 };
+  return {
+    dir,
+    brand,
+    answers,
+    stageModel: testStageModelFixture,
+    timeoutMs: 20_000,
+  };
 };
 
 describe('Stage - runStage()', () => {
@@ -281,7 +297,7 @@ describe('Stage - runStage()', () => {
     expect(sessions.map((event) => event.payload.attempt)).toEqual([1, 2]);
     expect(accepted?.payload.operationId).toBe(sessions[1]?.operationId);
     expect(sessions[0]?.payload.details).toMatchObject({
-      requestedModel: codexModel.model,
+      requestedModel: testStageModelFixture.model,
     });
   });
 
@@ -341,7 +357,7 @@ describe('Stage - runStage()', () => {
 
     const config = await readFile(path.join(home, 'config.toml'), 'utf8');
 
-    expect(config).toContain('model = "deepseek/deepseek-v4.1-flash"');
+    expect(config).toContain(`model = "${testStageModelFixture.model}"`);
     expect(config).toContain('base_url = "https://ai-gateway.vercel.sh/v1"');
     expect(config).toContain('wire_api = "responses"');
     // The gateway model has no Codex metadata; the window is pinned so the
@@ -358,9 +374,9 @@ describe('Stage - runStage()', () => {
 
     const { codexConfigToml } = await import('./codex-home');
 
-    expect(codexConfigToml('/srv/aeo/run')).toContain(
-      'exclude_slash_tmp = true',
-    );
+    expect(
+      codexConfigToml('/srv/aeo/run', { stageModel: testStageModelFixture }),
+    ).toContain('exclude_slash_tmp = true');
 
     const env = (await readFile(path.join(ctx.dir, 'fake-codex-env'), 'utf8'))
       .split('\n')
@@ -392,9 +408,61 @@ describe('Stage - runStage()', () => {
     const ctx = await workdir();
     const { prepareCodexHome } = await import('./codex-home');
 
-    await expect(prepareCodexHome(ctx.dir, { PATH: '/bin' })).rejects.toThrow(
-      /AI_GATEWAY_API_KEY is not set/,
-    );
+    await expect(
+      prepareCodexHome(ctx.dir, {
+        stageModel: testStageModelFixture,
+        env: { PATH: '/bin' },
+      }),
+    ).rejects.toThrow(/AI_GATEWAY_API_KEY is not set/);
+  });
+
+  it("should settle each session on the ledger from its input, cached input and output tokens at the stage model's prices", async () => {
+    const ctx = await workdir();
+    const command = await fakeCodex(ctx.dir, [goodAnalyze], {
+      usage:
+        '{"input_tokens":120000,"cached_input_tokens":100000,"output_tokens":3000}',
+    });
+    const accounting = createMemoryModelAccounting({
+      maxUsd: 100,
+      maxTokens: 100_000_000,
+      deadlineAt: '2099-01-01T00:00:00.000Z',
+    });
+
+    await runStage({ ...ctx, command, accounting }, 'analyze');
+
+    const calls = Object.values(accounting.state.calls);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.role).toBe('stage:analyze');
+    expect(calls[0]?.usage).toEqual({
+      requestedModel: testStageModelFixture.model,
+      costUsd: tokenCostUsd(testStageModelFixture.pricingUsdPerMillion, {
+        inputTokens: 120_000,
+        cachedInputTokens: 100_000,
+        outputTokens: 3000,
+      }),
+      inputTokens: 120_000,
+      cachedInputTokens: 100_000,
+      outputTokens: 3000,
+    });
+  });
+
+  it('should NOT start a session the cap cannot afford, and stop the stage on the budget', async () => {
+    const ctx = await workdir();
+    const command = await fakeCodex(ctx.dir, [goodAnalyze]);
+    const accounting = createMemoryModelAccounting({
+      maxUsd: 0.01,
+      maxTokens: 100_000_000,
+      deadlineAt: '2099-01-01T00:00:00.000Z',
+    });
+
+    const result = runStage({ ...ctx, command, accounting }, 'analyze');
+
+    await expect(result).rejects.toThrow(ModelBudgetError);
+    await expect(
+      readFile(path.join(ctx.dir, 'fake-attempts'), 'utf8'),
+    ).rejects.toThrow(/ENOENT/);
+    expect(Object.keys(accounting.state.calls)).toEqual([]);
   });
 
   it('should deliver complete batch input and close stdin before waiting for output', async () => {
@@ -404,7 +472,11 @@ describe('Stage - runStage()', () => {
 
     expect(run.errors).toEqual([]);
     expect(run.ok).toBe(true);
-    expect(run.usage).toEqual({ inputTokens: 120, outputTokens: 30 });
+    expect(run.usage).toEqual({
+      inputTokens: 120,
+      cachedInputTokens: 0,
+      outputTokens: 30,
+    });
     expect(run.summary).toEqual({
       batches: 1,
       reused: 0,
@@ -721,7 +793,7 @@ describe('Stage - runStage()', () => {
     expect(await readFile(path.join(ctx.dir, 'fake-attempts'), 'utf8')).toBe(
       '3\n',
     );
-    expect(run.model).toBe('deepseek/deepseek-v4.1-flash');
+    expect(run.model).toBe(testStageModelFixture.model);
   });
 
   it("should apply a later stage's corrections to the earlier OUT file and keep the trail", async () => {
@@ -1879,6 +1951,7 @@ describe('Stage - runStage() in batches', () => {
       dir,
       brand,
       answers,
+      stageModel: testStageModelFixture,
       timeoutMs: 20_000,
       batchSize: 1,
       concurrency: 1,

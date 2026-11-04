@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { APICallError } from 'ai';
 import type { AeoVisibility } from '../schema';
 import { createMemoryModelAccounting } from '../models/accounting';
-import { resolveInternalModelProfile } from '../models/profiles';
+import { testModelProfileFixture } from '../models/profile-fixture';
 import type { StructuredTransport } from '../models/structured';
 import {
   perceptionVersion,
@@ -131,7 +131,7 @@ describe('sentiment - extractPerceptionForSection()', () => {
       });
     };
 
-    const profile = resolveInternalModelProfile('glm-harness-v1', {});
+    const profile = testModelProfileFixture();
     const extraction = extractPerceptionForSection({
       sectionKey: 's1',
       brandName: 'Deno',

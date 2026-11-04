@@ -6,42 +6,59 @@ import type { ModelBudgetLimits } from '../models/accounting';
 import { hasErrorCode } from '../stores/fs-errors';
 
 // ============================================================================
-// A local run's budget (specs/aeo-open-source-cli-spec.md §6): finite dollar,
-// token and time allowances, frozen with the run and kept across restarts.
-// Editing audit.json never amends a run in progress; raising a limit is an
-// explicit, recorded `run --budget-file`. The ledger itself (reservations
-// and settlements) lives beside it in BANK/, so spending is never reset.
+// A local run's budget (specs/aeo-open-source-cli-spec.md §6,
+// specs/aeo-claude-operator-spec.md §4.2): finite dollar, token and time
+// allowances, frozen with the run and its model and kept across restarts.
+// The dollar cap is the amount the operator approved: there is no default,
+// and a run without one does not start. Editing audit.json never amends a
+// run in progress; raising a limit is an explicit, recorded amendment. The
+// ledger itself (reservations and settlements of every paid call) lives
+// beside it in BANK/, so spending is never reset.
 // ============================================================================
 
 export const budgetFile = 'BUDGET.json';
 
+const maxUsdSchema = z.number().finite().positive();
+
+/** What audit.json says: the dollar cap is optional there, because the
+ * operator may approve it on the command line instead. */
 export const budgetPolicySchema = z
   .object({
-    maxUsd: z.number().finite().positive().default(10),
-    maxTokens: z.number().int().positive().default(5_000_000),
-    maxHours: z.number().finite().positive().max(72).default(6),
+    maxUsd: maxUsdSchema.optional(),
+    // A backstop against a runaway loop; the dollar cap is the approval.
+    maxTokens: z.number().int().positive().default(100_000_000),
+    maxHours: z.number().finite().positive().max(72).default(12),
   })
   .strict();
 
 export type BudgetPolicy = z.infer<typeof budgetPolicySchema>;
 
+/** The limits a run froze: the cap is always there. */
+const frozenPolicySchema = budgetPolicySchema.extend({ maxUsd: maxUsdSchema });
+
+export type FrozenBudgetPolicy = z.infer<typeof frozenPolicySchema>;
+
 /** A --budget-file: the limits to raise; what it leaves out stays. */
-export const budgetAmendmentSchema = budgetPolicySchema.partial().strict();
+export const budgetAmendmentSchema = frozenPolicySchema.partial().strict();
 
 export type BudgetAmendment = z.infer<typeof budgetAmendmentSchema>;
 
 const budgetStateSchema = z
   .object({
     version: z.literal(1),
-    original: budgetPolicySchema,
-    current: budgetPolicySchema,
+    original: frozenPolicySchema,
+    current: frozenPolicySchema,
     deadlineAt: z.iso.datetime(),
+    /** The gateway model the run judges and writes with, frozen with the
+     * budget. Absent on a directory from before model selection: the first
+     * resume records the model it continues with. */
+    model: z.string().min(1).optional(),
     amendments: z.array(
       z
         .object({
           at: z.iso.datetime(),
-          from: budgetPolicySchema,
-          to: budgetPolicySchema,
+          from: frozenPolicySchema,
+          to: frozenPolicySchema,
           deadlineFrom: z.iso.datetime(),
           deadlineTo: z.iso.datetime(),
         })
@@ -54,7 +71,8 @@ type BudgetState = z.infer<typeof budgetStateSchema>;
 
 export type RunBudget = {
   limits: ModelBudgetLimits;
-  policy: BudgetPolicy;
+  policy: FrozenBudgetPolicy;
+  model: string;
   /** The amendment this invocation recorded, for the run journal. */
   amended: BudgetState['amendments'][number] | undefined;
   /** audit.json asks for other limits than the run froze: reported, never
@@ -79,56 +97,127 @@ export const readBudgetAmendment = async (
   return budgetAmendmentSchema.parse(JSON.parse(text));
 };
 
+/** Thrown before any paid work when a new run has no approved cap. */
+export class BudgetCapMissingError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BudgetCapMissingError';
+  }
+}
+
+/** Thrown before any paid work when audit.json names another model than
+ * the run directory froze. */
+export class RunModelChangedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RunModelChangedError';
+  }
+}
+
+/** readFrozenBudget reads a run directory's BUDGET.json; undefined when
+ * the directory has not started. Read-only. */
+export const readFrozenBudget = async (
+  dir: string,
+): Promise<BudgetState | undefined> => {
+  const text = await readFile(path.join(dir, budgetFile), 'utf8').catch(
+    (err: unknown) => {
+      if (hasErrorCode(err, 'ENOENT')) {
+        return undefined;
+      }
+
+      throw err;
+    },
+  );
+
+  return text === undefined
+    ? undefined
+    : budgetStateSchema.parse(JSON.parse(text));
+};
+
+type ResolveRunBudgetOptions = {
+  /** The gateway model audit.json resolves to. */
+  model: string;
+  /** The cap approved on the command line (`--max-usd`). On a new run it
+   * sets the cap; on a resume it raises it, recorded like a --budget-file. */
+  maxUsd?: number;
+  amendment?: BudgetAmendment;
+  now?: () => Date;
+};
+
 /**
- * resolveRunBudget returns the limits a run executes under: frozen from
- * audit.json on the first run, kept on every resume, raised only by an
- * amendment. An amendment that lowers a limit is refused: the ledger may
- * already hold more than the lower limit.
+ * resolveRunBudget returns the limits and the model a run executes under:
+ * frozen from audit.json (and --max-usd) on the first run, kept on every
+ * resume, raised only by an amendment. A new run without a dollar cap is
+ * refused, as is a resume whose audit.json names another model. An
+ * amendment that lowers a limit is refused: the ledger may already hold
+ * more than the lower limit.
  */
 export const resolveRunBudget = async (
   dir: string,
   policy: BudgetPolicy,
-  {
-    amendment,
-    now = () => new Date(),
-  }: { amendment?: BudgetAmendment; now?: () => Date } = {},
+  { model, maxUsd, amendment, now = () => new Date() }: ResolveRunBudgetOptions,
 ): Promise<RunBudget> => {
   const file = path.join(dir, budgetFile);
-  const text = await readFile(file, 'utf8').catch((err: unknown) => {
-    if (hasErrorCode(err, 'ENOENT')) {
-      return undefined;
+  const existing = await readFrozenBudget(dir);
+  const at = now();
+
+  if (existing?.model !== undefined && existing.model !== model) {
+    throw new RunModelChangedError(
+      `This run directory judges with ${existing.model}; audit.json now names ${model}. A run never changes its model. To judge the same answers with ${model}, use: literally-aeo rejudge ${dir} --output <new-dir> --model ${model}`,
+    );
+  }
+
+  const cap = maxUsd ?? policy.maxUsd;
+
+  const startState = (): BudgetState => {
+    if (cap === undefined) {
+      throw new BudgetCapMissingError(
+        'No spending cap: approve one with --max-usd <amount> or runPolicy.budget.maxUsd in audit.json.',
+      );
     }
 
-    throw err;
-  });
-  const existing =
-    text === undefined ? undefined : budgetStateSchema.parse(JSON.parse(text));
-  const at = now();
-  let state: BudgetState = existing ?? {
-    version: 1,
-    original: policy,
-    current: policy,
-    deadlineAt: hoursFrom(at, policy.maxHours),
-    amendments: [],
-  };
-  let amended: RunBudget['amended'];
+    const frozen = { ...policy, maxUsd: cap };
 
-  if (amendment && Object.keys(amendment).length > 0) {
-    const to = { ...state.current, ...amendment };
+    return {
+      version: 1,
+      original: frozen,
+      current: frozen,
+      deadlineAt: hoursFrom(at, policy.maxHours),
+      model,
+      amendments: [],
+    };
+  };
+
+  let state: BudgetState = existing ?? startState();
+  let amended: RunBudget['amended'];
+  const modelAdopted = state.model === undefined;
+
+  state = { ...state, model };
+
+  // On a resume --max-usd raises the cap like a --budget-file does.
+  const change: BudgetAmendment = {
+    ...amendment,
+    ...(existing && maxUsd !== undefined && maxUsd !== existing.current.maxUsd
+      ? { maxUsd }
+      : {}),
+  };
+
+  if (Object.keys(change).length > 0) {
+    const to = { ...state.current, ...change };
 
     if (
       to.maxUsd < state.current.maxUsd ||
       to.maxTokens < state.current.maxTokens
     ) {
       throw new Error(
-        `A --budget-file can only raise limits; this run already allows $${state.current.maxUsd} and ${state.current.maxTokens} tokens.`,
+        `A cap can only be raised; this run already allows $${state.current.maxUsd} and ${state.current.maxTokens} tokens.`,
       );
     }
 
     const deadlineTo =
-      amendment.maxHours === undefined
+      change.maxHours === undefined
         ? state.deadlineAt
-        : hoursFrom(at, amendment.maxHours);
+        : hoursFrom(at, change.maxHours);
 
     amended = {
       at: at.toISOString(),
@@ -145,7 +234,7 @@ export const resolveRunBudget = async (
     };
   }
 
-  if (!existing || amended) {
+  if (!existing || amended || modelAdopted) {
     await writeFileAtomically(file, JSON.stringify(state, null, 2));
   }
 
@@ -156,8 +245,14 @@ export const resolveRunBudget = async (
       deadlineAt: state.deadlineAt,
     },
     policy: state.current,
+    model,
     amended,
-    policyDiffers: JSON.stringify(policy) !== JSON.stringify(state.original),
+    // Only what audit.json itself asks for: a cap approved on the command
+    // line is not audit.json's, and a recorded raise is not a difference.
+    policyDiffers:
+      policy.maxTokens !== state.original.maxTokens ||
+      policy.maxHours !== state.original.maxHours ||
+      (policy.maxUsd !== undefined && policy.maxUsd !== state.original.maxUsd),
   };
 
   return budget;

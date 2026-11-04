@@ -21,13 +21,13 @@ import type { ModelCallAccounting } from '../models/accounting';
 import type { InternalModelRoleConfig } from '../models/profiles';
 import { engineResources } from '../engine/resources';
 import { getEnvironment } from '../lib/env';
-import { copyVerifierProfile, hostModels } from './host-models';
+import { hostStepAccounting } from './host-models';
 
 // ============================================================================
 // The copy stage's host half (specs/aeo-codex-workflow-spec.md §4, §6):
 // the writer's documents built from the finished snapshot by the existing
 // copywriter input projection, and the draft held to the existing copy
-// validation, premise verifier included, on the DeepSeek role.
+// validation, premise verifier included, on the run's pinned role.
 // ============================================================================
 
 export const copyDir = 'COPY';
@@ -143,7 +143,7 @@ export const materializeCopyInputs = async (args: {
 };
 
 /** The host's verdict on a draft: schema, facts, banlist, premises, and
- * the premise verifier on the DeepSeek role. `invalid_copy` is the only
+ * the premise verifier on the run's pinned role. `invalid_copy` is the only
  * outcome that requires a verifier edit; operational failures retain the draft. */
 export const validateCopyDraft = async (args: {
   draft: unknown;
@@ -155,9 +155,8 @@ export const validateCopyDraft = async (args: {
   secrets: readonly string[];
   /** The premise verifier role the run pinned: the publication gate
    * re-checks the receipt against exactly that role, so the draft must be
-   * verified by it. Absent (a local run), the DeepSeek-only profile's
-   * role. */
-  verifierRole?: InternalModelRoleConfig;
+   * verified by it. */
+  verifierRole: InternalModelRoleConfig;
   /** A rewrite pass keeps what the reviewer did not question: the logo
    * and eyebrow of the draft they saw. */
   previous?: AeoReportCopy | null;
@@ -169,10 +168,8 @@ export const validateCopyDraft = async (args: {
   verifierMemory?: VerifierMemory;
   signal?: AbortSignal;
 }): Promise<CopyValidationResult> => {
-  const models = hostModels(copyVerifierProfile);
-  const verifierProfile =
-    args.verifierRole ?? models.profile.roles.premiseVerifier;
-  const accounting = args.accounting ?? models.accounting;
+  const verifierProfile = args.verifierRole;
+  const accounting = args.accounting ?? hostStepAccounting();
 
   return validateAgentCopy({
     draft: args.draft,

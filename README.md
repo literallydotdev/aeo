@@ -5,12 +5,29 @@ mention you, cite you, and who they recommend instead. `literally-aeo` runs
 the audit on your own machine with your own provider keys, and writes a
 portable evidence bundle that anyone can verify offline.
 
+## Ask Claude to run this for you
+
+You don't need to be a developer. Open Claude Code (the terminal app, or
+the Code tab of the Claude desktop app) and paste:
+
+> Run an AEO audit for acme.example with github.com/literallydotdev/aeo.
+> Install it and follow `literally-aeo guide`.
+
+Claude installs what is missing, asks a few questions about your company,
+and asks you to approve an amount before anything is spent; the run cannot
+spend more than that. You paste your provider keys into a file in your own
+editor, never into the chat. `literally-aeo guide` prints the protocol
+Claude follows, checkpoint by checkpoint.
+
+## Run it yourself
+
 ```sh
 npm install -g literally-aeo
 literally-aeo init                       # audit.json and .env.example
 literally-aeo doctor --env-file .env     # what a run needs, checked offline
-literally-aeo plan                       # what a run would measure and cost
-literally-aeo run --env-file .env        # measure; run again to resume
+literally-aeo plan                       # what a run would measure, and its estimated cost
+literally-aeo run --env-file .env --max-usd 50   # measure under a cap; run again to resume
+literally-aeo status audit-run           # phase, answers and spend, read-only
 literally-aeo view audit-run             # local, loopback-only viewer
 literally-aeo export audit-run           # a deterministic .aeo.zip bundle
 literally-aeo verify audit-run.aeo.zip   # offline verification
@@ -21,13 +38,31 @@ literally-aeo verify audit-run.aeo.zip   # offline verification
 - Node.js 24 or newer on Linux, where it is tested. macOS (Apple silicon)
   is expected to work but is not tested in CI. Windows users run it under
   WSL 2.
-- The [Codex CLI](https://github.com/openai/codex), which runs the analysis
-  and writing stages.
+- Nothing else for the analysis and writing stages: the
+  [Codex CLI](https://github.com/openai/codex) that runs them is a pinned
+  dependency of the package.
 - An `AI_GATEWAY_API_KEY` (Vercel AI Gateway) for the assistant answers and
   the host model calls, and a DataForSEO login for Google AI Overviews and
   factual grounding searches.
 - For coding-agent surfaces, the CLI of each one you measure (Claude Code,
   Codex, Cursor) and its own login.
+
+## Model and cost
+
+One model judges the answers, researches the claims and writes the report:
+`"model"` in `audit.json`, a gateway model ID. Leave it out to use the
+recommended model, the strongest the engine supports, because judgment and
+writing quality are the report. `literally-aeo doctor` lists the supported
+models with their list prices and refuses any other. The assistants being
+measured keep their own pinned models; they are what the audit observes.
+
+`literally-aeo plan` estimates what a run costs, as a range per kind of
+work: the assistant answers, the analysis stages, the other model calls and
+the searches. A run does not start without a cap you approve
+(`--max-usd`), and the cap covers all of that work: the run stops,
+resumable, before a call would cross it. A run keeps its model and its cap;
+`rejudge --model` judges the same answers with another model in a new run
+directory.
 
 Nothing is sent to Literally.dev: no telemetry, no account, no upload.
 A run contacts only the providers you configure and the sites it checks.

@@ -41,8 +41,14 @@ claiming a macOS fix.
   package root; `src/codex-workflow/` the Codex stages; `src/bundle/` the
   journal, export and offline verifier; `src/report/` the report and
   measurement contracts (`literally-aeo/contracts`).
-- `src/author/` and `src/engine/editorial/` are run-time resources, copied
-  into `resources/` by the build. Code finds them through
+- `src/models/` the model profile schema, the supported-model list
+  (`supported-models.ts`, a release changes it), the local profile a run
+  builds from `audit.json`'s `model`, and the cost coefficients the
+  estimate and the ledger's reservations use (`cost-coefficients.ts`,
+  recalibrated from recorded runs each release). The engine never names a
+  hosted service's profile: a host passes its own.
+- `src/author/`, `src/engine/editorial/` and `src/engine/guide/` are
+  run-time resources, copied into `resources/` by the build. Code finds them through
   `engineResources()`, never through a path relative to the working
   directory.
 - Every module is importable as `literally-aeo/<path>` (the hosted adapter
@@ -109,6 +115,7 @@ One body of guidance for Claude Code, Cursor and Codex. Map and sync rules:
 
 ## Releasing
 
-Bump `version` in `package.json` and `toolVersion`, merge, then tag
+Bump `version` in `package.json` and `toolVersion`, re-check the list
+prices in `src/models/supported-models.ts`, merge, then tag
 `vX.Y.Z` and push the tag. `release.yml` checks, packs and publishes through
 npm trusted publishing (approval in the `npm` environment), with provenance.

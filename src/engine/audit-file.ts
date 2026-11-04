@@ -1,10 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
-import {
-  codexRunnerProfile,
-  resolveInternalModelProfile,
-} from '../models/profiles';
 import type { ModelBudgetLimits } from '../models/accounting';
+import { localModelProfile } from '../models/local-profile';
+import { resolveSupportedModel } from '../models/supported-models';
 import { resolveDataForSeoLocale } from '../probes/dataforseo-locale';
 import { probeLimitsSchema } from '../probes/limits';
 import {
@@ -83,7 +81,8 @@ export const runPolicySchema = z
     limits: probeLimitsSchema.prefault({}),
     coverageThresholds: coverageThresholdsSchema.prefault({}),
     allowPartial: z.boolean().default(false),
-    // Enforced for the host's model calls; see BudgetPolicy.
+    // Caps every paid call of the run: probes, Codex stage sessions, host
+    // model calls and searches (see BudgetPolicy).
     budget: budgetPolicySchema.prefault({}),
   })
   .strict();
@@ -91,6 +90,10 @@ export const runPolicySchema = z
 export const auditFileSchema = z
   .object({
     version: z.literal(auditFileVersion),
+    // The gateway model every text role and Codex stage runs on; absent
+    // means the engine's recommended model (src/models/supported-models.ts).
+    // Probe surfaces are what is measured and keep their own pinned models.
+    model: z.string().trim().min(1).optional(),
     brand: brandSchema,
     competitors: z.array(brandSchema).min(1),
     ownedDomains: z.array(z.string().min(1)).max(20).optional(),
@@ -235,13 +238,12 @@ export const toRunRequest = (
     runId,
     mode: 'resume',
     grounding: file.grounding,
-    modelProfile: {
-      ...resolveInternalModelProfile(codexRunnerProfile),
+    modelProfile: localModelProfile(resolveSupportedModel(file.model), {
       // Pinned by the audit, never inferred from which credentials happen to
       // be set: full grounding searches, and preflight requires its key.
       searchProvider:
         file.grounding === 'full' ? 'dataforseo-google-organic-v1' : 'disabled',
-    },
+    }),
     ...(modelBudget && { modelBudget }),
     surfaces: file.surfaces,
     maxPlannedUnits: file.runPolicy.maxPlannedUnits,
