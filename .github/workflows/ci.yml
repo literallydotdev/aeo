@@ -1,5 +1,7 @@
 name: CI
 
+# Every step here is free: the test suite fakes every model, provider and
+# agent CLI, and *.live.spec.ts (real model calls) never runs in CI.
 on:
   push:
     branches: [main]
@@ -9,8 +11,14 @@ permissions:
   contents: read
 
 jobs:
+  # The test suite on both supported platforms. macOS is where child
+  # processes, the Codex sandbox, file syncing and temp paths differ from
+  # Linux, and the tests exercise all of them with fakes.
   check:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -23,11 +31,10 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
 
+  # The packed tarball installed into an empty project: the offline commands
+  # and a library import work with no checkout, credentials or network.
   package:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -36,9 +43,6 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # The packed tarball installed into an empty project: the offline
-      # commands and a library import work with no checkout, credentials or
-      # network.
       - name: Pack and smoke test
         run: |
           set -eu

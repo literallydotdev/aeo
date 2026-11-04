@@ -30,8 +30,8 @@ not client data.
 | `pnpm build`         | `dist/` (CLI, author tool server, library, types) and `resources/`            |
 
 `pnpm typecheck && pnpm lint && pnpm test` is the gate for every change;
-CI runs it, then packs and smoke-tests the tarball on Linux x64, Linux arm64
-and macOS.
+CI runs it on Linux and macOS, then packs and smoke-tests the tarball on
+Linux. Everything in CI is free: no step calls a real model or provider.
 
 ## Layout
 
