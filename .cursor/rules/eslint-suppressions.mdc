@@ -1,0 +1,36 @@
+---
+description: Narrowest-scope eslint-disable with named rule and reason
+globs: '**/*.ts'
+alwaysApply: false
+---
+
+# ESLint Suppressions
+
+When suppressing an ESLint rule, use the narrowest possible scope and always explain why.
+
+## Rules
+
+- Prefer `eslint-disable-next-line` over block-level `eslint-disable`; never file-level disables for a single offending line
+- Name the specific rule being suppressed — a bare `// eslint-disable-next-line` silences everything on that line
+- Add a short comment (same line or the line above) explaining **why** the suppression is legitimate
+- If the same suppression keeps appearing, that's config pressure — fix it once in `eslint.config.mjs` instead of scattering disables
+
+### Correct
+
+```ts
+const toProviderToolSet = (tools: Record<string, unknown>): ToolSet => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- The provider packages declare their tools against a different Tool type than the `ai` package.
+  return tools as ToolSet;
+};
+```
+
+The reason follows `--` on the same line: `eslint-comments/require-description`
+refuses a suppression without one, and `eslint-comments/no-use` allows only
+`eslint-disable-next-line`.
+
+### Incorrect
+
+```ts
+/* eslint-disable */ // silences every rule for the rest of the file
+return tools as ToolSet;
+```

@@ -48,19 +48,64 @@ claiming a macOS fix.
 - Every module is importable as `literally-aeo/<path>` (the hosted adapter
   uses this). Only the CLI and `literally-aeo/contracts` are stable API.
 
-## Rules
+## Engineering principles
 
-- TypeScript follows [docs/typescript-style-guide.md](docs/typescript-style-guide.md);
-  it is binding, and existing code that breaks it is debt, not precedent.
-- Runtime dependencies are pinned to exact versions: the measurement method
-  (cache keys, JSON schemas sent to models) depends on them. Changing one is a
-  method change and gets its own release note.
-- `toolVersion` in `src/bundle/contracts.ts` equals the package version; the
-  build and a test refuse a mismatch.
-- Git is the user's to run: never run a git command that changes repository
-  state (`add`, `commit`, `push`, `tag`, `reset`, `checkout`, ...). Hand the
-  user the exact command, naming every path. No `Co-Authored-By:` or
-  "Generated with" lines.
+Optimize for **clarity**, **correctness**, and **ease of change**; a
+measurement means the same thing every time, and the evidence never claims
+more than was observed. Full rulebook:
+[`docs/engineering-principles.md`](docs/engineering-principles.md) (Claude
+imports it through `CLAUDE.md`; Cursor mirrors it in
+`.cursor/rules/engineering-principles.mdc`; Codex reads it from here).
+
+- Keep it simple
+- Avoid repeating knowledge
+- Separate concerns
+- Prefer explicit code
+- Make invalid states hard to express
+- Fail fast, before paid work
+- A measurement means the same thing every time
+- Evidence never claims more than was observed
+- Everything a model or a website returns is untrusted
+- Never spend money by accident
+- Library modules have no side effects at import
+- Everything here is public
+- Test behavior, deterministically and for free
+
+TypeScript follows [`docs/typescript-style-guide.md`](docs/typescript-style-guide.md):
+it is binding, and existing code that breaks it is debt, not precedent.
+
+## Agent harness
+
+One body of guidance for Claude Code, Cursor and Codex. Map and sync rules:
+[`docs/agent-harness.md`](docs/agent-harness.md).
+
+- **Git is the user's to run**
+  ([`.claude/rules/git-operations.md`](.claude/rules/git-operations.md)):
+  never run a git command that changes repository or working-tree state
+  (`add`, `commit`, `push`, `tag`, `switch`/`checkout`, `reset`, `stash`,
+  `rm`, `config`, or anything with `--force`, `--amend` or `--no-verify`).
+  Hand the user the exact command, naming every path; read-only inspection
+  (`status`, `diff`, `log`, `show -s`, `blame`) is fine. No `Co-Authored-By:`
+  or "Generated with" lines in commits or PRs.
+- **Topic rules** live in `.claude/rules/*.md` (Claude loads all of them every
+  session), mirrored in `.cursor/rules/*.mdc` with frontmatter. Editing one
+  side means syncing the other. Codex: read the matching rule before editing
+  its area:
+  - `public-repository`: before adding or changing any file, data or comment
+  - `measurement-stability`: prompts, stages, scoring, profiles, digests,
+    cache keys, dependencies
+  - `evidence-honesty`: the recorder, journal, export and verifier
+  - `untrusted-input`: anything that reads answers, pages, model output or
+    bundles
+  - `tests-cost-nothing`: before adding or changing tests or CI
+  - `eslint-suppressions`: before adding any `eslint-disable`
+  - `git-operations`: before any git command that writes
+- **Skills** (user-invoked): `scrutinize` and `scrutinize-wide` (self-review
+  of session work against the principles), `code-style` (review of session
+  TypeScript against the style guide). Mounted at
+  `.claude/skills/<name>/SKILL.md` (Claude `/name`) and
+  `.agents/skills/<name>/SKILL.md` (Cursor `/name`, Codex `$name`); the two
+  copies stay byte-identical.
 
 ## Releasing
 

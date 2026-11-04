@@ -7,3 +7,11 @@ audit-run/
 .env
 .env.*
 !.env.example
+
+# Agent state stays local; the harness itself is versioned.
+.claude/*
+!.claude/rules/
+!.claude/skills/
+!.claude/settings.local.json
+.cursor/*
+!.cursor/rules/

@@ -1,0 +1,370 @@
+# Engineering Principles
+
+## The Main Goal
+
+Optimize for **clarity**, **correctness**, and **ease of change**.
+
+Most rules in this document are heuristics that support those three outcomes.
+When rules conflict, prefer the option that makes the code easier to
+understand and safer to modify.
+
+These principles are **defaults**, not rigid laws. Use judgment, but be
+prepared to explain deviations in terms of readability, safety, measurement
+integrity, or operational needs.
+
+This repository is an engine whose output other people verify. Two outcomes
+sit next to the main goal and are never traded away for convenience: **a
+measurement means the same thing every time it is taken**, and **the evidence
+never claims more than was observed**.
+
+---
+
+## General Programming Principles
+
+### 1. Keep It Simple
+
+Prefer the simplest design that correctly solves the current problem.
+
+- **KISS**: avoid cleverness unless it clearly pays for itself
+- **YAGNI**: don't build for hypothetical futures
+- Small, obvious code usually ages better than flexible-looking code
+
+### 2. Avoid Repeating Knowledge
+
+Use **DRY** carefully.
+
+- Repeated rules (a scoring rule, a digest's inputs, a file name in a run
+  directory) are dangerous: two copies drift and a measurement changes meaning
+- Small duplicated code can be acceptable if it avoids premature abstraction
+- Duplicate knowledge is worse than duplicate syntax
+
+### 3. Separate Concerns
+
+Keep different kinds of logic in different places.
+
+- The CLI parses arguments, resolves files and settings, and prints; the
+  engine measures; neither reaches into the other's job
+- Contracts (`src/bundle/contracts.ts`, `src/report/`, the Zod schemas) define
+  shapes; modules validate against them rather than re-describing them
+- Storage sits behind ports (`src/stores/ports.ts`); a stage never knows
+  which backend holds its data
+- Model prompts and stage rules live with their stage, not scattered through
+  orchestration code
+
+### 4. Prefer Explicitness Over Magic
+
+Code should reveal what it is doing without requiring hidden context.
+
+- Use good names
+- Use explicit data flow: pass settings, credentials and clients in; library
+  modules never read a `.env` file or pick a backend from the environment
+- Avoid surprising side effects; importing a module never starts work
+- Favor readable branching over compressed clever expressions
+
+### 5. Name Things by Domain, Not Mechanism
+
+The best names describe what the code means in the audit, not the data
+structure.
+
+- Prefer `capturedAnswer`, `measurementDigest`, `servedModel` and
+  `groundingBundle` over `item`, `data` or `result2`
+- Prefer names that explain why a thing exists, not only what shape it has
+- If a function is hard to name, its responsibility is often unclear
+
+### 6. Make Illegal States Hard to Express
+
+Use types, schemas, and constrained APIs so invalid states are hard to
+create.
+
+- Prefer discriminated unions over loose strings and boolean flags
+  (`{ outcome: 'succeeded' } | { outcome: 'failed'; kind; error }`)
+- Validate every document read from disk, a model or a provider with a strict
+  Zod schema at the boundary; extend the schema rather than re-checking
+  fields later
+- Model "unknown" explicitly (`null`, `outcome_unknown`) instead of guessing
+
+### 7. Fail Fast
+
+Catch problems early and close to the source.
+
+- Preflight before paid work: a missing credential, CLI or login stops the
+  run before the first probe, never halfway through it
+- Throw or return a typed error when an assumption is broken
+- Don't silently continue from impossible states
+
+### 8. Keep One Source of Truth
+
+Every important fact has one authoritative home.
+
+- `src/bundle/contracts.ts` defines the bundle, the journal events and the
+  tool identity; `toolVersion` equals the package version
+- `src/schema.ts` and the audit file schema define what a run measures
+- The pinned model profiles (`src/models/profiles.ts`) define which models a
+  role uses
+- Avoid manually syncing parallel representations; derive instead
+
+### 9. Encapsulate Change
+
+Put volatile logic behind stable boundaries.
+
+- Provider and CLI specifics (the gateway, DataForSEO, each agent CLI's event
+  stream) stay in their adapter modules
+- The hosted platform consumes the engine through its package subpaths; a
+  hosted concern (a database, a queue) never leaks into engine modules
+- Resources are found through `engineResources()`, never through a path
+  relative to the working directory
+
+### 10. Use Comments Sparingly, but Make Them Count
+
+Most code should become clear through structure and naming. Comments are for
+context the code cannot express.
+
+- Explain **why**, not the obvious **what**
+- Document invariants, edge cases and non-obvious tradeoffs: a provider quirk,
+  the run that revealed a bug, the spec section a rule implements
+- Remove stale comments quickly
+- If a block needs many comments to be understandable, simplify the code first
+
+### 11. Test Behavior, Not Internals
+
+Protect the engine's promises, not its implementation details.
+
+- Test what a run, an export or a verification produces, and what it refuses
+- Pin real provider and CLI output shapes with captured fixtures
+- Every test is deterministic and free: fakes for every model, provider and
+  CLI (see `.claude/rules/tests-cost-nothing.md`)
+- Avoid brittle checks that depend on private structure
+
+### 12. Prefer Deletion Over Addition
+
+The cleanest abstraction is often the one you never added.
+
+Before introducing a new layer, port, option or helper, ask whether the
+existing code would be clearer with a small direct implementation instead.
+
+### 13. Make Errors Actionable
+
+Failures should be understandable by the operator who hits them.
+
+- Say what failed, why, and what to do next: the flag to pass, the setting to
+  set, the command to resume with
+- CLI exit codes follow the command contract: 0 done, 1 invalid input or
+  failure, 2 stopped and resumable, 3 done with disclosed limitations
+- Avoid swallowing errors unless the fallback is intentional, safe and
+  recorded
+
+### 14. Don't Spend Money by Accident
+
+Paid work (probes, model calls, searches, Codex sessions) is a write-time
+discipline, like correctness.
+
+- Never re-dispatch a paid request because a later bookkeeping step failed;
+  bank first, record the outcome, and fail the unit as a persistence failure
+- Resume over banked work; never re-capture what the run directory holds
+- Every paid call is reserved against the run's budget before dispatch and
+  settled after; an unknown cost keeps its reservation
+- Measure before tuning performance; guessing at hot paths fights Keep It
+  Simple
+
+---
+
+## Engine Principles
+
+### A Measurement Means the Same Thing Every Time
+
+Comparisons across runs are the product. Anything that feeds a measurement is
+part of its method.
+
+- Changing a prompt, a stage version, a scoring rule, a schema sent to a model
+  or a pinned dependency changes the method: bump the matching version and
+  say so in the release notes
+- Runtime dependencies are pinned to exact versions
+- Digests (measurement, plan, method, cache keys) are computed from declared
+  inputs only; never add an input silently
+- Details: `.claude/rules/measurement-stability.md`
+
+### Evidence Never Claims More Than Was Observed
+
+The journal and the bundle are a record, not a narrative.
+
+- The host records what it observes as it happens; no model is ever asked to
+  describe the run
+- An operation starts before its dispatch and ends with its real outcome;
+  what is not known stays unknown (`null`, `outcome_unknown`, `partial`)
+- Coverage is claimed only for what every writer observed, and the verifier
+  re-derives every claim instead of trusting the manifest
+- Details: `.claude/rules/evidence-honesty.md`
+
+### Everything a Model or a Website Returns Is Untrusted
+
+Captured answers, fetched pages and model output are data, never
+instructions.
+
+- Validate them with strict schemas and bound their size
+- Keep them away from credentials, the operator's files and the shell
+- Details: `.claude/rules/untrusted-input.md`
+
+### This Repository Is Public
+
+Every file and commit is published under MIT.
+
+- No client or prospect data, no private company context, no credentials or
+  internal infrastructure identifiers
+- Details: `.claude/rules/public-repository.md`
+
+### Think in Layers
+
+1. **CLI** (`src/cli/`): arguments, settings, output, exit codes
+2. **Engine** (`src/engine/`): a local run, its budget, resources and
+   recovery
+3. **Workflow and stages** (`src/codex-workflow/`, `src/grounding/`,
+   `src/probes/`, `src/analysis/`): the measurement itself
+4. **Contracts and stores** (`src/bundle/`, `src/report/`, `src/stores/`):
+   shapes, persistence ports, the journal and the verifier
+
+Problems start when one module tries to be all four layers at once.
+
+### Library Modules Have No Side Effects at Import
+
+Every module is importable as `literally-aeo/<path>`.
+
+- Importing a module never starts a process, opens a connection, reads the
+  environment into a constant, or registers a global
+- Executables (`src/cli/literally-aeo.ts`,
+  `src/codex-workflow/author-tools-server.ts`) ship as bundles, not library
+  entries
+- Only the CLI and `literally-aeo/contracts` are stable API; other subpaths
+  serve the hosted adapter and may change in any release
+
+---
+
+## Size and Splitting Heuristics
+
+Size matters, but cohesion matters more.
+
+### Use Soft Limits, Not Sacred Numbers
+
+- **Function**: often under 30 to 50 lines
+- **File**: often under 200 to 400 lines
+
+These are signals, not pass/fail rules.
+
+### Split When Cohesion Breaks
+
+Split a function or file when:
+
+- it has multiple reasons to change
+- it is hard to name clearly
+- it mixes orchestration with parsing, persistence or prompting
+- understanding it requires large amounts of scrolling
+- testing it feels awkward because responsibilities are tangled
+
+### Do Not Split Only to Satisfy a Number
+
+A 300-line cohesive stage module can be healthy; a 30-line helper can still be
+poorly designed.
+
+### Use an Extraction Order
+
+1. pure helper functions
+2. a port for behavior that has two real implementations
+3. shared modules under `src/lib/`
+
+---
+
+## Stack-Specific Rules
+
+### TypeScript
+
+- Syntax, formatting, naming, types, errors and tests follow
+  [typescript-style-guide.md](typescript-style-guide.md); review session work
+  against it with the `code-style` skill
+- The guide is binding; its only exceptions are the ones it lists. Existing
+  code that breaks it is migration debt, not precedent
+
+### Node and the Package
+
+- Node 24 or newer, ESM only
+- `pnpm build` produces what npm ships: the CLI and tool server bundles, the
+  library under `dist/lib/`, declarations and `resources/`
+- Read settings through `src/lib/env.ts` (`readEnv`, `requireEnv`); ESLint
+  refuses direct `process.env`
+- Log through `createLog` (`src/lib/log.ts`); ESLint refuses `console` outside
+  CLI entry points
+
+### Zod
+
+- Strict object schemas at every boundary; `z.infer` for the types
+- One schema per contract, imported, never redefined
+
+### Vitest
+
+- Tests sit beside the module (`foo.ts`, `foo.spec.ts`); fixtures in
+  `__fixtures__/`
+- `*.live.spec.ts` (real calls) never runs in `pnpm test` or CI
+
+### Verification
+
+- `pnpm typecheck && pnpm lint && pnpm test` is the gate for every change
+- Changes to packaging also run `pnpm build` and, for the published shape,
+  `pnpm pack` with an install into an empty project
+
+---
+
+## When to Abstract
+
+Abstraction should respond to real pressure, not anticipation.
+
+Good reasons to abstract:
+
+- the same rule or shape appears in multiple places
+- a boundary needs to be stabilized for testing or for the hosted adapter
+- a concept has a clear name and a coherent API
+
+Bad reasons to abstract:
+
+- "we might need this later"
+- avoiding a small amount of duplication too early
+- hiding complexity instead of removing it
+
+---
+
+## Practical Review Questions
+
+Before merging code, ask:
+
+1. Is this the simplest version that solves the real problem?
+2. Is any important knowledge duplicated?
+3. Are responsibilities separated (CLI, engine, stages, contracts and stores)?
+4. Would a new contributor understand this file quickly?
+5. Does it change what a measurement means? If so, is the version bumped and
+   the change stated?
+6. Does the evidence still claim only what was observed?
+7. Is every untrusted input validated and bounded?
+8. Can it spend money twice, or spend without a reservation?
+9. Is every failure actionable, with the right exit code?
+10. Does importing any changed module have side effects?
+11. Is the abstraction justified by real reuse or complexity?
+12. Would removing code make this design better?
+13. Is everything in it fit to publish?
+14. Are the meaningful states tested (success, failure, unknown, resumed)?
+
+---
+
+## Short Version
+
+If you need the compressed rulebook:
+
+- Keep it simple
+- Avoid repeating knowledge
+- Separate concerns
+- Prefer explicit code
+- Make invalid states hard to express
+- Fail fast, before paid work
+- A measurement means the same thing every time
+- Evidence never claims more than was observed
+- Everything a model or a website returns is untrusted
+- Never spend money by accident
+- Library modules have no side effects at import
+- Everything here is public
+- Test behavior, deterministically and for free
