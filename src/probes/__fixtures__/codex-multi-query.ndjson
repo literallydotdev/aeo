@@ -1,0 +1,9 @@
+{"type": "thread.started", "thread_id": "thread-redacted"}
+{"type": "turn.started"}
+{"type": "item.completed", "item": {"id": "item_0", "type": "agent_message", "text": "I\u2019ll compare current web results for both products, then verify Swarmia\u2019s figure on the pricing page itself."}}
+{"type": "item.started", "item": {"id": "exec-e17c8714-8126-45c3-ab87-5dab7b5e5374", "type": "web_search", "query": "", "action": {"type": "other"}}}
+{"type": "item.completed", "item": {"id": "exec-e17c8714-8126-45c3-ab87-5dab7b5e5374", "type": "web_search", "query": "Swarmia GitHub integration pricing per developer ...", "action": {"type": "search", "queries": ["Swarmia GitHub integration pricing per developer", "LinearB GitHub integration pricing per developer"]}}}
+{"type": "item.started", "item": {"id": "exec-feda9d16-699f-41be-9fef-ca0fc18dcd05", "type": "web_search", "query": "", "action": {"type": "other"}}}
+{"type": "item.completed", "item": {"id": "exec-feda9d16-699f-41be-9fef-ca0fc18dcd05", "type": "web_search", "query": "https://www.swarmia.com/pricing/", "action": {"type": "other"}}}
+{"type": "item.completed", "item": {"id": "item_3", "type": "agent_message", "text": "Swarmia\u2019s Standard plan costs **$45 per developer per month, billed annually** ([official pricing](https://www.swarmia.com/pricing/))."}}
+{"type": "turn.completed"}

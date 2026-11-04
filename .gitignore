@@ -1,0 +1,9 @@
+node_modules/
+dist/
+resources/
+audit-run/
+*.aeo.zip
+*.tgz
+.env
+.env.*
+!.env.example

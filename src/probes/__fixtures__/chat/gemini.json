@@ -1,0 +1,502 @@
+{
+  "text": "As of September 3, 2026, the current **Active LTS (Long-Term Support)** version of Node.js is **Node.js 24.x**.\n\nHere is a breakdown of the currently supported versions:\n\n*   **Active LTS: Node.js 24 (v24.20.0)**\n    *   **Status:** Recommended for most users and production environments.\n    *   **End of Life:** April 30, 2028.\n*   **Maintenance LTS: Node.js 22 (v22.23.2)**\n    *   **Status:** Receives critical bug fixes and security patches only.\n    *   **End of Life:** April 30, 2027.\n*   **Current (Latest): Node.js 26 (v26.8.1)**\n    *   **Status:** The current stable release containing the latest features. It is scheduled to be promoted to **Active LTS in October 2026**.\n\n### Upcoming Changes to the Release Schedule\nStarting with **Node.js 27** in October 2026, the project is shifting to a new release model. Instead of two major releases per year (the odd/even model), there will be **one major release per year** every April. Under this new plan, every major release will eventually become an LTS version, and version numbers will align with the calendar year (e.g., Node.js 27 in 2027). Node.js 26 is the final version to follow the old release cycle.",
+  "steps": [
+    {
+      "content": [
+        {
+          "type": "text",
+          "text": "As of September 3, 2026, the current **Active LTS (Long-Term Support)** version of Node.js is **Node.js 24.x**.\n\nHere is a breakdown of the currently supported versions:\n\n*   **Active LTS: Node.js 24 (v24.20.0)**\n    *   **Status:** Recommended for most users and production environments.\n    *   **End of Life:** April 30, 2028.\n*   **Maintenance LTS: Node.js 22 (v22.23.2)**\n    *   **Status:** Receives critical bug fixes and security patches only.\n    *   **End of Life:** April 30, 2027.\n*   **Current (Latest): Node.js 26 (v26.8.1)**\n    *   **Status:** The current stable release containing the latest features. It is scheduled to be promoted to **Active LTS in October 2026**.\n\n### Upcoming Changes to the Release Schedule\nStarting with **Node.js 27** in October 2026, the project is shifting to a new release model. Instead of two major releases per year (the odd/even model), there will be **one major release per year** every April. Under this new plan, every major release will eventually become an LTS version, and version numbers will align with the calendar year (e.g., Node.js 27 in 2027). Node.js 26 is the final version to follow the old release cycle.",
+          "providerMetadata": {
+            "vertex": {
+              "thoughtSignature": "AY89a18eUX9yWH2a02aeIYUggcNiLqz6bBq2YimUiivDCrFsL4szsuJYlcMO5nj4Tw6C77k+ubrAfGaIBmJ7MazHG3g1nvwFCwD/hBuqjg5fwelg9XDhKVQGm+Cr1jsM5+gkGJL0tqjewG3AXyR3LJhwDK0Pxvf/1L7YPe23Nq4/6MqNH3cgK9dmklYmXSumpYZldFCCGH92lb9HJR4pdtcivIv4fJjznG8hunxkT4LaEfQnko3tBLZFHK91RNJ+kH5yJZlimzeLmRP9hxRUpt7dCvHx7HRVf/Jp1Y1tAVbS0NAvUD+L/fQTCVp/eLqEh0mSI8+A3H1ZzT8VdMXNP5fipZ5XWS4Fafru9sdyqo4lrrNPmoAhxDBhRymh/joW2BhKDcDlsdx4JZc/fgS3uBAGwAfkync1w3aT08p+4HwGl5ZVFmZxNoEHoFIw93LbLQoPffBT4EY1ACk5o4hSaom4ZQHsMOLboyDk33ApSZdQDcjhfmQfIjLMf9aQ7tS2Alx9CsafJGZ5weLCbtu7NcWChr+on/piVcafPjjU0rnq9eNz0OzrnOdVBbtSe33xmoLzTQhV6baqahpu619HOYfjldrXHUaIm5C7H+DM1n80c3BXCecQAIN/VAVgbvzBDb3ricHglIh7iFqy8RTDanHvzMsBG+XmhAHmpliGokw0Y2y4YFrZVI53SjTKDyR9NHyqd3FVokE5PbnwSP322gqGIFZ7Tgh1ntTr7Y05hjqGJQv+dpKdiLKCxRp9JFBUfKcJP7BIlWE5u7LkCqjVvwV6buNzI0t8q1Ik4ClepVETi+elRlSOd5b2Im9tgmBAbK3fcBE7M7Da5qYZE6d+rEBXFYIRVGSjVJF6HavdfbNzNdqyac3TBZ0Vs0ogIy8v6Cua8Dw0nPKt5w5hh5RyyNSvwQkHmkQ6ij397UYI9xeFU4r4a3u4sAmq3ZiORka9Vx0NMc9QJuxPsILo6RlMG5/eDCsiT1f/+iVYaU8R6fO42r2ueMMaEHVV7RKrLEpKBazXZJ5THkeVE0zfOHtoemGDaa3Bwe4YizohvYtDPxMQ5zHJbemuTZnqzwpnvc21pCVyzaZYG6YcjUnY9jJ/LEPI6jqQ3PVdFEET2cU4FeCRCqGEAvI+Z7Oi1MonGvYNgHQIlW5uSOgDX3RmVN0s6a4t3Fi/JK5ltCJ9EECe2QyLiaKWPvYTUbTlK7RawflCXWW69z7hjSyFviax95Z8wjUOIYJBdCQME8QmbmN637LAR4/1ELCnPX+MjYo2lzRj8yttJHetWKmCESBFscYQXBEEpZu5cyhzcK+ew6uKZvJNBXn/osDBP5VTy5r8KFDVbYj9M19+aoQpCjY3YOkXpEtoGBfM1sXPbDwoz5FYGimpygBPtdDOvW2+yH22rya+bEU5EkSyPMmHFnZiT6WfpCiaQDaOudNVtQswseGFhw3ABR2XNiHZuuzHbDL5Tk/DwS6qbrdumGEGsnNmwwbJ5P+ZtLRiHvt22W74YBsxenbn2fKk/0UNuYBA6yKhGt7wNzvn6u0KN6wZ2DAC4y1PF/9g9ow0A4m9Ib2i2S6jQqRbIeQzuf0u5/4aHvur2PlZfMFViSBn6rUIQfrqe0wYlk6jL4yZVEeviKHBcGIYt5aLy0bosKh/nnaaUNFtqJjfTh1ubnWv4PLcmcsM+/mCXYDWBrPEqwEx+Ot0c7ynzdZ+M7oAamBrabQo8k686fKCDukXM37b"
+            }
+          }
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "gooGTNZqC0SaGFEP",
+          "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEqiJTC3juKpThQiJ5w0fEN8uOJTA04ot92oBPPOtMe0wfoRUP3YzC810T0kvYoFzz7D-taWdtrQpI_Qm-kpAp95dpIW7Xa8xNNki4AA5bM1g_cFlh6e9izRl2-i91jb6KbcuCV12XzDmrC-4gUVL3fI77DanLesP7Us3asc77YyLzd7CD1IseCz1Q6FSZsvw==",
+          "title": "herodevs.com"
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "wRuNfuIJYqphnzqp",
+          "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGDpSi8Oxi0s-PtdeDdbq8JS7o5nthApYnKPv450MRndoC5Veq2vN9Ntr51dX08fgTgU5Ihipcf3StgoR82RmOE1_3MjDXyOVC16fz4N4S9UPh7bXAbJlbBMNh9NCCXrZo=",
+          "title": "eosl.date"
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "UgSlbFIWubinHBEG",
+          "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFNL-PvvbvF6d-FDICQm5QKCcxjOvVcWutYXm6JNAOcpQVUTK3cbQtZBUq2QrN6usJ5dirS2wMt55DvfgkQQcbWH48xBt7SGTItWc86IC-DeNVr06Q91h6wx8BvFRy4z9Jw9_x-einl58BUknzpZYS30fXgCjziEAmYZJTv0FRNDLVb4XkeZNGM",
+          "title": "nodejs.org"
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "EptWvtmqvjGI4WJW",
+          "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHZPD4vwN3r8_9yJEWhtLURdz69v95nVh30YzNrfkcurFzYiym5lToGx3kShGq0Gz6uFIVCIiP9aZsJ2f4e2qATdG7UwgZhp_lhF8QGhgECmIWvoM4YT7jm_01Ah76U39xu0ttU7j61fDZje1pLajiCAi9Ogvk=",
+          "title": "infoq.com"
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "0GfCDR1USiYUty2D",
+          "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE6Lkr6K-fhvMLdyOTT3ghD4Kt5rJZ1GZmJVaZaarZ3yjBFO-qTsptda_GwAKpENv000iWV8aPjrnEfsq--Of8O_MW8Q1UQRWBKOXf0wQzsUADs_tx5xCe3heGFMqoKk1HSH-71DlbWL7NxaXRFU4eLx_DRTdR5dTQINDO2Gg3fdpU=",
+          "title": "nodejsdesignpatterns.com"
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "Yq40S3YwQzscaCbV",
+          "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHFWdchrpk-Ll8jeEIaMPFYZFtqRhhVBtdUhw0OgNmlxM2HFpsO6yPHnbw1nQDsdVMp35LNAWjALqwpk9lQ6uA0eTRKkwuK0IPhfhF4K69Czr_cdE2ni_24gSAcn0E_yxg7lplQA3NpbzUxwKfbCk6KjZlHVLrFtMctHr64xwMz3io=",
+          "title": "codercops.com"
+        }
+      ],
+      "providerMetadata": {
+        "vertex": {
+          "promptFeedback": null,
+          "groundingMetadata": {
+            "webSearchQueries": [
+              "current Node.js LTS version September 2026",
+              "Node.js release schedule 2026"
+            ],
+            "searchEntryPoint": null,
+            "groundingChunks": [
+              {
+                "web": {
+                  "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEqiJTC3juKpThQiJ5w0fEN8uOJTA04ot92oBPPOtMe0wfoRUP3YzC810T0kvYoFzz7D-taWdtrQpI_Qm-kpAp95dpIW7Xa8xNNki4AA5bM1g_cFlh6e9izRl2-i91jb6KbcuCV12XzDmrC-4gUVL3fI77DanLesP7Us3asc77YyLzd7CD1IseCz1Q6FSZsvw==",
+                  "title": "herodevs.com"
+                }
+              },
+              {
+                "web": {
+                  "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGDpSi8Oxi0s-PtdeDdbq8JS7o5nthApYnKPv450MRndoC5Veq2vN9Ntr51dX08fgTgU5Ihipcf3StgoR82RmOE1_3MjDXyOVC16fz4N4S9UPh7bXAbJlbBMNh9NCCXrZo=",
+                  "title": "eosl.date"
+                }
+              },
+              {
+                "web": {
+                  "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFNL-PvvbvF6d-FDICQm5QKCcxjOvVcWutYXm6JNAOcpQVUTK3cbQtZBUq2QrN6usJ5dirS2wMt55DvfgkQQcbWH48xBt7SGTItWc86IC-DeNVr06Q91h6wx8BvFRy4z9Jw9_x-einl58BUknzpZYS30fXgCjziEAmYZJTv0FRNDLVb4XkeZNGM",
+                  "title": "nodejs.org"
+                }
+              },
+              {
+                "web": {
+                  "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHZPD4vwN3r8_9yJEWhtLURdz69v95nVh30YzNrfkcurFzYiym5lToGx3kShGq0Gz6uFIVCIiP9aZsJ2f4e2qATdG7UwgZhp_lhF8QGhgECmIWvoM4YT7jm_01Ah76U39xu0ttU7j61fDZje1pLajiCAi9Ogvk=",
+                  "title": "infoq.com"
+                }
+              },
+              {
+                "web": {
+                  "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE6Lkr6K-fhvMLdyOTT3ghD4Kt5rJZ1GZmJVaZaarZ3yjBFO-qTsptda_GwAKpENv000iWV8aPjrnEfsq--Of8O_MW8Q1UQRWBKOXf0wQzsUADs_tx5xCe3heGFMqoKk1HSH-71DlbWL7NxaXRFU4eLx_DRTdR5dTQINDO2Gg3fdpU=",
+                  "title": "nodejsdesignpatterns.com"
+                }
+              },
+              {
+                "web": {
+                  "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHFWdchrpk-Ll8jeEIaMPFYZFtqRhhVBtdUhw0OgNmlxM2HFpsO6yPHnbw1nQDsdVMp35LNAWjALqwpk9lQ6uA0eTRKkwuK0IPhfhF4K69Czr_cdE2ni_24gSAcn0E_yxg7lplQA3NpbzUxwKfbCk6KjZlHVLrFtMctHr64xwMz3io=",
+                  "title": "codercops.com"
+                }
+              }
+            ],
+            "groundingSupports": [
+              {
+                "segment": {
+                  "startIndex": 293,
+                  "endIndex": 329,
+                  "text": "*   **End of Life:** April 30, 2028."
+                },
+                "groundingChunkIndices": [
+                  0,
+                  1
+                ]
+              },
+              {
+                "segment": {
+                  "startIndex": 456,
+                  "endIndex": 492,
+                  "text": "*   **End of Life:** April 30, 2027."
+                },
+                "groundingChunkIndices": [
+                  1
+                ]
+              },
+              {
+                "segment": {
+                  "startIndex": 493,
+                  "endIndex": 539,
+                  "text": "*   **Current (Latest): Node.js 26 (v26.8.1)**"
+                },
+                "groundingChunkIndices": [
+                  1
+                ]
+              },
+              {
+                "segment": {
+                  "startIndex": 619,
+                  "endIndex": 684,
+                  "text": "It is scheduled to be promoted to **Active LTS in October 2026**."
+                },
+                "groundingChunkIndices": [
+                  2,
+                  0,
+                  3,
+                  1
+                ]
+              },
+              {
+                "segment": {
+                  "startIndex": 686,
+                  "endIndex": 824,
+                  "text": "### Upcoming Changes to the Release Schedule\nStarting with **Node.js 27** in October 2026, the project is shifting to a new release model."
+                },
+                "groundingChunkIndices": [
+                  4,
+                  3,
+                  5,
+                  2
+                ]
+              },
+              {
+                "segment": {
+                  "startIndex": 944,
+                  "endIndex": 1105,
+                  "text": "Under this new plan, every major release will eventually become an LTS version, and version numbers will align with the calendar year (e.g., Node.js 27 in 2027)."
+                },
+                "groundingChunkIndices": [
+                  5,
+                  3,
+                  4,
+                  2
+                ]
+              },
+              {
+                "segment": {
+                  "startIndex": 1106,
+                  "endIndex": 1170,
+                  "text": "Node.js 26 is the final version to follow the old release cycle."
+                },
+                "groundingChunkIndices": [
+                  4,
+                  3,
+                  2,
+                  5
+                ]
+              }
+            ]
+          },
+          "urlContextMetadata": null,
+          "safetyRatings": null,
+          "usageMetadata": {
+            "thoughtsTokenCount": 494,
+            "promptTokenCount": 33,
+            "candidatesTokenCount": 348,
+            "totalTokenCount": 875,
+            "trafficType": "ON_DEMAND",
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 33
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 348
+              }
+            ]
+          },
+          "finishMessage": null,
+          "serviceTier": null
+        },
+        "gateway": {
+          "routing": {
+            "originalModelId": "google/gemini-3-flash",
+            "resolvedProvider": "vertex",
+            "fallbacksAvailable": [
+              "google"
+            ],
+            "planningReasoning": "System credentials planned for: vertex, google. Total execution order: vertex(system) → google(system)",
+            "canonicalSlug": "google/gemini-3-flash",
+            "finalProvider": "vertex",
+            "modelAttemptCount": 1,
+            "modelAttempts": [
+              {
+                "canonicalSlug": "google/gemini-3-flash",
+                "success": true,
+                "providerAttemptCount": 1,
+                "providerAttempts": [
+                  {
+                    "provider": "vertex",
+                    "credentialType": "system",
+                    "success": true,
+                    "startTime": 1788430810508,
+                    "endTime": 1788430847733,
+                    "statusCode": 200,
+                    "providerResponseId": "2kmZarTUJMP4x_APs7P5iAE"
+                  }
+                ]
+              }
+            ],
+            "totalProviderAttemptCount": 1
+          },
+          "cost": "0.0305425",
+          "marketCost": "0.0305425",
+          "surchargeCost": "0",
+          "gatewayCost": "0.0305425",
+          "inferenceCost": "0.0025425",
+          "inputInferenceCost": "0.0000165",
+          "outputInferenceCost": "0.002526",
+          "generationId": "gen_01M1KCGZ0GTCCF6DX30ATDM1KD",
+          "billableWebSearchCalls": 2
+        }
+      }
+    }
+  ],
+  "providerMetadata": {
+    "vertex": {
+      "promptFeedback": null,
+      "groundingMetadata": {
+        "webSearchQueries": [
+          "current Node.js LTS version September 2026",
+          "Node.js release schedule 2026"
+        ],
+        "searchEntryPoint": null,
+        "groundingChunks": [
+          {
+            "web": {
+              "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEqiJTC3juKpThQiJ5w0fEN8uOJTA04ot92oBPPOtMe0wfoRUP3YzC810T0kvYoFzz7D-taWdtrQpI_Qm-kpAp95dpIW7Xa8xNNki4AA5bM1g_cFlh6e9izRl2-i91jb6KbcuCV12XzDmrC-4gUVL3fI77DanLesP7Us3asc77YyLzd7CD1IseCz1Q6FSZsvw==",
+              "title": "herodevs.com"
+            }
+          },
+          {
+            "web": {
+              "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGDpSi8Oxi0s-PtdeDdbq8JS7o5nthApYnKPv450MRndoC5Veq2vN9Ntr51dX08fgTgU5Ihipcf3StgoR82RmOE1_3MjDXyOVC16fz4N4S9UPh7bXAbJlbBMNh9NCCXrZo=",
+              "title": "eosl.date"
+            }
+          },
+          {
+            "web": {
+              "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFNL-PvvbvF6d-FDICQm5QKCcxjOvVcWutYXm6JNAOcpQVUTK3cbQtZBUq2QrN6usJ5dirS2wMt55DvfgkQQcbWH48xBt7SGTItWc86IC-DeNVr06Q91h6wx8BvFRy4z9Jw9_x-einl58BUknzpZYS30fXgCjziEAmYZJTv0FRNDLVb4XkeZNGM",
+              "title": "nodejs.org"
+            }
+          },
+          {
+            "web": {
+              "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHZPD4vwN3r8_9yJEWhtLURdz69v95nVh30YzNrfkcurFzYiym5lToGx3kShGq0Gz6uFIVCIiP9aZsJ2f4e2qATdG7UwgZhp_lhF8QGhgECmIWvoM4YT7jm_01Ah76U39xu0ttU7j61fDZje1pLajiCAi9Ogvk=",
+              "title": "infoq.com"
+            }
+          },
+          {
+            "web": {
+              "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE6Lkr6K-fhvMLdyOTT3ghD4Kt5rJZ1GZmJVaZaarZ3yjBFO-qTsptda_GwAKpENv000iWV8aPjrnEfsq--Of8O_MW8Q1UQRWBKOXf0wQzsUADs_tx5xCe3heGFMqoKk1HSH-71DlbWL7NxaXRFU4eLx_DRTdR5dTQINDO2Gg3fdpU=",
+              "title": "nodejsdesignpatterns.com"
+            }
+          },
+          {
+            "web": {
+              "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHFWdchrpk-Ll8jeEIaMPFYZFtqRhhVBtdUhw0OgNmlxM2HFpsO6yPHnbw1nQDsdVMp35LNAWjALqwpk9lQ6uA0eTRKkwuK0IPhfhF4K69Czr_cdE2ni_24gSAcn0E_yxg7lplQA3NpbzUxwKfbCk6KjZlHVLrFtMctHr64xwMz3io=",
+              "title": "codercops.com"
+            }
+          }
+        ],
+        "groundingSupports": [
+          {
+            "segment": {
+              "startIndex": 293,
+              "endIndex": 329,
+              "text": "*   **End of Life:** April 30, 2028."
+            },
+            "groundingChunkIndices": [
+              0,
+              1
+            ]
+          },
+          {
+            "segment": {
+              "startIndex": 456,
+              "endIndex": 492,
+              "text": "*   **End of Life:** April 30, 2027."
+            },
+            "groundingChunkIndices": [
+              1
+            ]
+          },
+          {
+            "segment": {
+              "startIndex": 493,
+              "endIndex": 539,
+              "text": "*   **Current (Latest): Node.js 26 (v26.8.1)**"
+            },
+            "groundingChunkIndices": [
+              1
+            ]
+          },
+          {
+            "segment": {
+              "startIndex": 619,
+              "endIndex": 684,
+              "text": "It is scheduled to be promoted to **Active LTS in October 2026**."
+            },
+            "groundingChunkIndices": [
+              2,
+              0,
+              3,
+              1
+            ]
+          },
+          {
+            "segment": {
+              "startIndex": 686,
+              "endIndex": 824,
+              "text": "### Upcoming Changes to the Release Schedule\nStarting with **Node.js 27** in October 2026, the project is shifting to a new release model."
+            },
+            "groundingChunkIndices": [
+              4,
+              3,
+              5,
+              2
+            ]
+          },
+          {
+            "segment": {
+              "startIndex": 944,
+              "endIndex": 1105,
+              "text": "Under this new plan, every major release will eventually become an LTS version, and version numbers will align with the calendar year (e.g., Node.js 27 in 2027)."
+            },
+            "groundingChunkIndices": [
+              5,
+              3,
+              4,
+              2
+            ]
+          },
+          {
+            "segment": {
+              "startIndex": 1106,
+              "endIndex": 1170,
+              "text": "Node.js 26 is the final version to follow the old release cycle."
+            },
+            "groundingChunkIndices": [
+              4,
+              3,
+              2,
+              5
+            ]
+          }
+        ]
+      },
+      "urlContextMetadata": null,
+      "safetyRatings": null,
+      "usageMetadata": {
+        "thoughtsTokenCount": 494,
+        "promptTokenCount": 33,
+        "candidatesTokenCount": 348,
+        "totalTokenCount": 875,
+        "trafficType": "ON_DEMAND",
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 33
+          }
+        ],
+        "candidatesTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 348
+          }
+        ]
+      },
+      "finishMessage": null,
+      "serviceTier": null
+    },
+    "gateway": {
+      "routing": {
+        "originalModelId": "google/gemini-3-flash",
+        "resolvedProvider": "vertex",
+        "fallbacksAvailable": [
+          "google"
+        ],
+        "planningReasoning": "System credentials planned for: vertex, google. Total execution order: vertex(system) → google(system)",
+        "canonicalSlug": "google/gemini-3-flash",
+        "finalProvider": "vertex",
+        "modelAttemptCount": 1,
+        "modelAttempts": [
+          {
+            "canonicalSlug": "google/gemini-3-flash",
+            "success": true,
+            "providerAttemptCount": 1,
+            "providerAttempts": [
+              {
+                "provider": "vertex",
+                "credentialType": "system",
+                "success": true,
+                "startTime": 1788430810508,
+                "endTime": 1788430847733,
+                "statusCode": 200,
+                "providerResponseId": "2kmZarTUJMP4x_APs7P5iAE"
+              }
+            ]
+          }
+        ],
+        "totalProviderAttemptCount": 1
+      },
+      "cost": "0.0305425",
+      "marketCost": "0.0305425",
+      "surchargeCost": "0",
+      "gatewayCost": "0.0305425",
+      "inferenceCost": "0.0025425",
+      "inputInferenceCost": "0.0000165",
+      "outputInferenceCost": "0.002526",
+      "generationId": "gen_01M1KCGZ0GTCCF6DX30ATDM1KD",
+      "billableWebSearchCalls": 2
+    }
+  },
+  "sources": [
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "gooGTNZqC0SaGFEP",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEqiJTC3juKpThQiJ5w0fEN8uOJTA04ot92oBPPOtMe0wfoRUP3YzC810T0kvYoFzz7D-taWdtrQpI_Qm-kpAp95dpIW7Xa8xNNki4AA5bM1g_cFlh6e9izRl2-i91jb6KbcuCV12XzDmrC-4gUVL3fI77DanLesP7Us3asc77YyLzd7CD1IseCz1Q6FSZsvw==",
+      "title": "herodevs.com"
+    },
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "wRuNfuIJYqphnzqp",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGDpSi8Oxi0s-PtdeDdbq8JS7o5nthApYnKPv450MRndoC5Veq2vN9Ntr51dX08fgTgU5Ihipcf3StgoR82RmOE1_3MjDXyOVC16fz4N4S9UPh7bXAbJlbBMNh9NCCXrZo=",
+      "title": "eosl.date"
+    },
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "UgSlbFIWubinHBEG",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFNL-PvvbvF6d-FDICQm5QKCcxjOvVcWutYXm6JNAOcpQVUTK3cbQtZBUq2QrN6usJ5dirS2wMt55DvfgkQQcbWH48xBt7SGTItWc86IC-DeNVr06Q91h6wx8BvFRy4z9Jw9_x-einl58BUknzpZYS30fXgCjziEAmYZJTv0FRNDLVb4XkeZNGM",
+      "title": "nodejs.org"
+    },
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "EptWvtmqvjGI4WJW",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHZPD4vwN3r8_9yJEWhtLURdz69v95nVh30YzNrfkcurFzYiym5lToGx3kShGq0Gz6uFIVCIiP9aZsJ2f4e2qATdG7UwgZhp_lhF8QGhgECmIWvoM4YT7jm_01Ah76U39xu0ttU7j61fDZje1pLajiCAi9Ogvk=",
+      "title": "infoq.com"
+    },
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "0GfCDR1USiYUty2D",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE6Lkr6K-fhvMLdyOTT3ghD4Kt5rJZ1GZmJVaZaarZ3yjBFO-qTsptda_GwAKpENv000iWV8aPjrnEfsq--Of8O_MW8Q1UQRWBKOXf0wQzsUADs_tx5xCe3heGFMqoKk1HSH-71DlbWL7NxaXRFU4eLx_DRTdR5dTQINDO2Gg3fdpU=",
+      "title": "nodejsdesignpatterns.com"
+    },
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "Yq40S3YwQzscaCbV",
+      "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHFWdchrpk-Ll8jeEIaMPFYZFtqRhhVBtdUhw0OgNmlxM2HFpsO6yPHnbw1nQDsdVMp35LNAWjALqwpk9lQ6uA0eTRKkwuK0IPhfhF4K69Czr_cdE2ni_24gSAcn0E_yxg7lplQA3NpbzUxwKfbCk6KjZlHVLrFtMctHr64xwMz3io=",
+      "title": "codercops.com"
+    }
+  ]
+}

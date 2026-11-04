@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "phrases": [
+    "at the end of the day",
+    "bottom line",
+    "cutting-edge",
+    "delve",
+    "elevate",
+    "foster",
+    "game-changer",
+    "genuinely",
+    "in conclusion",
+    "in today's digital landscape",
+    "in today's fast-paced world",
+    "it's not just",
+    "it's worth noting",
+    "landscape",
+    "leverage",
+    "move the needle",
+    "revolutionize",
+    "robust",
+    "seamless",
+    "seamlessly",
+    "symphony",
+    "tapestry",
+    "this isn't about",
+    "unlock",
+    "unlock the power"
+  ],
+  "characters": ["–", "—"],
+  "awarenessPatterns": [
+    "what is {brand}",
+    "tell me about {brand}",
+    "have you heard of {brand}",
+    "do you know {brand}",
+    "is {brand} good"
+  ]
+}

@@ -1,0 +1,228 @@
+{
+  "text": "As of **September 3, 2026**, the current **Node.js LTS version is Node.js 24.x**, with **v24.20.0** shown on the official Node.js site as the **Latest LTS** release. Node.js 26.x is currently the **Current** release line and is not LTS yet; the Node.js release page also shows Node.js 24 as LTS and Node.js 26 as Current. ([nodejs.org](https://nodejs.org/en/about?utm_source=openai))\n\nIf you want, I can also tell you:\n- the **name/codename** of the current LTS line,\n- when it **entered LTS**,\n- or which Node.js version you should use for a new project.",
+  "steps": [
+    {
+      "content": [
+        {
+          "type": "tool-call",
+          "toolCallId": "ws_060c42296f0e756f016a9949dafa5c87d1822bb844a51b3559",
+          "toolName": "web_search",
+          "input": {},
+          "providerExecuted": true
+        },
+        {
+          "type": "tool-result",
+          "toolCallId": "ws_060c42296f0e756f016a9949dafa5c87d1822bb844a51b3559",
+          "toolName": "web_search",
+          "input": {},
+          "output": {
+            "action": {
+              "type": "search",
+              "query": "site:nodejs.org Node.js LTS version current",
+              "queries": [
+                "site:nodejs.org Node.js LTS version current",
+                "site:nodejs.org/en about release schedule Node.js LTS"
+              ]
+            },
+            "sources": [
+              {
+                "type": "url",
+                "url": "https://nodejs.org/en/about/previous-releases"
+              },
+              {
+                "type": "url",
+                "url": "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule"
+              },
+              {
+                "type": "url",
+                "url": "https://nodejs.org/en/about/eol"
+              },
+              {
+                "type": "url",
+                "url": "https://nodejs.org/en/about/previous-releases?source=post_page---------------------------"
+              },
+              {
+                "type": "url",
+                "url": "https://nodejs.org/en/blog/release/v26.0.0/"
+              },
+              {
+                "type": "url",
+                "url": "https://nodejs.org/en/blog/release/v22.11.0"
+              },
+              {
+                "type": "url",
+                "url": "https://nodejs.org/en/blog"
+              },
+              {
+                "type": "url",
+                "url": "https://nodejs.org/en/blog/announcements/v5-to-v7"
+              },
+              {
+                "type": "url",
+                "url": "https://nodejs.org/en/about"
+              },
+              {
+                "type": "url",
+                "url": "https://nodejs.org/en/blog?a=1"
+              },
+              {
+                "type": "url",
+                "url": "https://nodejs.org/en/blog/announcements"
+              },
+              {
+                "type": "url",
+                "url": "https://nodejs.org/en/blog/community/node-v5/"
+              },
+              {
+                "type": "url",
+                "url": "https://nodejs.org/static/documents/2018-survey-report.pdf"
+              },
+              {
+                "type": "url",
+                "url": "https://nodejs.org/static/documents/2016-survey-report.pdf"
+              },
+              {
+                "type": "url",
+                "url": "https://nodejs.org/en/about?utm_source=openai"
+              }
+            ]
+          },
+          "providerExecuted": true
+        },
+        {
+          "type": "text",
+          "text": "As of **September 3, 2026**, the current **Node.js LTS version is Node.js 24.x**, with **v24.20.0** shown on the official Node.js site as the **Latest LTS** release. Node.js 26.x is currently the **Current** release line and is not LTS yet; the Node.js release page also shows Node.js 24 as LTS and Node.js 26 as Current. ([nodejs.org](https://nodejs.org/en/about?utm_source=openai))\n\nIf you want, I can also tell you:\n- the **name/codename** of the current LTS line,\n- when it **entered LTS**,\n- or which Node.js version you should use for a new project.",
+          "providerMetadata": {
+            "openai": {
+              "itemId": "msg_060c42296f0e756f016a9949dca34c87d1826af2a69dd86f9a",
+              "phase": "final_answer",
+              "annotations": [
+                {
+                  "type": "url_citation",
+                  "start_index": 322,
+                  "end_index": 383,
+                  "url": "https://nodejs.org/en/about?utm_source=openai",
+                  "title": "Node.js — About Node.js®"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "OGFHIDYB5EYiwVZE",
+          "url": "https://nodejs.org/en/about?utm_source=openai",
+          "title": "Node.js — About Node.js®"
+        }
+      ],
+      "providerMetadata": {
+        "openai": {
+          "responseId": "resp_060c42296f0e756f016a9949da95a887d1bef6f8f93520a6f3",
+          "serviceTier": "default",
+          "reasoningContext": "current_turn"
+        },
+        "gateway": {
+          "routing": {
+            "originalModelId": "openai/gpt-5.4-mini",
+            "resolvedProvider": "openai",
+            "fallbacksAvailable": [
+              "azure"
+            ],
+            "planningReasoning": "System credentials planned for: openai, azure. Total execution order: openai(system) → azure(system)",
+            "canonicalSlug": "openai/gpt-5.4-mini",
+            "finalProvider": "openai",
+            "modelAttemptCount": 1,
+            "modelAttempts": [
+              {
+                "canonicalSlug": "openai/gpt-5.4-mini",
+                "success": true,
+                "providerAttemptCount": 1,
+                "providerAttempts": [
+                  {
+                    "provider": "openai",
+                    "credentialType": "system",
+                    "success": true,
+                    "startTime": 1788430810442,
+                    "endTime": 1788430813557,
+                    "providerRequestId": "req_8e127da61ed54edea7f2a215f34b61eb",
+                    "statusCode": 200,
+                    "providerResponseId": "resp_060c42296f0e756f016a9949da95a887d1bef6f8f93520a6f3"
+                  }
+                ]
+              }
+            ],
+            "totalProviderAttemptCount": 1
+          },
+          "cost": "0.01461745",
+          "marketCost": "0.01461745",
+          "surchargeCost": "0",
+          "gatewayCost": "0.01461745",
+          "inferenceCost": "0.00461745",
+          "inputInferenceCost": "0.00354645",
+          "outputInferenceCost": "0.001071",
+          "generationId": "gen_01M1KCGYZRFMJMZYHBBR242VJ5",
+          "billableWebSearchCalls": 1
+        }
+      }
+    }
+  ],
+  "providerMetadata": {
+    "openai": {
+      "responseId": "resp_060c42296f0e756f016a9949da95a887d1bef6f8f93520a6f3",
+      "serviceTier": "default",
+      "reasoningContext": "current_turn"
+    },
+    "gateway": {
+      "routing": {
+        "originalModelId": "openai/gpt-5.4-mini",
+        "resolvedProvider": "openai",
+        "fallbacksAvailable": [
+          "azure"
+        ],
+        "planningReasoning": "System credentials planned for: openai, azure. Total execution order: openai(system) → azure(system)",
+        "canonicalSlug": "openai/gpt-5.4-mini",
+        "finalProvider": "openai",
+        "modelAttemptCount": 1,
+        "modelAttempts": [
+          {
+            "canonicalSlug": "openai/gpt-5.4-mini",
+            "success": true,
+            "providerAttemptCount": 1,
+            "providerAttempts": [
+              {
+                "provider": "openai",
+                "credentialType": "system",
+                "success": true,
+                "startTime": 1788430810442,
+                "endTime": 1788430813557,
+                "providerRequestId": "req_8e127da61ed54edea7f2a215f34b61eb",
+                "statusCode": 200,
+                "providerResponseId": "resp_060c42296f0e756f016a9949da95a887d1bef6f8f93520a6f3"
+              }
+            ]
+          }
+        ],
+        "totalProviderAttemptCount": 1
+      },
+      "cost": "0.01461745",
+      "marketCost": "0.01461745",
+      "surchargeCost": "0",
+      "gatewayCost": "0.01461745",
+      "inferenceCost": "0.00461745",
+      "inputInferenceCost": "0.00354645",
+      "outputInferenceCost": "0.001071",
+      "generationId": "gen_01M1KCGYZRFMJMZYHBBR242VJ5",
+      "billableWebSearchCalls": 1
+    }
+  },
+  "sources": [
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "OGFHIDYB5EYiwVZE",
+      "url": "https://nodejs.org/en/about?utm_source=openai",
+      "title": "Node.js — About Node.js®"
+    }
+  ]
+}

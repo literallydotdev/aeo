@@ -1,0 +1,100 @@
+{
+  "name": "literally-aeo",
+  "version": "0.1.0",
+  "description": "Literally.dev AEO: run an AI visibility audit locally and verify its evidence offline.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Literally AS",
+  "homepage": "https://github.com/literallydotdev/aeo#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/literallydotdev/aeo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/literallydotdev/aeo/issues"
+  },
+  "keywords": [
+    "aeo",
+    "answer-engine-optimization",
+    "ai-visibility",
+    "llm",
+    "audit"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "os": [
+    "linux",
+    "darwin"
+  ],
+  "bin": {
+    "literally-aeo": "dist/cli.mjs"
+  },
+  "exports": {
+    "./contracts": {
+      "types": "./dist/types/report/contracts.d.ts",
+      "default": "./dist/lib/report/contracts.js"
+    },
+    "./package.json": "./package.json",
+    "./*": {
+      "types": "./dist/types/*.d.ts",
+      "default": "./dist/lib/*.js"
+    }
+  },
+  "files": [
+    "dist",
+    "resources",
+    "src",
+    "!src/**/*.spec.ts",
+    "!src/**/__fixtures__",
+    "!src/**/*-fixture.ts",
+    "!src/**/*-fixtures.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint --max-warnings=0",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "prettier --write .",
+    "cli": "tsx src/cli/literally-aeo.ts",
+    "prepack": "node scripts/build.mjs"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "3.0.2",
+    "@ai-sdk/gateway": "3.0.177",
+    "@ai-sdk/google": "3.0.2",
+    "@ai-sdk/openai": "3.0.2",
+    "ai": "6.0.77",
+    "cheerio": "1.2.0",
+    "playwright": "1.62.1",
+    "undici": "7.29.0",
+    "zod": "4.4.3"
+  },
+  "peerDependencies": {
+    "postgres": "^3.4.9"
+  },
+  "peerDependenciesMeta": {
+    "postgres": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@eslint-community/eslint-plugin-eslint-comments": "^4.8.1",
+    "@types/node": "^24",
+    "esbuild": "0.28.1",
+    "eslint": "^9",
+    "eslint-import-resolver-typescript": "^3.10.1",
+    "eslint-plugin-import": "^2.32.0",
+    "postgres": "^3.4.9",
+    "prettier": "^3",
+    "sharp": "0.34.5",
+    "tsx": "^4",
+    "typescript": "^5",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^4.1.10"
+  },
+  "packageManager": "pnpm@11.18.0"
+}

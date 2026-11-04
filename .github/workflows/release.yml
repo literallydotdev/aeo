@@ -1,0 +1,38 @@
+name: Release
+
+# A tag vX.Y.Z publishes literally-aeo X.Y.Z to npm through trusted
+# publishing (OIDC): no npm token is stored here, and npm records the
+# provenance of the tarball (this repository, this workflow, this commit).
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm 11.5.1 or newer.
+      - run: npm install -g npm@latest
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck && pnpm lint && pnpm test
+      - name: Check the tag names the package version
+        run: |
+          set -eu
+          version="$(node -p "require('./package.json').version")"
+          test "v$version" = "$GITHUB_REF_NAME" || {
+            echo "Tag $GITHUB_REF_NAME does not match package version $version" >&2
+            exit 1
+          }
+      - run: pnpm pack --pack-destination "$RUNNER_TEMP"
+      - run: npm publish "$RUNNER_TEMP"/literally-aeo-*.tgz --access public

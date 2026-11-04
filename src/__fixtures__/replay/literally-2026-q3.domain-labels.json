@@ -1,0 +1,3386 @@
+{
+  "version": 1,
+  "model": "anthropic/claude-opus-4.6",
+  "entries": {
+    "11x.ai": {
+      "category": "earned",
+      "source": "model"
+    },
+    "1digitalagency.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "20northmarketing.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "310creative.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "3di-info.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "42dm.net": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "4bes.nl": {
+      "category": "earned",
+      "source": "model"
+    },
+    "51blocks.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "5ly.co": {
+      "category": "earned",
+      "source": "model"
+    },
+    "95projects.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "a-listware.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "abmagency.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "acromatico.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "adamgtm.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "addyosmani.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "adityabawankule.substack.com": {
+      "category": "social",
+      "source": "model"
+    },
+    "admax.cool": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "adobe.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "adstellar.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "adsx.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "adtribes.io": {
+      "category": "earned",
+      "source": "model"
+    },
+    "aeo-geo.guide": {
+      "category": "earned",
+      "source": "model"
+    },
+    "aeoagency.gr": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "aeoanalytics.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "aeoengine.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "aeoscore.eu": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "aeovision.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "agencies.semrush.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "agile.agency": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "ahrefs.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "ai-visibility.org.uk": {
+      "category": "earned",
+      "source": "model"
+    },
+    "aiadvantageagency.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "aiagencies.eu": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "aibuildrs.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "aicited.org": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "aigrowthagent.co": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "aijourn.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "ailabsaudit.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "aimers.io": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "aioseo.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "airankchecker.net": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "airbnb.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "airfleet.co": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "airops.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "aitoolsbakery.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "aivisibility.gen3marketing.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "alexbirkett.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "algorand.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "als-cs.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "altitudemarketing.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "amazon.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "ameus.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "ameveo.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "amicited.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "amplitude.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "amraandelma.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "amsive.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "analytics-agent.app": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "angelhack.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "animalz.co": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "ansehn.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "answermaniac.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "anthropic.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "api.dataforseo.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "appinventiv.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "appwrite.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "aquent.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "arc.dev": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "archbee.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "argot.dev": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "arobis.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "atlassian.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "atlasworkspace.ai": {
+      "category": "earned",
+      "source": "model"
+    },
+    "atomwriter.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "auditae.app": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "augmentcode.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "austinheaton.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "auth0.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "authoritytech.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "authortune.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "averi.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "aws.amazon.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "axelerant.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "axify.io": {
+      "category": "earned",
+      "source": "model"
+    },
+    "ayautomate.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "ayzeo.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "b2bseo.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "baeseokjae.github.io": {
+      "category": "earned",
+      "source": "model"
+    },
+    "batsov.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "bayleafdigital.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "beamtrace.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "befound.ie": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "beomniscient.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "bermawy.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "bestaeotools.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "bevisibleagency.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "bevisibleiq.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "biggo.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "bigleads.io": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "bing.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "birdeye.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "bizaigpt.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "biztoolkit.co": {
+      "category": "earned",
+      "source": "model"
+    },
+    "blackgirlbytes.dev": {
+      "category": "earned",
+      "source": "model"
+    },
+    "blendb2b.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "blockagency.co": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "blockclub.co": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "blog.6minded.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "blog.chatfeatured.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "blog.hyvikk.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "blog.idrisolubisi.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "blog.stanzago.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "blog.tedivm.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "bloggers.feedspot.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "botfusions.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "botsee.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "brafton.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "brainlabs.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "brainlabsdigital.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "brand24.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "brandlight.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "breakingb2b.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "brightedge.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "bug0.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "builder.io": {
+      "category": "earned",
+      "source": "model"
+    },
+    "builtin.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "bun.sh": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "busylike.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "bvp.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "cairrot.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "callboxinc.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "candev.agency": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "capston.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "capterra.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "careerprofiles.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "catchy.agency": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "catchyagency.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "chat.openai.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "chatgpt.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "checkmarx.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "cherryleaf.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "choice360.org": {
+      "category": "institutional",
+      "source": "model"
+    },
+    "cintra.run": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "cio.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "circleci.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "circlegroup.eu": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "circuit.ooo": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "cisco.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "citabl.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "cited.so": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "citegraph.app": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "citevora.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "clairon.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "claude.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "clearcited.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "clearscope.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "clearvoice.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "clickforest.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "clickhelp.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "clicklaboratory.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "cloro.dev": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "cloudflare.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "cloudinary.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "clutch.co": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "code.claude.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "codeagentswarm.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "codecontent.net": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "codeless.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "coderabbit.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "cognizo.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "cohere.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "columnfivemedia.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "compose.ly": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "conbersa.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "conductor.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "conexadigital.eu": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "console.dev": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "constantcontent.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "contensifyhq.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "content-whale.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "contentbeta.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "contentcucumber.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "contentlab.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "contentlab.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "contently.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "contentmarketinginstitute.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "contentsaurus.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "contentwriters.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "contentwritingsquare.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "context7.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "contextbolt.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "contiem.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "convertmate.io": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "copilot.microsoft.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "copytree.io": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "copywritech.net": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "cosmicjs.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "cracklepr.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "crunchbase.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "cursor.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "cursor.directory": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "customerimpact.be": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "customs-conformit.be": {
+      "category": "earned",
+      "source": "model"
+    },
+    "cxl.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "dageno.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "daily.dev": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "dailycourier.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "darwinapps.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "data-mania.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "datacamp.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "datadog.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "dataslayer.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "ddbeck.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "deeptech-marketing.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "deltafrog.eu": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "demandlocal.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "deployhq.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "derivatex.agency": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "derivatex.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "descript.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "dev.to": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "devada.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "devdocs.ie": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "devdocs.work": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "developer-content.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "developer-tech.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "developerexperience.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "developermedia.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "developers.google.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "developertoolkit.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "devfluent.tech": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "devilab.eu": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "devmarklab.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "devrel.agency": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "devspotlight.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "devtoolsacademy.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "dianakelly.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "digitalagencynetwork.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "digitalocean.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "digitalstrike.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "digitalsuccess.us": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "directiveconsulting.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "discord.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "discoveredlabs.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "div.digital": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "docker.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "docs.ercule.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "docu.agency": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "document360.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "docuweave.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "dometrain.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "doodleweb.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "draft.dev": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "dreamhost.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "dzone.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "earthly.dev": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "easycontent.io": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "edifycontent.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "editorworld.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "eesel.ai": {
+      "category": "earned",
+      "source": "model"
+    },
+    "elevenwriting.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "elfsight.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "eloritescontent.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "emasconsultors.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "empat.tech": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "engineering.leanix.net": {
+      "category": "earned",
+      "source": "model"
+    },
+    "epicslope.partners": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "eseospace.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "essentialdata.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "etsy.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "eucalyptmedia.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "europeanbusinessreview.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "evansdata.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "eventbrowse.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "evertune.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "everydeveloper.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "everythingtechnicalwriting.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "evolvagency.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "example.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "faii.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "faros.ai": {
+      "category": "earned",
+      "source": "model"
+    },
+    "ferndesk.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "figma.com": {
+      "category": "institutional",
+      "source": "model"
+    },
+    "filament.digital": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "firstpagesage.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "flow-agency.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "flowtrix.co": {
+      "category": "earned",
+      "source": "model"
+    },
+    "foglift.io": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "fogtrail.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "forbes.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "formulamarketingsd.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "forrester.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "forthea.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "foundationinc.co": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "foundgrove.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "fractionaldevrel.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "frase.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "freecodecamp.org": {
+      "category": "social",
+      "source": "model"
+    },
+    "freelancewriting.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "freshworks.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "frizerly.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "frontendmentor.io": {
+      "category": "earned",
+      "source": "model"
+    },
+    "fueler.io": {
+      "category": "earned",
+      "source": "model"
+    },
+    "fuelonline.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "fullcontactaeo.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "fundediq.co": {
+      "category": "earned",
+      "source": "model"
+    },
+    "g2.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "gatilab.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "gatsbyjs.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "gbgmarketing.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "gemini.google.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "generatemore.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "generative.qa": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "genesysgrowth.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "geonimo.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "geoptie.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "gerlach-customs.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "get-spotlight.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "getairefs.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "getclaudeskills.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "getpassionfruit.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "getunleash.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "getvisus.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "ghost.org": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "ghostwriting-ai.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "ghostwritingllc.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "gigawattgroup.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "gitbook.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "github.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "gitnexa.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "gitnux.org": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "glama.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "glean.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "globaldevrel.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "glotier.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "gohugo.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "goodfirms.co": {
+      "category": "earned",
+      "source": "model"
+    },
+    "google.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "gracker.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "graph.digital": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "graphite.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "gripped.io": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "grizzle.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "grow-nexus.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "growandconvert.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "growbydata.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "growleads.io": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "growpad.pro": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "growth-division.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "growth-memo.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "growth-onomics.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "growthmarketingpro.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "growthner.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "growthplays.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "growthspreeofficial.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "growthsprints.co": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "growtika.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "grro.io": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "gtm-labs.co": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "gtm8020.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "gtmdelta.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "guptadeepak.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "gushwork.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "hackmamba.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "hamming.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "hamstergarage.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "hashnode.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "hashtag.org": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "helloretail.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "helloroketto.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "help.openai.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "higglo.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "higoodie.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "hitsubscribe.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "honeyb.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "hoopy.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "houseofgrowth.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "housesofgrowth.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "hubspot.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "humanswith.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "icecubedigital.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "ideastoreach.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "ifs.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "ilyabrin.github.io": {
+      "category": "earned",
+      "source": "model"
+    },
+    "image-ppubs.uspto.gov": {
+      "category": "institutional",
+      "source": "model"
+    },
+    "impactplus.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "imperialghostwriting.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "inboundsquare.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "incident.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "index.dev": {
+      "category": "earned",
+      "source": "model"
+    },
+    "indexly.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "indiehackers.com": {
+      "category": "social",
+      "source": "model"
+    },
+    "inetventures.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "inflection.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "infoq.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "infrasity.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "inrhythm.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "inspiredmarketingb2b.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "intel.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "interodigital.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "interviewing.io": {
+      "category": "earned",
+      "source": "model"
+    },
+    "iod.co": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "ipullrank.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "itmunch.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "jaxonparrott.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "jekyllrb.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "jetbrains.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "kalicube.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "kalungi.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "karpi.studio": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "kevin-indig.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "keystrike.co.uk": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "kobestarr.io": {
+      "category": "earned",
+      "source": "model"
+    },
+    "kopp-online-marketing.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "kore1.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "kulbhushanpareek.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "launchdarkly.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "launchnotes.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "launchpadagency.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "launchpointhq.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "legencymedia.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "lengreo.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "levelup.gitconnected.com": {
+      "category": "social",
+      "source": "model"
+    },
+    "leverx.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "lifestyle.myeaglecountry.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "liginc.co.jp": {
+      "category": "earned",
+      "source": "model"
+    },
+    "limy.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "linkedin.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "linkflow.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "litebox.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "liu.cwp.libguides.com": {
+      "category": "institutional",
+      "source": "model"
+    },
+    "llmpulse.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "llmreach.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "llmrefs.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "llmseoservices.agency": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "llmvlab.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "logrocket.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "logwin-logistics.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "loudface.co": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "loudface.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "lsa.umich.edu": {
+      "category": "institutional",
+      "source": "model"
+    },
+    "lumar.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "m.thewire.in": {
+      "category": "earned",
+      "source": "model"
+    },
+    "madcapsoftware.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "madx.digital": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "mailchimp.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "mailgun.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "maintouch.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "malekmurisonmedia.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "manicule.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "manus.im": {
+      "category": "earned",
+      "source": "model"
+    },
+    "mariaespievidal.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "markent.eu": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "markepear.dev": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "marketerhire.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "marketing.growthgear.com.au": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "marketingagent.blog": {
+      "category": "earned",
+      "source": "model"
+    },
+    "marketplace.visualstudio.com": {
+      "category": "institutional",
+      "source": "model"
+    },
+    "marketto.dev": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "masterful-app.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "masters-of-search.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "mavencollectivemarketing.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "maximuslabs.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "mayadigitaldesk.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "mckerlie.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "mcpcatalog.dev": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "meltwater.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "mentionable.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "mentionbench.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "mentiond.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "mentionkit.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "mentions.so": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "merge.dev": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "meta.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "metaflow.life": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "mindstudio.ai": {
+      "category": "earned",
+      "source": "model"
+    },
+    "miniloop.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "mintcopywritingstudios.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "mintlify.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "mintlify.dev": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "mintposition.co": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "minuttia.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "mkgmarketinginc.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "monsterinsights.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "moz.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "multiplylabs.co": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "n-ix.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "n8n.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "name.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "nathanojaokomo.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "ndash.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "netflix.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "netlify.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "newengen.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "news.ycombinator.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "nexapp.ca": {
+      "category": "earned",
+      "source": "model"
+    },
+    "nextblog.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "nextjs.org": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "nexttechmarketers.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "nexxxdesign.eu": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "ngagecontent.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "nhzcommunications.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "nicklafferty.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "nightwatch.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "nogood.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "northquery.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "note.com": {
+      "category": "social",
+      "source": "model"
+    },
+    "novagrowthpartners.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "npdigital.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "nutshell.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "nxcode.io": {
+      "category": "earned",
+      "source": "model"
+    },
+    "nyman.media": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "oakpool.xyz": {
+      "category": "earned",
+      "source": "model"
+    },
+    "obility.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "obilityb2b.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "oeaconsultoria.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "ogtool.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "omnieclipse.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "omniscientdigital.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "omnius.so": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "onely.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "onemetrik.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "onlineoptimism.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "ooky.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "openai.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "openhermit.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "openreview.net": {
+      "category": "institutional",
+      "source": "model"
+    },
+    "openstrategypartners.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "operationsports.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "optimizegeo.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "orainti.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "orynvision.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "oscarghostwriting.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "ossisto.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "ost.agency": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "otrenix.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "otter.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "otterly.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "outreachbloom.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "pagerduty.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "pagetraffic.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "panblastpr.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "pancommunications.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "parallelcontent.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "paulgp.substack.com": {
+      "category": "social",
+      "source": "model"
+    },
+    "pbjmarketing.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "pecollective.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "peec.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "perceptric.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "percepture.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "perplexity.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "pierview.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "piperocket.digital": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "pitchsite.io": {
+      "category": "earned",
+      "source": "model"
+    },
+    "pixelmojo.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "platform.claude.com": {
+      "category": "institutional",
+      "source": "model"
+    },
+    "platypusseo.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "plug.dev": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "popcorngtm.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "portofolio.live": {
+      "category": "earned",
+      "source": "model"
+    },
+    "posirank.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "position.digital": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "posteverywhere.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "posthog.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "postman.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "pragmaticcoders.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "primeavenuegroup.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "prisma.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "prlab.co": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "producthunt.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "proedit.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "professionalghostwriter.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "profound.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "projectassistant.org": {
+      "category": "earned",
+      "source": "model"
+    },
+    "promptmarketing.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "pronovix.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "proprofskb.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "prosemedia.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "provenroi.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "pushgroup.co.uk": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "qodo.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "qoulomb.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "qualcomm.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "quoleady.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "quora.com": {
+      "category": "social",
+      "source": "model"
+    },
+    "radyant.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "rank.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "rankability.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "rankprompt.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "ranktix.co.uk": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "readme.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "reclear.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "red-engage.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "red27creative.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "reddit.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "redis.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "redmonk.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "redocly.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "redpanda.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "reo.dev": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "replit.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "resonatelabs.co": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "respona.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "retool.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "revenuezen.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "revlift.co": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "revvgrowth.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "ricardoanderegg.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "roadmap.sh": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "rocketblue.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "rocktherankings.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "rubicotech.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "rudo.co.uk": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "saashero.net": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "salesevolution.eu": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "salesforce.com": {
+      "category": "institutional",
+      "source": "model"
+    },
+    "saleshive.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "sapt.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "scale.dev": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "scalemath.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "scand.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "screamingatmyscreen.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "screenapp.io": {
+      "category": "earned",
+      "source": "model"
+    },
+    "scribehow.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "scrimba.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "scriptbyai.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "scripted.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "scriptorium.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "scrunch.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "seangoedecke.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "searchbloom.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "searchenginejournal.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "searchengineland.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "seeders.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "seerinteractive.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "selectedfirms.co": {
+      "category": "earned",
+      "source": "model"
+    },
+    "semrush.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "sendgrid.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "sentry.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "seo.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "seo.co": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "seocircular.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "seoforgpt.io": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "seomator.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "seomyclicks.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "seonoble.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "seoprofy.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "seoworks.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "sequencecommerce.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "seranking.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "serp-secrets.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "shadow.inc": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "shareallai.github.io": {
+      "category": "earned",
+      "source": "model"
+    },
+    "shiftcomm.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "shopify.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "siegemedia.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "sierra.ai": {
+      "category": "earned",
+      "source": "model"
+    },
+    "siftly.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "signaliq.agency": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "similarweb.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "simpletiger.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "singlegrain.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "singularity.digital": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "sitepoint.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "skale.so": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "skyword.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "slack.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "slashdata.co": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "smartsites.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "smartvirtualassistants.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "smdevs.in": {
+      "category": "earned",
+      "source": "model"
+    },
+    "smdigitalpartners.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "smithdigital.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "snezzi.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "snyk.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "sota.media": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "sovyn.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "spaceads.agency": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "spaceandstory.co": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "spacelift.io": {
+      "category": "earned",
+      "source": "model"
+    },
+    "sparktoro.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "speakerdeck.com": {
+      "category": "social",
+      "source": "model"
+    },
+    "spinutech.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "sproutworth.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "spyderwebdev.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "squibler.io": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "stackmatix.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "stackoverflow.blog": {
+      "category": "social",
+      "source": "model"
+    },
+    "stackoverflow.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "stackshare.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "stan.vision": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "start.webcore.ws": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "startupintros.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "startupstash.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "staycitable.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "stellarcontent.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "stephaniemorillo.co": {
+      "category": "earned",
+      "source": "model"
+    },
+    "store.hollyland.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "stratabeat.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "strategicnerds.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "strategicpete.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "streetinsider.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "stripe.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "studio1hq.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "supabase.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "superframeworks.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "supermetrics.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "support.google.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "suremedia.agency": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "surferseo.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "surva.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "swftment.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "synamon.hatenablog.com": {
+      "category": "social",
+      "source": "model"
+    },
+    "synscribe.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "syntaxpen.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "tactiq.io": {
+      "category": "earned",
+      "source": "model"
+    },
+    "talentelgia.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "talentfoot.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "taskip.net": {
+      "category": "earned",
+      "source": "model"
+    },
+    "team4.agency": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "teamai.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "tech-insider.org": {
+      "category": "earned",
+      "source": "model"
+    },
+    "techcrunch.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "techdocs.studio": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "techghostwriter.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "technicalghostwriter.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "technicalwriterhq.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "techtarget.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "techwritingboutique.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "tenspeed.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "terakeet.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "testsprite.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "texim-europe.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "thatssocreative.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "the7eagles.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "thebookwritinggroup.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "thebusinessrover.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "thecontentcatapult.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "thedigitalelevator.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "theenough.agency": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "theexcitedengineer.substack.com": {
+      "category": "social",
+      "source": "model"
+    },
+    "thegeoagency.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "thegeocommunity.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "thegoalmedia.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "thegtmdirectory.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "thegutenberg.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "thekeyword.co": {
+      "category": "earned",
+      "source": "model"
+    },
+    "themarketingagency.ca": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "thenewstack.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "thenextweb.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "therankcollective.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "therankmasters.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "therubiconagency.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "thestacc.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "thewritersforhire.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "thriveagency.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "tilio.co.uk": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "timelytext.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "tlgmarketing.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "topify.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "topmarketingagency.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "toptal.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "tracemetry.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "tradewin.net": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "trakkr.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "tripledart.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "trstringer.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "trucommerce.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "trustpilot.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "trustradius.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "trylyra.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "tryprofound.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "tryrenown.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "trysight.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "twilio.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "umu.com": {
+      "category": "social",
+      "source": "model"
+    },
+    "unrealdigitalgroup.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "upgrowth.in": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "upliftgtm.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "uplify.agency": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "upwork.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "usegrowthos.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "useomnia.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "usesapient.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "useshiny.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "valasys.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "valiantceo.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "venturemagazine.net": {
+      "category": "earned",
+      "source": "model"
+    },
+    "verbatimdigital.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "verblio.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "vercel.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "verdent.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "vertodigital.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "viali.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "victorious.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "visibilitypulse.online": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "visibilitystack.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "visibilitywins.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "visible.seranking.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "visiblie.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "vocal.media": {
+      "category": "social",
+      "source": "model"
+    },
+    "wearedevelopers.com": {
+      "category": "social",
+      "source": "model"
+    },
+    "webdesignrankings.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "webfx.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "webtonic.io": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "whaaat.ai": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "whatfix.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "wheelhousedmg.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "whitelabeliq.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "wikidata.org": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "wikipedia.org": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "windsordigitalmarketing.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "wingassistant.com": {
+      "category": "earned",
+      "source": "model"
+    },
+    "wirecutter.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "wisp.blog": {
+      "category": "earned",
+      "source": "model"
+    },
+    "withacta.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "withgauge.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "wizardondemand.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "wordlift.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "wordpress.org": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "wordshaveimpact.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "wordstream.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "workduo.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "wpengine.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "writec.co.il": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "writechoice.io": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "writesonic.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "writethatblog.substack.com": {
+      "category": "social",
+      "source": "model"
+    },
+    "writethedocs.org": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "writoholics.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "wrivio.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "wsiinternetpartners.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "wukonig.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "xql.group": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "yesoptimist.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "yotpo.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "youngcompany.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "yourcontentmart.co": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "youtube.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "yuv.ai": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "zapier.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "zenn.dev": {
+      "category": "social",
+      "source": "model"
+    },
+    "zerys.com": {
+      "category": "competitor",
+      "source": "model"
+    },
+    "ziptie.dev": {
+      "category": "competitor",
+      "source": "analyzer"
+    },
+    "zoominfo.com": {
+      "category": "competitor",
+      "source": "analyzer"
+    }
+  }
+}

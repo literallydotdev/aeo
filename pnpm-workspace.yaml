@@ -1,0 +1,5 @@
+allowBuilds:
+  # The bundler's platform binary.
+  esbuild: true
+  unrs-resolver: false
+  sharp: true

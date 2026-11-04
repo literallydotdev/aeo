@@ -1,0 +1,4 @@
+dist/
+resources/
+pnpm-lock.yaml
+src/**/__fixtures__/

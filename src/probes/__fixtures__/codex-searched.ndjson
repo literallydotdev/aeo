@@ -1,0 +1,9 @@
+{"type":"thread.started","thread_id":"thread-redacted"}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"I’ll verify this using the official Node.js site and confirm it against the download page."}}
+{"type":"item.started","item":{"id":"exec-fede4cd0-30c4-405a-9e96-cc790c59d4fa","type":"web_search","query":"","action":{"type":"other"}}}
+{"type":"item.completed","item":{"id":"exec-fede4cd0-30c4-405a-9e96-cc790c59d4fa","type":"web_search","query":"site:nodejs.org current Node.js LTS version download","action":{"type":"search","query":"site:nodejs.org current Node.js LTS version download"}}}
+{"type":"item.started","item":{"id":"exec-a9f7d1c8-4391-4a2b-babd-c12d58c08500","type":"web_search","query":"","action":{"type":"other"}}}
+{"type":"item.completed","item":{"id":"exec-a9f7d1c8-4391-4a2b-babd-c12d58c08500","type":"web_search","query":"","action":{"type":"other"}}}
+{"type":"item.completed","item":{"id":"item_3","type":"agent_message","text":"The current Node.js LTS version is **v24.20.0**, as confirmed on the official [Node.js download page](https://nodejs.org/en/download)."}}
+{"type":"turn.completed"}

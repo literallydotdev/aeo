@@ -1,0 +1,644 @@
+{
+  "text": "Based on the search results, I can provide you with the current Node.js LTS version information:\n\n## Current Node.js LTS Version: **Node.js 24** (Codename: Krypton)\n\nNode.js 24 is the current active LTS line in June 2026. For production applications that require stability, Node.js 24 is the current Active LTS release and Node.js 22 is in Maintenance LTS.\n\n### Other Supported Versions:\n\n- **Node.js 22** (Codename: Jod) - Currently in Maintenance LTS phase, supported through April 2027\n- **Node.js 20** (Codename: Iron) - Also in Maintenance LTS\n- **Node.js 26** - Currently in the Current (non-LTS) phase until October 2026, when it will transition to Active LTS\n\n### Recommendation:\n\nUse Node 24 for new projects. It provides the best balance of stability, long-term support, and modern features for production applications as of September 2026.",
+  "steps": [
+    {
+      "content": [
+        {
+          "type": "tool-call",
+          "toolCallId": "srvtoolu_013kP7KFhgebnEC9D1G4xjJH",
+          "toolName": "web_search",
+          "input": {
+            "query": "Node.js LTS version current 2026"
+          },
+          "providerExecuted": true
+        },
+        {
+          "type": "tool-result",
+          "toolCallId": "srvtoolu_013kP7KFhgebnEC9D1G4xjJH",
+          "toolName": "web_search",
+          "input": {
+            "query": "Node.js LTS version current 2026"
+          },
+          "output": [
+            {
+              "url": "https://nodejs.org/en/about/previous-releases",
+              "title": "Node.js — Node.js Releases",
+              "pageAge": null,
+              "type": "web_search_result"
+            },
+            {
+              "url": "https://endoflife.date/nodejs",
+              "title": "Node.js | endoflife.date",
+              "pageAge": "1 week ago",
+              "type": "web_search_result"
+            },
+            {
+              "url": "https://www.infoq.com/news/2026/06/nodejs-release-changes/",
+              "title": "Node.js Moves to One Major Release Per Year, Starting with Node 27 - InfoQ",
+              "pageAge": "June 3, 2026",
+              "type": "web_search_result"
+            },
+            {
+              "url": "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule",
+              "title": "Node.js — Evolving the Node.js Release Schedule",
+              "pageAge": "March 10, 2026",
+              "type": "web_search_result"
+            },
+            {
+              "url": "https://www.inmotionhosting.com/support/news/nodejs-v26-released/",
+              "title": "Node.js 26 Released: What's New | InMotion Hosting",
+              "pageAge": "May 6, 2026",
+              "type": "web_search_result"
+            },
+            {
+              "url": "https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+              "title": "Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides",
+              "pageAge": "June 15, 2026",
+              "type": "web_search_result"
+            },
+            {
+              "url": "https://github.com/nodejs/Release",
+              "title": "GitHub - nodejs/Release: Node.js Release Working Group · GitHub",
+              "pageAge": null,
+              "type": "web_search_result"
+            },
+            {
+              "url": "https://github.com/msimerson/node-lts-versions",
+              "title": "GitHub - msimerson/node-lts-versions: Get Node.js LTS versions · GitHub",
+              "pageAge": null,
+              "type": "web_search_result"
+            },
+            {
+              "url": "https://nodejs.org/en/blog/release/v26.0.0",
+              "title": "Node.js — Node.js 26.0.0 (Current)",
+              "pageAge": null,
+              "type": "web_search_result"
+            }
+          ],
+          "providerExecuted": true
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "AUyKpLu2lu7elBTr",
+          "url": "https://nodejs.org/en/about/previous-releases",
+          "title": "Node.js — Node.js Releases",
+          "providerMetadata": {
+            "anthropic": {
+              "pageAge": null
+            }
+          }
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "xYWogO4g5liomm1O",
+          "url": "https://endoflife.date/nodejs",
+          "title": "Node.js | endoflife.date",
+          "providerMetadata": {
+            "anthropic": {
+              "pageAge": "1 week ago"
+            }
+          }
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "b5pHzlJD4D3VAQLs",
+          "url": "https://www.infoq.com/news/2026/06/nodejs-release-changes/",
+          "title": "Node.js Moves to One Major Release Per Year, Starting with Node 27 - InfoQ",
+          "providerMetadata": {
+            "anthropic": {
+              "pageAge": "June 3, 2026"
+            }
+          }
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "P0Rb3OPioR34SOnO",
+          "url": "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule",
+          "title": "Node.js — Evolving the Node.js Release Schedule",
+          "providerMetadata": {
+            "anthropic": {
+              "pageAge": "March 10, 2026"
+            }
+          }
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "y3MNQElVClwXwbtK",
+          "url": "https://www.inmotionhosting.com/support/news/nodejs-v26-released/",
+          "title": "Node.js 26 Released: What's New | InMotion Hosting",
+          "providerMetadata": {
+            "anthropic": {
+              "pageAge": "May 6, 2026"
+            }
+          }
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "r6vxA8dYUyAQnEoX",
+          "url": "https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+          "title": "Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides",
+          "providerMetadata": {
+            "anthropic": {
+              "pageAge": "June 15, 2026"
+            }
+          }
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "xSzR6dxcO32KyWUW",
+          "url": "https://github.com/nodejs/Release",
+          "title": "GitHub - nodejs/Release: Node.js Release Working Group · GitHub",
+          "providerMetadata": {
+            "anthropic": {
+              "pageAge": null
+            }
+          }
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "9VVeeaSRc6vrnrh1",
+          "url": "https://github.com/msimerson/node-lts-versions",
+          "title": "GitHub - msimerson/node-lts-versions: Get Node.js LTS versions · GitHub",
+          "providerMetadata": {
+            "anthropic": {
+              "pageAge": null
+            }
+          }
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "qAJtO3JvFeBsr3tK",
+          "url": "https://nodejs.org/en/blog/release/v26.0.0",
+          "title": "Node.js — Node.js 26.0.0 (Current)",
+          "providerMetadata": {
+            "anthropic": {
+              "pageAge": null
+            }
+          }
+        },
+        {
+          "type": "text",
+          "text": "Based on the search results, I can provide you with the current Node.js LTS version information:\n\n## Current Node.js LTS Version: **Node.js 24** (Codename: Krypton)\n\n"
+        },
+        {
+          "type": "text",
+          "text": "Node.js 24 is the current active LTS line in June 2026.",
+          "providerMetadata": {
+            "anthropic": {
+              "citations": [
+                {
+                  "type": "web_search_result_location",
+                  "cited_text": "Node.js 24 is the current active LTS line in June 2026. ",
+                  "url": "https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+                  "title": "Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides",
+                  "encrypted_index": "Eo8BCioIExgCIiQzYjkzYTVkZC03MzAyLTQ4M2YtYWVhZS0zNjIwNzU1NDhhZTESDC8vJm4/JA4wN1MECxoMHrQr5xZ6cmgFQ6T5IjBZlOTjwAH+JtzvHK9J7icNa7ts/lDZTnREwoWC5Mn/2RJi26oRztk9BaljXEC/z1QqE0eIfQaODPwDeZjFp9JsaD+mg4IYBA=="
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "0uPoK7JK1GIoRQ0F",
+          "url": "https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+          "title": "Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides",
+          "providerMetadata": {
+            "anthropic": {
+              "citedText": "Node.js 24 is the current active LTS line in June 2026. ",
+              "encryptedIndex": "Eo8BCioIExgCIiQzYjkzYTVkZC03MzAyLTQ4M2YtYWVhZS0zNjIwNzU1NDhhZTESDC8vJm4/JA4wN1MECxoMHrQr5xZ6cmgFQ6T5IjBZlOTjwAH+JtzvHK9J7icNa7ts/lDZTnREwoWC5Mn/2RJi26oRztk9BaljXEC/z1QqE0eIfQaODPwDeZjFp9JsaD+mg4IYBA=="
+            }
+          }
+        },
+        {
+          "type": "text",
+          "text": " "
+        },
+        {
+          "type": "text",
+          "text": "For production applications that require stability, Node.js 24 is the current Active LTS release and Node.js 22 is in Maintenance LTS.",
+          "providerMetadata": {
+            "anthropic": {
+              "citations": [
+                {
+                  "type": "web_search_result_location",
+                  "cited_text": "For production applications that require stability, Node.js 24 is the current Active LTS release and Node.js 22 is in Maintenance LTS. ",
+                  "url": "https://www.inmotionhosting.com/support/news/nodejs-v26-released/",
+                  "title": "Node.js 26 Released: What's New | InMotion Hosting",
+                  "encrypted_index": "EpABCioIExgCIiQzYjkzYTVkZC03MzAyLTQ4M2YtYWVhZS0zNjIwNzU1NDhhZTESDN5MbuqpaiMos9oZgBoM3BhREPgz7v2Ezsm4IjBeYNhbmMIfQ6NFICoWnRYLimdkIMb6f6jhZcY5/sRGjqIV0TQpef9qR1vhVWf5kVMqFB5YHsBCwlxjmZMUPRLwpB+WDZRHGAQ="
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "xReH9bKMFp0XzErr",
+          "url": "https://www.inmotionhosting.com/support/news/nodejs-v26-released/",
+          "title": "Node.js 26 Released: What's New | InMotion Hosting",
+          "providerMetadata": {
+            "anthropic": {
+              "citedText": "For production applications that require stability, Node.js 24 is the current Active LTS release and Node.js 22 is in Maintenance LTS. ",
+              "encryptedIndex": "EpABCioIExgCIiQzYjkzYTVkZC03MzAyLTQ4M2YtYWVhZS0zNjIwNzU1NDhhZTESDN5MbuqpaiMos9oZgBoM3BhREPgz7v2Ezsm4IjBeYNhbmMIfQ6NFICoWnRYLimdkIMb6f6jhZcY5/sRGjqIV0TQpef9qR1vhVWf5kVMqFB5YHsBCwlxjmZMUPRLwpB+WDZRHGAQ="
+            }
+          }
+        },
+        {
+          "type": "text",
+          "text": "\n\n### Other Supported Versions:\n\n- **Node.js 22** (Codename: Jod) - Currently in Maintenance LTS phase, "
+        },
+        {
+          "type": "text",
+          "text": "supported through April 2027",
+          "providerMetadata": {
+            "anthropic": {
+              "citations": [
+                {
+                  "type": "web_search_result_location",
+                  "cited_text": "Node 22 remains supported through April 2027. ",
+                  "url": "https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+                  "title": "Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides",
+                  "encrypted_index": "EpABCioIExgCIiQzYjkzYTVkZC03MzAyLTQ4M2YtYWVhZS0zNjIwNzU1NDhhZTESDCkwwgW1BFHfDKcSMxoMhlWq7EI/bit8z4iDIjBPJ+L7mnnPHBGFmTxul5mnmW/M0elPYYP7WPJRZMmUXkkbnn0wtDyz0oF5chFiYrkqFKVLCtAUKdzOvng+bwyloPt3WQDQGAQ="
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "5F7D0LTDnYJS1qll",
+          "url": "https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+          "title": "Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides",
+          "providerMetadata": {
+            "anthropic": {
+              "citedText": "Node 22 remains supported through April 2027. ",
+              "encryptedIndex": "EpABCioIExgCIiQzYjkzYTVkZC03MzAyLTQ4M2YtYWVhZS0zNjIwNzU1NDhhZTESDCkwwgW1BFHfDKcSMxoMhlWq7EI/bit8z4iDIjBPJ+L7mnnPHBGFmTxul5mnmW/M0elPYYP7WPJRZMmUXkkbnn0wtDyz0oF5chFiYrkqFKVLCtAUKdzOvng+bwyloPt3WQDQGAQ="
+            }
+          }
+        },
+        {
+          "type": "text",
+          "text": "\n- **Node.js 20** (Codename: Iron) - Also in Maintenance LTS\n- **Node.js 26** - "
+        },
+        {
+          "type": "text",
+          "text": "Currently in the Current (non-LTS) phase until October 2026",
+          "providerMetadata": {
+            "anthropic": {
+              "citations": [
+                {
+                  "type": "web_search_result_location",
+                  "cited_text": "Node.js 22 is still a supported maintenance LTS line, and Node.js 26 is the Current non-LTS line until October 2026. ",
+                  "url": "https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+                  "title": "Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides",
+                  "encrypted_index": "Eo8BCioIExgCIiQzYjkzYTVkZC03MzAyLTQ4M2YtYWVhZS0zNjIwNzU1NDhhZTESDP5gUprVjHDeXO5+VRoM7A6xbW/sbHd25BZZIjBIbaaAKCmig6dYonNbT11Bg68EpB2O7v1j2MrWHrCDqhvwJExez9w5j2Q+FEG18BsqE4g2T0iVmZvDBLcrNGAUYGWdPFMYBA=="
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "L7WcJSr66U5IQGKD",
+          "url": "https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+          "title": "Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides",
+          "providerMetadata": {
+            "anthropic": {
+              "citedText": "Node.js 22 is still a supported maintenance LTS line, and Node.js 26 is the Current non-LTS line until October 2026. ",
+              "encryptedIndex": "Eo8BCioIExgCIiQzYjkzYTVkZC03MzAyLTQ4M2YtYWVhZS0zNjIwNzU1NDhhZTESDP5gUprVjHDeXO5+VRoM7A6xbW/sbHd25BZZIjBIbaaAKCmig6dYonNbT11Bg68EpB2O7v1j2MrWHrCDqhvwJExez9w5j2Q+FEG18BsqE4g2T0iVmZvDBLcrNGAUYGWdPFMYBA=="
+            }
+          }
+        },
+        {
+          "type": "text",
+          "text": ", when it will transition to Active LTS\n\n### Recommendation:\n\n"
+        },
+        {
+          "type": "text",
+          "text": "Use Node 24 for new projects.",
+          "providerMetadata": {
+            "anthropic": {
+              "citations": [
+                {
+                  "type": "web_search_result_location",
+                  "cited_text": "Use Node 24 for new projects. ",
+                  "url": "https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+                  "title": "Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides",
+                  "encrypted_index": "EpABCioIExgCIiQzYjkzYTVkZC03MzAyLTQ4M2YtYWVhZS0zNjIwNzU1NDhhZTESDNKG4ClRndFHFz2WAhoMKEzvV4/UslDTmUw0IjCGyRGFbCY7NPjje5Efyqnf4/Ck8RXb6AnuPhwbqOdDm5YE8R5O/0GP68l14eXjQLEqFGPhMpSJaTrul/wPRipdf+pEP3g6GAQ="
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "source",
+          "sourceType": "url",
+          "id": "YwKyATWcoTx3jUG2",
+          "url": "https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+          "title": "Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides",
+          "providerMetadata": {
+            "anthropic": {
+              "citedText": "Use Node 24 for new projects. ",
+              "encryptedIndex": "EpABCioIExgCIiQzYjkzYTVkZC03MzAyLTQ4M2YtYWVhZS0zNjIwNzU1NDhhZTESDNKG4ClRndFHFz2WAhoMKEzvV4/UslDTmUw0IjCGyRGFbCY7NPjje5Efyqnf4/Ck8RXb6AnuPhwbqOdDm5YE8R5O/0GP68l14eXjQLEqFGPhMpSJaTrul/wPRipdf+pEP3g6GAQ="
+            }
+          }
+        },
+        {
+          "type": "text",
+          "text": " It provides the best balance of stability, long-term support, and modern features for production applications as of September 2026."
+        }
+      ],
+      "providerMetadata": {
+        "anthropic": {
+          "cacheCreationInputTokens": 0,
+          "stopSequence": null,
+          "iterations": null,
+          "container": null,
+          "contextManagement": null
+        },
+        "gateway": {
+          "routing": {
+            "originalModelId": "anthropic/claude-sonnet-4.5",
+            "resolvedProvider": "anthropic",
+            "fallbacksAvailable": [
+              "bedrock",
+              "vertexAnthropic"
+            ],
+            "planningReasoning": "System credentials planned for: anthropic, bedrock, vertexAnthropic. Total execution order: anthropic(system) → bedrock(system) → vertexAnthropic(system)",
+            "canonicalSlug": "anthropic/claude-sonnet-4.5",
+            "finalProvider": "anthropic",
+            "modelAttemptCount": 1,
+            "modelAttempts": [
+              {
+                "canonicalSlug": "anthropic/claude-sonnet-4.5",
+                "success": true,
+                "providerAttemptCount": 1,
+                "providerAttempts": [
+                  {
+                    "provider": "anthropic",
+                    "credentialType": "system",
+                    "success": true,
+                    "startTime": 1788430810432,
+                    "endTime": 1788430821172,
+                    "providerRequestId": "req_011CegLXSX1Wkh88fP5d7t5p",
+                    "statusCode": 200,
+                    "providerResponseId": "msg_011CegLXTL8N1Q9DtMsRjDcM"
+                  }
+                ]
+              }
+            ],
+            "totalProviderAttemptCount": 1
+          },
+          "cost": "0.066988",
+          "marketCost": "0.066988",
+          "surchargeCost": "0",
+          "gatewayCost": "0.066988",
+          "inferenceCost": "0.056988",
+          "inputInferenceCost": "0.051393",
+          "outputInferenceCost": "0.005595",
+          "generationId": "gen_01M1KCGZ03SAPKR55FAZJ7E0D0",
+          "billableWebSearchCalls": 1
+        }
+      }
+    }
+  ],
+  "providerMetadata": {
+    "anthropic": {
+      "cacheCreationInputTokens": 0,
+      "stopSequence": null,
+      "iterations": null,
+      "container": null,
+      "contextManagement": null
+    },
+    "gateway": {
+      "routing": {
+        "originalModelId": "anthropic/claude-sonnet-4.5",
+        "resolvedProvider": "anthropic",
+        "fallbacksAvailable": [
+          "bedrock",
+          "vertexAnthropic"
+        ],
+        "planningReasoning": "System credentials planned for: anthropic, bedrock, vertexAnthropic. Total execution order: anthropic(system) → bedrock(system) → vertexAnthropic(system)",
+        "canonicalSlug": "anthropic/claude-sonnet-4.5",
+        "finalProvider": "anthropic",
+        "modelAttemptCount": 1,
+        "modelAttempts": [
+          {
+            "canonicalSlug": "anthropic/claude-sonnet-4.5",
+            "success": true,
+            "providerAttemptCount": 1,
+            "providerAttempts": [
+              {
+                "provider": "anthropic",
+                "credentialType": "system",
+                "success": true,
+                "startTime": 1788430810432,
+                "endTime": 1788430821172,
+                "providerRequestId": "req_011CegLXSX1Wkh88fP5d7t5p",
+                "statusCode": 200,
+                "providerResponseId": "msg_011CegLXTL8N1Q9DtMsRjDcM"
+              }
+            ]
+          }
+        ],
+        "totalProviderAttemptCount": 1
+      },
+      "cost": "0.066988",
+      "marketCost": "0.066988",
+      "surchargeCost": "0",
+      "gatewayCost": "0.066988",
+      "inferenceCost": "0.056988",
+      "inputInferenceCost": "0.051393",
+      "outputInferenceCost": "0.005595",
+      "generationId": "gen_01M1KCGZ03SAPKR55FAZJ7E0D0",
+      "billableWebSearchCalls": 1
+    }
+  },
+  "sources": [
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "AUyKpLu2lu7elBTr",
+      "url": "https://nodejs.org/en/about/previous-releases",
+      "title": "Node.js — Node.js Releases",
+      "providerMetadata": {
+        "anthropic": {
+          "pageAge": null
+        }
+      }
+    },
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "xYWogO4g5liomm1O",
+      "url": "https://endoflife.date/nodejs",
+      "title": "Node.js | endoflife.date",
+      "providerMetadata": {
+        "anthropic": {
+          "pageAge": "1 week ago"
+        }
+      }
+    },
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "b5pHzlJD4D3VAQLs",
+      "url": "https://www.infoq.com/news/2026/06/nodejs-release-changes/",
+      "title": "Node.js Moves to One Major Release Per Year, Starting with Node 27 - InfoQ",
+      "providerMetadata": {
+        "anthropic": {
+          "pageAge": "June 3, 2026"
+        }
+      }
+    },
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "P0Rb3OPioR34SOnO",
+      "url": "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule",
+      "title": "Node.js — Evolving the Node.js Release Schedule",
+      "providerMetadata": {
+        "anthropic": {
+          "pageAge": "March 10, 2026"
+        }
+      }
+    },
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "y3MNQElVClwXwbtK",
+      "url": "https://www.inmotionhosting.com/support/news/nodejs-v26-released/",
+      "title": "Node.js 26 Released: What's New | InMotion Hosting",
+      "providerMetadata": {
+        "anthropic": {
+          "pageAge": "May 6, 2026"
+        }
+      }
+    },
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "r6vxA8dYUyAQnEoX",
+      "url": "https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+      "title": "Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides",
+      "providerMetadata": {
+        "anthropic": {
+          "pageAge": "June 15, 2026"
+        }
+      }
+    },
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "xSzR6dxcO32KyWUW",
+      "url": "https://github.com/nodejs/Release",
+      "title": "GitHub - nodejs/Release: Node.js Release Working Group · GitHub",
+      "providerMetadata": {
+        "anthropic": {
+          "pageAge": null
+        }
+      }
+    },
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "9VVeeaSRc6vrnrh1",
+      "url": "https://github.com/msimerson/node-lts-versions",
+      "title": "GitHub - msimerson/node-lts-versions: Get Node.js LTS versions · GitHub",
+      "providerMetadata": {
+        "anthropic": {
+          "pageAge": null
+        }
+      }
+    },
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "qAJtO3JvFeBsr3tK",
+      "url": "https://nodejs.org/en/blog/release/v26.0.0",
+      "title": "Node.js — Node.js 26.0.0 (Current)",
+      "providerMetadata": {
+        "anthropic": {
+          "pageAge": null
+        }
+      }
+    },
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "0uPoK7JK1GIoRQ0F",
+      "url": "https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+      "title": "Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides",
+      "providerMetadata": {
+        "anthropic": {
+          "citedText": "Node.js 24 is the current active LTS line in June 2026. ",
+          "encryptedIndex": "Eo8BCioIExgCIiQzYjkzYTVkZC03MzAyLTQ4M2YtYWVhZS0zNjIwNzU1NDhhZTESDC8vJm4/JA4wN1MECxoMHrQr5xZ6cmgFQ6T5IjBZlOTjwAH+JtzvHK9J7icNa7ts/lDZTnREwoWC5Mn/2RJi26oRztk9BaljXEC/z1QqE0eIfQaODPwDeZjFp9JsaD+mg4IYBA=="
+        }
+      }
+    },
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "xReH9bKMFp0XzErr",
+      "url": "https://www.inmotionhosting.com/support/news/nodejs-v26-released/",
+      "title": "Node.js 26 Released: What's New | InMotion Hosting",
+      "providerMetadata": {
+        "anthropic": {
+          "citedText": "For production applications that require stability, Node.js 24 is the current Active LTS release and Node.js 22 is in Maintenance LTS. ",
+          "encryptedIndex": "EpABCioIExgCIiQzYjkzYTVkZC03MzAyLTQ4M2YtYWVhZS0zNjIwNzU1NDhhZTESDN5MbuqpaiMos9oZgBoM3BhREPgz7v2Ezsm4IjBeYNhbmMIfQ6NFICoWnRYLimdkIMb6f6jhZcY5/sRGjqIV0TQpef9qR1vhVWf5kVMqFB5YHsBCwlxjmZMUPRLwpB+WDZRHGAQ="
+        }
+      }
+    },
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "5F7D0LTDnYJS1qll",
+      "url": "https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+      "title": "Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides",
+      "providerMetadata": {
+        "anthropic": {
+          "citedText": "Node 22 remains supported through April 2027. ",
+          "encryptedIndex": "EpABCioIExgCIiQzYjkzYTVkZC03MzAyLTQ4M2YtYWVhZS0zNjIwNzU1NDhhZTESDCkwwgW1BFHfDKcSMxoMhlWq7EI/bit8z4iDIjBPJ+L7mnnPHBGFmTxul5mnmW/M0elPYYP7WPJRZMmUXkkbnn0wtDyz0oF5chFiYrkqFKVLCtAUKdzOvng+bwyloPt3WQDQGAQ="
+        }
+      }
+    },
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "L7WcJSr66U5IQGKD",
+      "url": "https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+      "title": "Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides",
+      "providerMetadata": {
+        "anthropic": {
+          "citedText": "Node.js 22 is still a supported maintenance LTS line, and Node.js 26 is the Current non-LTS line until October 2026. ",
+          "encryptedIndex": "Eo8BCioIExgCIiQzYjkzYTVkZC03MzAyLTQ4M2YtYWVhZS0zNjIwNzU1NDhhZTESDP5gUprVjHDeXO5+VRoM7A6xbW/sbHd25BZZIjBIbaaAKCmig6dYonNbT11Bg68EpB2O7v1j2MrWHrCDqhvwJExez9w5j2Q+FEG18BsqE4g2T0iVmZvDBLcrNGAUYGWdPFMYBA=="
+        }
+      }
+    },
+    {
+      "type": "source",
+      "sourceType": "url",
+      "id": "YwKyATWcoTx3jUG2",
+      "url": "https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+      "title": "Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides",
+      "providerMetadata": {
+        "anthropic": {
+          "citedText": "Use Node 24 for new projects. ",
+          "encryptedIndex": "EpABCioIExgCIiQzYjkzYTVkZC03MzAyLTQ4M2YtYWVhZS0zNjIwNzU1NDhhZTESDNKG4ClRndFHFz2WAhoMKEzvV4/UslDTmUw0IjCGyRGFbCY7NPjje5Efyqnf4/Ck8RXb6AnuPhwbqOdDm5YE8R5O/0GP68l14eXjQLEqFGPhMpSJaTrul/wPRipdf+pEP3g6GAQ="
+        }
+      }
+    }
+  ]
+}

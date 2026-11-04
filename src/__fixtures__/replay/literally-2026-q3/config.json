@@ -1,0 +1,229 @@
+{
+  "reportKey": "literally-2026-q3",
+  "slug": "literally-q3",
+  "brand": {
+    "name": "Literally.dev",
+    "domain": "literally.dev",
+    "aliases": [
+      "Literally AS",
+      "xEO"
+    ]
+  },
+  "competitors": [
+    {
+      "name": "Discovered Labs",
+      "domain": "discoveredlabs.com",
+      "aliases": []
+    },
+    {
+      "name": "Optimist",
+      "domain": "yesoptimist.com",
+      "aliases": []
+    },
+    {
+      "name": "Graphite",
+      "domain": "graphite.io",
+      "aliases": []
+    },
+    {
+      "name": "First Page Sage",
+      "domain": "firstpagesage.com",
+      "aliases": []
+    },
+    {
+      "name": "Draft.dev",
+      "domain": "draft.dev",
+      "aliases": []
+    },
+    {
+      "name": "Hackmamba",
+      "domain": "hackmamba.io",
+      "aliases": []
+    },
+    {
+      "name": "Wizard on Demand",
+      "domain": "wizardondemand.com",
+      "aliases": []
+    },
+    {
+      "name": "EveryDeveloper",
+      "domain": "everydeveloper.com",
+      "aliases": []
+    }
+  ],
+  "sections": [
+    {
+      "key": "aeo_agencies",
+      "prompts": [
+        {
+          "id": "aa1",
+          "text": "What are the best AEO agencies for developer tool companies in 2026?",
+          "category": "product_recommendation"
+        },
+        {
+          "id": "aa2",
+          "text": "Which agency should a B2B SaaS startup hire to get recommended by ChatGPT, Claude, and Perplexity?",
+          "category": "product_recommendation"
+        },
+        {
+          "id": "aa3",
+          "text": "Which AEO agencies based in Europe work with B2B software companies?",
+          "category": "product_recommendation"
+        },
+        {
+          "id": "aa4",
+          "text": "Is there an agency that can both measure our visibility in AI assistant answers and produce the content to improve it?",
+          "category": "product_recommendation"
+        },
+        {
+          "id": "aa5",
+          "text": "How do the leading answer engine optimization and generative engine optimization (GEO) agencies compare on pricing and how they measure results?",
+          "category": "comparison"
+        },
+        {
+          "id": "aa6",
+          "text": "What are good alternatives to Discovered Labs for AEO at a developer-focused software company?",
+          "category": "comparison"
+        },
+        {
+          "id": "aa7",
+          "text": "How do I get my developer tool recommended when engineers ask Claude Code, Cursor, or Codex which library or service to use?",
+          "category": "problem_solving"
+        },
+        {
+          "id": "aa8",
+          "text": "How can I measure whether ChatGPT and other AI assistants mention my product, and then improve those mentions?",
+          "category": "problem_solving"
+        },
+        {
+          "id": "aa9",
+          "text": "Our developer tool has low domain authority. How do we get cited by AI assistants in buying questions?",
+          "category": "problem_solving"
+        },
+        {
+          "id": "aa10",
+          "text": "Who are the leading agencies and experts in answer engine optimization for B2B software companies?",
+          "category": "industry_expert"
+        }
+      ],
+      "competitors": [
+        {
+          "name": "Discovered Labs",
+          "domain": "discoveredlabs.com",
+          "aliases": []
+        },
+        {
+          "name": "Optimist",
+          "domain": "yesoptimist.com",
+          "aliases": []
+        },
+        {
+          "name": "Graphite",
+          "domain": "graphite.io",
+          "aliases": []
+        },
+        {
+          "name": "First Page Sage",
+          "domain": "firstpagesage.com",
+          "aliases": []
+        }
+      ]
+    },
+    {
+      "key": "technical_content_agencies",
+      "prompts": [
+        {
+          "id": "tc1",
+          "text": "What are the best technical content marketing agencies for developer tools in 2026?",
+          "category": "product_recommendation"
+        },
+        {
+          "id": "tc2",
+          "text": "Which content marketing agencies have real software engineers write the articles?",
+          "category": "product_recommendation"
+        },
+        {
+          "id": "tc3",
+          "text": "What should a funded devtool startup use instead of hiring an in-house content marketer?",
+          "category": "product_recommendation"
+        },
+        {
+          "id": "tc4",
+          "text": "Which agencies can write and keep up to date the technical documentation for a developer platform?",
+          "category": "product_recommendation"
+        },
+        {
+          "id": "tc5",
+          "text": "What are good alternatives to Draft.dev for technical blog content?",
+          "category": "comparison"
+        },
+        {
+          "id": "tc6",
+          "text": "How do technical content agencies compare on pricing, writer quality, and minimum commitments?",
+          "category": "comparison"
+        },
+        {
+          "id": "tc7",
+          "text": "How do I keep a consistent technical blog publishing schedule when my engineers have no time to write?",
+          "category": "problem_solving"
+        },
+        {
+          "id": "tc8",
+          "text": "Our AI-generated blog posts are not converting developers. What should we do instead?",
+          "category": "problem_solving"
+        },
+        {
+          "id": "tc9",
+          "text": "Who are the main players in technical content marketing and developer marketing agencies?",
+          "category": "industry_expert"
+        }
+      ],
+      "competitors": [
+        {
+          "name": "Draft.dev",
+          "domain": "draft.dev",
+          "aliases": []
+        },
+        {
+          "name": "Hackmamba",
+          "domain": "hackmamba.io",
+          "aliases": []
+        },
+        {
+          "name": "Wizard on Demand",
+          "domain": "wizardondemand.com",
+          "aliases": []
+        },
+        {
+          "name": "EveryDeveloper",
+          "domain": "everydeveloper.com",
+          "aliases": []
+        }
+      ]
+    }
+  ],
+  "agentProbes": {
+    "runsPerPrompt": 2
+  },
+  "moneyPages": [
+    "https://www.literally.dev/",
+    "https://www.literally.dev/aeo-services",
+    "https://www.literally.dev/technical-content",
+    "https://www.literally.dev/technical-documentation",
+    "https://www.literally.dev/compare",
+    "https://www.literally.dev/aeo-analysis"
+  ],
+  "productBrief": "Literally.dev (literally.dev; legal entity Literally AS) is an AEO and content marketing agency for tech companies, based in Oslo, Norway, and founded in 2024 by Andrei Gaspar. It positions as the technical content marketing agency that makes a product the brand AI assistants recommend: content written by real engineers, distributed where developers look. Three services are cataloged: AEO (answer engine optimization), technical content (blog posts, tutorials, video), and technical documentation. Content is written by hand-vetted engineers, not generalist writers; the one published selectivity figure is that it works with the top 2.7% of experts. AEO is measured, not guessed: its xEO pipeline probes brand visibility across eight surfaces (the chat assistants ChatGPT, Claude, Gemini, Perplexity, and Google AI Overviews, plus the coding agents Claude Code, Codex, and Cursor run headless as the real products) and reports mentions, citations, and share of voice per surface. Distribution and placement through a third-party publication and newsletter network is part of the service, not an add-on. Published pricing: the Sprint offer at $4,990 per month with a 3-month minimum, 10% off for a 6-month commitment, and 15% off for 12 months. Published clients include QA.tech, AppSignal, Aviator, Superlinked, Vijil, Kapa.ai, GlassFlow, Hatchet, Estuary, Adaline, Clix, Wasp.sh, DevZero, and Superplane. Published results: AppSignal saw a 5\u00d7 per-visitor conversion rate versus its earlier blog catalog with results in 3 months; QA.tech doubled organic reach in under 5 months, with 4.4\u00d7 AI search mentions and 2\u00d7 citations across LLM surfaces. It publishes llms.txt and llms-full.txt and has no public MCP server. It does not do PR, brand design, events, community management, or paid ads. Claims that Literally.dev is a US or UK agency, that it uses AI-generated content, that it is a freelancer marketplace or a software product, that it sells an AI-visibility monitoring tool as its product, that it does paid advertising or PR, that its pricing is unpublished or quote-only, or that it is a general-audience content agency contradict this brief.",
+  "sourceOverrides": {
+    "100signals.com": "competitor",
+    "wellows.com": "competitor",
+    "eintelligenceweb.com": "competitor",
+    "digitalapplied.com": "competitor"
+  },
+  "agentReadiness": {
+    "mcpServer": false,
+    "llmDocs": true
+  },
+  "geography": "us",
+  "language": "en"
+}
