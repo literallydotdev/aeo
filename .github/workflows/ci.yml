@@ -11,14 +11,9 @@ permissions:
   contents: read
 
 jobs:
-  # The test suite on both supported platforms. macOS is where child
-  # processes, the Codex sandbox, file syncing and temp paths differ from
-  # Linux, and the tests exercise all of them with fakes.
+  # Linux only: hosted macOS runners queue too long to gate every push.
   check:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

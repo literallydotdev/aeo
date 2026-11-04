@@ -18,8 +18,9 @@ literally-aeo verify audit-run.aeo.zip   # offline verification
 
 ## Requirements
 
-- Node.js 24 or newer, on Linux (x64, arm64) or macOS (Apple silicon).
-  Windows users run it under WSL 2.
+- Node.js 24 or newer on Linux, where it is tested. macOS (Apple silicon)
+  is expected to work but is not tested in CI. Windows users run it under
+  WSL 2.
 - The [Codex CLI](https://github.com/openai/codex), which runs the analysis
   and writing stages.
 - An `AI_GATEWAY_API_KEY` (Vercel AI Gateway) for the assistant answers and
