@@ -133,5 +133,13 @@ export default defineConfig([
       'import/no-default-export': 'off',
     },
   },
-  globalIgnores(['dist/**', 'resources/**', 'node_modules/**', 'audit-run/**']),
+  globalIgnores([
+    'dist/**',
+    'resources/**',
+    'node_modules/**',
+    'audit-run/**',
+    // Local scratch space (cloned repositories, experiments): not ours to
+    // lint, and large enough to exhaust ESLint's memory.
+    '.dev/**',
+  ]),
 ]);
