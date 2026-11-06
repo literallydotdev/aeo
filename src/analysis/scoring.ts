@@ -1,6 +1,5 @@
 import { normalizeDomain } from '../report/core/normalize-domain';
-import type { AeoSurface } from '../schema';
-import { surfaceRunCounts, plannedRunsPerPrompt } from '../surfaces';
+import { runsPerPromptOn, type AeoSurface, type ProbeDepth } from '../schema';
 
 // ============================================================================
 // Scorecard aggregation (ported from the console's intelligence/scoring.ts).
@@ -62,19 +61,17 @@ export const computeAISearchSummary = (args: {
   prompts: PromptForScoring[];
   results: AnalyzedProbeForScoring[];
   surfaces: readonly AeoSurface[];
-  // Overrides the canonical per-surface run count (agent batches configured
-  // below the default, spec §5 revised). Applies uniformly to every scoped
-  // surface; omit for the canonical surfaceRunCounts denominators.
-  runsPerSurface?: number;
+  // The configured depth the plan asked each prompt at.
+  depth: ProbeDepth;
 }): ScoringSummary => {
-  const { competitorDomains, prompts, results, surfaces } = args;
+  const { competitorDomains, prompts, results, surfaces, depth } = args;
 
   // Probe planning: total probes attempted = prompts × (sum of runs across
   // the scoped surfaces). Failures lower share of voice instead of hiding.
-  const totalRunsPerPrompt =
-    args.runsPerSurface !== undefined
-      ? surfaces.length * args.runsPerSurface
-      : plannedRunsPerPrompt(surfaces);
+  const totalRunsPerPrompt = surfaces.reduce(
+    (sum, surface) => sum + runsPerPromptOn(surface, depth),
+    0,
+  );
   const totalPrompts = prompts.length * totalRunsPerPrompt;
 
   const mentioned = results.filter((r) => r.clientMentioned).length;
@@ -89,8 +86,7 @@ export const computeAISearchSummary = (args: {
 
   for (const surface of surfaces) {
     const modelResults = results.filter((r) => r.model === surface);
-    const runsPerPrompt = args.runsPerSurface ?? surfaceRunCounts[surface];
-    const total = prompts.length * runsPerPrompt;
+    const total = prompts.length * runsPerPromptOn(surface, depth);
 
     byModel[surface] = {
       sov:

@@ -93,6 +93,9 @@ export const capturePlan = (
     geography: config.geography,
     language: config.language,
     agentProbes: config.agentProbes,
+    // Undefined members are dropped, so a config without chat depth keeps
+    // the digest earlier releases gave it.
+    chatProbes: config.chatProbes,
     surfaces,
   });
 
@@ -104,6 +107,7 @@ export const capturePlan = (
         prompts: section.prompts,
         surfaces,
         agentProbes: config.agentProbes,
+        chatProbes: config.chatProbes,
       }),
     ),
   };

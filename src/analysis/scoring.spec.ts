@@ -3,6 +3,16 @@ import { agentSurfaces, chatSurfaces } from '../schema';
 import type { AnalyzedProbeForScoring } from './scoring';
 import { computeAISearchSummary } from './scoring';
 
+const standardDepth = {
+  agentProbes: { runsPerPrompt: 2 },
+  chatProbes: undefined,
+};
+
+const singleAgentRunDepth = {
+  agentProbes: { runsPerPrompt: 1 },
+  chatProbes: undefined,
+};
+
 const result = (
   overrides: Partial<AnalyzedProbeForScoring>,
 ): AnalyzedProbeForScoring => {
@@ -21,8 +31,8 @@ describe('scoring - computeAISearchSummary()', () => {
   it('should use planned-run denominators for the scoped surfaces (chat: 9/prompt)', () => {
     // 1 prompt × 9 planned chat runs; 3 captured, 3 mentioned → 3/9.
     const summary = computeAISearchSummary({
-      clientDomain: 'superlinked.com',
-      competitorDomains: ['pinecone.io'],
+      clientDomain: 'acme.example',
+      competitorDomains: ['rival.example'],
       prompts: [{ id: 'p1', category: 'comparison' }],
       results: [
         result({ clientMentioned: true }),
@@ -30,6 +40,7 @@ describe('scoring - computeAISearchSummary()', () => {
         result({ model: 'gemini', clientMentioned: true }),
       ],
       surfaces: chatSurfaces,
+      depth: standardDepth,
     });
 
     expect(summary.totalPrompts).toBe(9);
@@ -44,7 +55,7 @@ describe('scoring - computeAISearchSummary()', () => {
 
   it('should score the agent surfaces on their own planned denominator (2 runs × 3 CLIs)', () => {
     const summary = computeAISearchSummary({
-      clientDomain: 'superlinked.com',
+      clientDomain: 'acme.example',
       competitorDomains: [],
       prompts: [{ id: 'p1', category: 'comparison' }],
       results: [
@@ -52,6 +63,7 @@ describe('scoring - computeAISearchSummary()', () => {
         result({ model: 'codex' }),
       ],
       surfaces: agentSurfaces,
+      depth: standardDepth,
     });
 
     expect(summary.totalPrompts).toBe(6);
@@ -63,10 +75,10 @@ describe('scoring - computeAISearchSummary()', () => {
     ]);
   });
 
-  it('should honor a configured runs-per-surface override in the denominator', () => {
+  it('should honor a configured agent depth in the denominator', () => {
     // 3 agent-probed prompts × 1 run × 3 surfaces = 9 planned; 2 mentioned.
     const summary = computeAISearchSummary({
-      clientDomain: 'superlinked.com',
+      clientDomain: 'acme.example',
       competitorDomains: [],
       prompts: [
         { id: 'p1', category: 'comparison' },
@@ -78,18 +90,41 @@ describe('scoring - computeAISearchSummary()', () => {
         result({ model: 'codex', promptId: 'p2', clientMentioned: true }),
       ],
       surfaces: agentSurfaces,
-      runsPerSurface: 1,
+      depth: singleAgentRunDepth,
     });
 
     expect(summary.totalPrompts).toBe(9);
     expect(summary.probeShareOfVoice).toBeCloseTo((2 / 9) * 100);
   });
 
+  it('should divide every chat surface by the configured chat depth', () => {
+    // 1 prompt × 12 runs × 5 chat surfaces = 60 planned, AI Overview
+    // included: a configured depth replaces its single canonical run.
+    const summary = computeAISearchSummary({
+      clientDomain: 'acme.example',
+      competitorDomains: [],
+      prompts: [{ id: 'p1', category: 'comparison' }],
+      results: [
+        result({ clientMentioned: true }),
+        result({ model: 'google_ai_overview', clientMentioned: true }),
+      ],
+      surfaces: chatSurfaces,
+      depth: {
+        agentProbes: { runsPerPrompt: 2 },
+        chatProbes: { runsPerPrompt: 12 },
+      },
+    });
+
+    expect(summary.totalPrompts).toBe(60);
+    expect(summary.probeShareOfVoice).toBeCloseTo((2 / 60) * 100);
+    expect(summary.byModel.google_ai_overview?.sov).toBeCloseTo((1 / 12) * 100);
+  });
+
   it('should divide byModel by planned runs per surface, not captured runs (§3.5)', () => {
     // 2 prompts; chatgpt plans 2 runs each = 4, captured 2 of them, both
     // mentioned → 2/4, not 2/2. google_ai_overview plans 1 run each = 2.
     const summary = computeAISearchSummary({
-      clientDomain: 'superlinked.com',
+      clientDomain: 'acme.example',
       competitorDomains: [],
       prompts: [
         { id: 'p1', category: 'comparison' },
@@ -101,6 +136,7 @@ describe('scoring - computeAISearchSummary()', () => {
         result({ model: 'google_ai_overview', clientMentioned: true }),
       ],
       surfaces: chatSurfaces,
+      depth: standardDepth,
     });
 
     expect(summary.byModel.chatgpt).toEqual({ sov: 50, citation: 25 });
@@ -115,7 +151,7 @@ describe('scoring - computeAISearchSummary()', () => {
     // 3 agent prompts × 1 run: claude_code captured 2 (1 mentioned) → 1/3;
     // cursor captured nothing → 0/3, never a silent 0/0.
     const summary = computeAISearchSummary({
-      clientDomain: 'superlinked.com',
+      clientDomain: 'acme.example',
       competitorDomains: [],
       prompts: [
         { id: 'p1', category: 'comparison' },
@@ -127,7 +163,7 @@ describe('scoring - computeAISearchSummary()', () => {
         result({ model: 'claude_code', promptId: 'p2' }),
       ],
       surfaces: agentSurfaces,
-      runsPerSurface: 1,
+      depth: singleAgentRunDepth,
     });
 
     expect(summary.byModel.claude_code?.sov).toBeCloseTo((1 / 3) * 100);
@@ -136,7 +172,7 @@ describe('scoring - computeAISearchSummary()', () => {
 
   it('should keep byCategory a ratio within captured runs', () => {
     const summary = computeAISearchSummary({
-      clientDomain: 'superlinked.com',
+      clientDomain: 'acme.example',
       competitorDomains: [],
       prompts: [
         { id: 'p1', category: 'comparison' },
@@ -148,6 +184,7 @@ describe('scoring - computeAISearchSummary()', () => {
         result({ model: 'gemini', promptId: 'p2', clientMentioned: true }),
       ],
       surfaces: chatSurfaces,
+      depth: standardDepth,
     });
 
     expect(summary.byCategory.comparison?.sov).toBe(50);
@@ -158,11 +195,12 @@ describe('scoring - computeAISearchSummary()', () => {
     // The pipeline passes only analyzed prompts: 1 of 2 prompts analyzed,
     // so the denominator is 9 (one prompt's chat plan), not 18.
     const summary = computeAISearchSummary({
-      clientDomain: 'superlinked.com',
+      clientDomain: 'acme.example',
       competitorDomains: [],
       prompts: [{ id: 'p1', category: 'comparison' }],
       results: [result({ clientMentioned: true })],
       surfaces: chatSurfaces,
+      depth: standardDepth,
     });
 
     expect(summary.totalPrompts).toBe(9);
@@ -171,7 +209,7 @@ describe('scoring - computeAISearchSummary()', () => {
 
   it('should let missing captures lower share of voice instead of hiding them', () => {
     const summary = computeAISearchSummary({
-      clientDomain: 'superlinked.com',
+      clientDomain: 'acme.example',
       competitorDomains: [],
       prompts: [
         { id: 'p1', category: 'comparison' },
@@ -179,6 +217,7 @@ describe('scoring - computeAISearchSummary()', () => {
       ],
       results: [result({ clientMentioned: true })],
       surfaces: chatSurfaces,
+      depth: standardDepth,
     });
 
     expect(summary.totalPrompts).toBe(18);

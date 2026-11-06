@@ -544,6 +544,48 @@ describe('verify - verifyBundle()', () => {
     expect(verification.checks[0]?.code).toBe('bundle_version_unsupported');
   });
 
+  it('should verify a version 1 bundle as it verifies the version 2 bundles it writes', async () => {
+    const { files } = await exportSynthetic();
+    const manifest = bundleManifestSchema.parse(
+      parseBundleJson(
+        (files.get(bundlePaths.manifest) ?? Buffer.alloc(0)).toString('utf8'),
+      ),
+    );
+    const { bundleDigest: _bundleDigest, ...unsigned } = manifest;
+    const earlier = { ...unsigned, bundleSchemaVersion: 1 };
+    const versionOne = new Map(files);
+
+    versionOne.set(
+      bundlePaths.manifest,
+      encodeBundleJson({ ...earlier, bundleDigest: digestManifest(earlier) }),
+    );
+    const outcomes = (verification: Verification) => {
+      return verification.checks.map(({ id, outcome }) => [id, outcome]);
+    };
+
+    expect(manifest.bundleSchemaVersion).toBe(2);
+    expect(outcomes(verifyBundle(versionOne, 'version 1'))).toEqual(
+      outcomes(verifyBundle(files, 'version 2')),
+    );
+  });
+
+  it('should recompute a bundle at a configured chat depth offline', async () => {
+    const run = await createSyntheticRun(path.join(root, 'deep'), {
+      chatProbes: { runsPerPrompt: 3 },
+    });
+    const result = await exportRun(run.dir);
+    const source = await readBundleSource(result.archive);
+
+    const verification = verifyBundle(source.files, source.description);
+
+    // 3 questions × 2 surfaces × 3 runs, one slot failed.
+    expect(verification.disclosures.capturedAnswers).toBe(17);
+    expect(outcomeOf(verification, 'bundle.integrity')?.outcome).toBe('pass');
+    expect(outcomeOf(verification, 'plan.accounted')?.outcome).toBe('pass');
+    expect(outcomeOf(verification, 'judgments.evidence')?.outcome).toBe('pass');
+    expect(outcomeOf(verification, 'metrics.recomputed')?.outcome).toBe('pass');
+  });
+
   it('should refuse a symlink inside a bundle directory', async () => {
     const { run } = await exportSynthetic();
     const [revision] = await readFinalizedRevisions(run.dir);

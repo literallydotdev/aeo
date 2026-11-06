@@ -9,7 +9,9 @@ import { unitRecordKey } from '../../lib/checkpoint';
 import {
   aeoAuditConfigSchema,
   runRequestSchema,
+  type AeoAuditConfig,
   type AeoSurface,
+  type ChatProbeConfig,
 } from '../../schema';
 import { contentHash } from '../../stores/content-hash';
 import type { CapturedUnitRecord } from '../../stores/ports';
@@ -85,9 +87,16 @@ export type SyntheticRun = {
 
 export const createSyntheticRun = async (
   dir: string,
-  { answerOverride }: { answerOverride?: string } = {},
+  {
+    answerOverride,
+    chatProbes,
+  }: { answerOverride?: string; chatProbes?: ChatProbeConfig } = {},
 ): Promise<SyntheticRun> => {
-  const plan = capturePlan(syntheticConfig, surfaces);
+  const config: AeoAuditConfig =
+    chatProbes === undefined
+      ? syntheticConfig
+      : { ...syntheticConfig, chatProbes };
+  const plan = capturePlan(config, surfaces);
   const [failedUnit, ...capturedUnits] = plan.units;
 
   if (!failedUnit) {
@@ -125,7 +134,7 @@ export const createSyntheticRun = async (
     plannedUnits: plan.units.length,
     surfaces,
     sections: Object.fromEntries(
-      syntheticConfig.sections.map((section) => {
+      config.sections.map((section) => {
         const records = captured.filter(
           (record) => record.sectionKey === section.key,
         );
@@ -185,7 +194,7 @@ export const createSyntheticRun = async (
     version: 1,
     reportKey: syntheticReportKey,
     runId: syntheticRunId,
-    config: syntheticConfig,
+    config,
     request,
     surfaces,
     capture,
@@ -251,7 +260,7 @@ export const createSyntheticRun = async (
 
   const aggregate = await aggregateWorkdir({
     dir,
-    config: syntheticConfig,
+    config,
     surfaces,
     capture,
     captured,
@@ -263,7 +272,7 @@ export const createSyntheticRun = async (
     reportKey: syntheticReportKey,
     runId: syntheticRunId,
     createdAt: '2026-11-01T10:30:00.000Z',
-    config: syntheticConfig,
+    config,
     chunks,
     records: captured,
     surfaces,

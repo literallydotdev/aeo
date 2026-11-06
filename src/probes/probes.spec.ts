@@ -94,6 +94,7 @@ describe('probes - runProbesForPrompts()', () => {
       language: 'en',
       prompts: [{ id: 'p1', promptText: 'Which agency?', category: 'x' }],
       surfaces: ['chatgpt'],
+      chatProbes: undefined,
       // One unit: the surface plans two runs per prompt.
       filter: (unit) => unit.runIndex === 1,
     });
@@ -130,6 +131,7 @@ describe('probes - runProbesForPrompts()', () => {
       language: 'en',
       prompts: [{ id: 'p1', promptText: 'Which agency?', category: 'x' }],
       surfaces: ['chatgpt'],
+      chatProbes: undefined,
       // One unit: the surface plans two runs per prompt.
       filter: (unit) => unit.runIndex === 1,
     });
@@ -173,6 +175,7 @@ describe('probes - runProbesForPrompts()', () => {
         language: 'en',
         prompts: [{ id: 'p1', promptText: 'Which agency?', category: 'x' }],
         surfaces: ['perplexity'],
+        chatProbes: undefined,
         filter: (unit) => unit.runIndex === 1,
         trace,
       });

@@ -29,7 +29,7 @@ const config = (): AeoAuditConfig => {
     slug: 'example',
     brand: { name: 'Example', domain: 'example.com', aliases: ['Example Inc'] },
     competitors: [
-      { name: 'Alternative', domain: 'alternative.com', aliases: [] },
+      { name: 'Alternative', domain: 'alternative.example', aliases: [] },
     ],
     sections: [
       {
@@ -89,6 +89,7 @@ const fixture = (
       prompts: section.prompts,
       surfaces,
       agentProbes: cfg.agentProbes,
+      chatProbes: cfg.chatProbes,
     }),
   );
 
@@ -808,6 +809,30 @@ describe('progress - deriveProgressComparison()', () => {
     expect(result.reasons).toEqual(['scope_changed']);
     expect(result.groups.agents).toBeNull();
     expect(result.matched.baselineExcludedSlots).toBe(1);
+  });
+
+  it('should reject a changed chat depth while the unchanged agent scope stays comparable', () => {
+    const surfaces: AeoSurface[] = ['google_ai_overview', 'codex'];
+    const baseline = projectProgressMeasurement(fixture({ surfaces }));
+    const current = projectProgressMeasurement(
+      fixture({
+        runId: 'current',
+        config: { ...config(), chatProbes: { runsPerPrompt: 3 } },
+        surfaces,
+      }),
+    );
+
+    const result = deriveProgressComparison({ baseline, current });
+    const agents = deriveProgressComparison(
+      { baseline, current },
+      { scope: 'agents' },
+    );
+
+    // AI Overview's single canonical run became three.
+    expect(result.status).toBe('unavailable');
+    expect(result.reasons).toEqual(['scope_changed']);
+    expect(result.matched.currentExcludedSlots).toBe(2);
+    expect(agents.status).toBe('comparable');
   });
 
   it('should keep a reordered whole set but refuse a changed first-N agent subset', () => {

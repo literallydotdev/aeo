@@ -67,6 +67,25 @@ directory.
 Nothing is sent to Literally.dev: no telemetry, no account, no upload.
 A run contacts only the providers you configure and the sites it checks.
 
+## How deep each question goes
+
+By default each question is asked twice on every assistant, and once on
+Google AI Overviews. To measure fewer questions more deeply, set the depth
+in `audit.json`:
+
+```json
+"chatProbes": { "runsPerPrompt": 12 },
+"agentProbes": { "runsPerPrompt": 12 }
+```
+
+`chatProbes` covers the chat assistants, AI Overviews included, and
+`agentProbes` the coding agents; each takes 1 to 25 runs per question.
+`literally-aeo plan` shows the answers and the cost a depth plans before
+anything is spent. Depth is part of what a run measures, so keep it the
+same across the runs you mean to compare: a progress comparison between
+runs at different depths reports that the scope changed, not a change in
+visibility.
+
 ## What a run produces
 
 A run directory holds the captured answers, every judgment, the computed
@@ -75,7 +94,10 @@ host observed: each probe attempt, each model call with its exact request
 and response, each research search and fetch, each technical check, and each
 Codex session. `export` turns it into a `.aeo.zip` bundle; `verify`
 recomputes the metrics from the bundled judgments, checks every hash and the
-journal chain, and states plainly what it could not check.
+journal chain, and states plainly what it could not check. Verify a bundle
+with the release that exported it or a newer one: an older release reports
+a bundle format it cannot read as unsupported (exit 2) instead of checking
+it.
 
 Verification proves the bundle is internally consistent and unaltered since
 export. It cannot prove that a provider really returned an answer: the bundle

@@ -114,7 +114,11 @@ sections, the buyer questions in each, the competitors, and the surfaces
 (the assistants that will be asked). Apply the user's edits to
 `draft/audit.json` yourself. The optional `model` field names the model
 that judges and writes the report; leave it out to use the recommended
-one, which `literally-aeo doctor` lists with every supported model. Run
+one, which `literally-aeo doctor` lists with every supported model. If the
+user would rather measure fewer questions more deeply, set
+`chatProbes.runsPerPrompt` and `agentProbes.runsPerPrompt` (1 to 25 runs
+of each question per assistant); left out, each question is asked twice
+(once on AI Overviews). Run
 `literally-aeo doctor --config draft/audit.json --env-file .env --json`
 after editing.
 
@@ -174,7 +178,8 @@ Quote the report; do not add claims it does not make.
 
 Offer `literally-aeo export run`: a `.aeo.zip` bundle with the captured
 answers, every judgment, the metrics, the report and the journal of every
-operation, which anyone can check offline with `literally-aeo verify`.
+operation, which anyone can check offline with `literally-aeo verify` from
+this release or a newer one.
 Credentials found in it block the export. Tell the user the bundle shows
 the questions and the answers, so they should share it only where those can
 be read.

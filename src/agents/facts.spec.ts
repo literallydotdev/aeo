@@ -14,6 +14,32 @@ import {
 import { buildFactCatalog, projectWriterFactCatalog } from './facts';
 import { validateAgentCopy, type RecommendationInput } from './copy-validation';
 
+describe('facts - buildFactCatalog()', () => {
+  it('should state the planned answers of the configured depth on chat and agent surfaces', () => {
+    const config = aeoAuditConfigSchema.parse({
+      ...configFixture,
+      chatProbes: { runsPerPrompt: 5 },
+      agentProbes: { runsPerPrompt: 3, maxPromptsPerSection: 2 },
+    });
+    const snapshot = aeoSnapshotSchema.parse({
+      ...snapshotFixture,
+      meta: { ...snapshotFixture.meta, runId: 'run-1' },
+    });
+
+    const catalog = buildFactCatalog({ snapshot, config, runId: 'run-1' });
+    const mentionsOn = (surface: string) => {
+      return catalog.facts.find(
+        (fact) => fact.factId === `aeo_agencies:${surface}:mentions`,
+      );
+    };
+
+    // 10 questions 5 times on AI Overview, the first 2 three times on Codex;
+    // the standard depth plans 10 and 20.
+    expect(mentionsOn('google_ai_overview')).toMatchObject({ denominator: 50 });
+    expect(mentionsOn('codex')).toMatchObject({ denominator: 6 });
+  });
+});
+
 describe('facts - projectWriterFactCatalog()', () => {
   it('should keep repeated source passages outside generation while preserving scoped facts and full premise verification', async () => {
     const config = aeoAuditConfigSchema.parse(configFixture);

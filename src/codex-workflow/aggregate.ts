@@ -234,6 +234,7 @@ export const aggregateJudgments = (
         prompts: section.prompts,
         surfaces: inputs.surfaces,
         agentProbes: config.agentProbes,
+        chatProbes: config.chatProbes,
       },
       {
         probeCount: sectionCapture.units.length,

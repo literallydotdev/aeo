@@ -7,9 +7,10 @@ import type {
   AeoSurface,
   AeoVisibility,
   AgentProbeConfig,
+  ChatProbeConfig,
   RetrievalLog,
 } from './schema';
-import { isAgentSurface } from './schema';
+import { agentProbedPrompts, isAgentSurface } from './schema';
 import { createLog } from './lib/log';
 import {
   aiSearchProbeModels,
@@ -129,6 +130,8 @@ export type SectionRunArgs = {
   // and how many of the section's prompts get agent probes. Always present —
   // the config schema fills the canonical default.
   agentProbes: AgentProbeConfig;
+  // Chat probe volume; undefined = the canonical surfaceRunCounts.
+  chatProbes: ChatProbeConfig | undefined;
   agentCliVersions: AgentCliVersions;
   // The run every fresh capture and analysis is stamped with (§4.2).
   runId: string;
@@ -243,13 +246,9 @@ export const captureSectionProbes = async (
 
   // Agent probes may cover a configured subset of prompts (the first N in
   // config order) at a configured run count; the chat batch always covers
-  // every prompt at the canonical counts.
+  // every prompt, at the configured chat depth.
   const agentRunsPerPrompt = args.agentProbes.runsPerPrompt;
-  const agentPrompts = args.agentProbes.maxPromptsPerSection
-    ? args.prompts.slice(0, args.agentProbes.maxPromptsPerSection)
-    : args.prompts;
-
-  const agentPromptInputs = promptInputs.slice(0, agentPrompts.length);
+  const agentPromptInputs = agentProbedPrompts(promptInputs, args.agentProbes);
 
   // Store resume: split the section's planned units into cached hits
   // (reused as-is) and missing keys (the only units the probe batches run).
@@ -258,6 +257,7 @@ export const captureSectionProbes = async (
     prompts: args.prompts,
     surfaces: args.surfaces,
     agentProbes: args.agentProbes,
+    chatProbes: args.chatProbes,
   });
 
   const unitByKey = new Map<string, ProbeUnit>();
@@ -332,6 +332,11 @@ export const captureSectionProbes = async (
         captureMetadata: {
           requestedModel: requestedModelOf(probe),
           reportedModel: probe.reportedModel ?? null,
+          // Progress comparisons hash these into each answer's collection
+          // method, so they stay as earlier releases recorded them. Chat
+          // depth is left out: it does not change how one answer is
+          // collected, and a depth difference already shows as a scope
+          // change.
           parameters: {
             geography: args.geography,
             language: args.language,
@@ -367,6 +372,7 @@ export const captureSectionProbes = async (
             language: args.language,
             prompts: promptInputs,
             surfaces: selectedChatSurfaces,
+            chatProbes: args.chatProbes,
             filter: shouldRun,
             onResult: bank,
             trace,

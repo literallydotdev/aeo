@@ -112,6 +112,62 @@ describe('local-run - planLocalRun()', () => {
     expect(result.digests).toEqual(planLocalRun(exampleFile).digests);
   });
 
+  it('should plan every chat surface at the configured chat depth, as a new measurement', () => {
+    const deeper = planLocalRun({
+      ...exampleFile,
+      chatProbes: { runsPerPrompt: 5 },
+    });
+
+    const standard = planLocalRun(exampleFile);
+
+    // 2 prompts × 4 chat surfaces × 5 runs.
+    expect(deeper.plan.units).toHaveLength(40);
+    expect(deeper.digests.measurement).not.toBe(standard.digests.measurement);
+    expect(deeper.digests.plan).not.toBe(standard.digests.plan);
+  });
+
+  it('should leave chat depth out of the internal config when audit.json omits it', () => {
+    // An absent key keeps every digest the config had before chat depth
+    // was configurable, so earlier bundles still verify.
+    const config = toAuditConfig(exampleFile);
+
+    expect(Object.keys(config)).not.toContain('chatProbes');
+  });
+
+  it('should refuse a depth outside 1 to 25 runs per prompt', () => {
+    const tooDeep = auditFileSchema.safeParse({
+      ...exampleAuditFile,
+      chatProbes: { runsPerPrompt: 26 },
+    });
+    const zero = auditFileSchema.safeParse({
+      ...exampleAuditFile,
+      agentProbes: { runsPerPrompt: 0 },
+    });
+    const deepAgents = auditFileSchema.safeParse({
+      ...exampleAuditFile,
+      agentProbes: { runsPerPrompt: 25 },
+    });
+
+    expect(tooDeep.success).toBe(false);
+    expect(zero.success).toBe(false);
+    expect(deepAgents.success).toBe(true);
+  });
+
+  it('should refuse a misspelled agent depth instead of measuring at the default', () => {
+    const misspelled = auditFileSchema.safeParse({
+      ...exampleAuditFile,
+      agentProbes: { runPerPrompt: 12 },
+    });
+
+    expect(misspelled.error?.issues).toContainEqual(
+      expect.objectContaining({
+        code: 'unrecognized_keys',
+        keys: ['runPerPrompt'],
+        path: ['agentProbes'],
+      }),
+    );
+  });
+
   it('should derive one report key per brand domain', () => {
     const result = localReportKey({
       ...exampleFile,

@@ -83,6 +83,7 @@ const sectionArgs = (
     language: deps.config.language,
     surfaces: deps.plan.surfaces,
     agentProbes: deps.config.agentProbes,
+    chatProbes: deps.config.chatProbes,
     agentCliVersions: deps.agentCliVersions,
     runId: deps.request.runId,
     probeStore: deps.stores.probeStore,

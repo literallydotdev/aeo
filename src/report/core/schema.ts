@@ -21,7 +21,6 @@ export {
   chatSurfaces,
   surfaceRunCounts,
   isAgentSurface,
-  plannedRunsPerPrompt,
 } from './surfaces';
 export type { AeoAgentSurface, AeoChatSurface, AeoSurface } from './surfaces';
 

@@ -11,9 +11,9 @@ import {
 import {
   bundleManifestSchema,
   bundlePaths,
-  bundleSchemaVersion,
   canonicalization,
   predecessorPrefix,
+  readableBundleSchemaVersions,
   traceSchemaVersion,
   type BundleManifest,
 } from './contracts';
@@ -157,7 +157,7 @@ const readManifest = (
     : [];
 
   if (
-    declared[0] !== bundleSchemaVersion ||
+    !readableBundleSchemaVersions.some((version) => version === declared[0]) ||
     declared[1] !== traceSchemaVersion ||
     declared[2] !== canonicalization
   ) {
@@ -167,7 +167,7 @@ const readManifest = (
         title: 'Bundle integrity',
         outcome: CheckOutcome.UNSUPPORTED,
         code: 'bundle_version_unsupported',
-        explanation: `This verifier reads bundle schema ${bundleSchemaVersion}, trace schema ${traceSchemaVersion} and ${canonicalization}; the bundle declares ${JSON.stringify(declared)}. It does not download or upgrade code to read another.`,
+        explanation: `This verifier reads bundle schema ${readableBundleSchemaVersions.join(' or ')}, trace schema ${traceSchemaVersion} and ${canonicalization}; the bundle declares ${JSON.stringify(declared)}. It does not download or upgrade code to read another: verify the bundle with the literally-aeo release that produced it, or a newer one.`,
       }),
     };
   }

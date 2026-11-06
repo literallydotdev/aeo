@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import type { AeoPrompt, AeoSurface, AgentProbeConfig } from '../schema';
-import { surfaceRunCounts, isAgentSurface } from '../schema';
+import type { AeoPrompt, AeoSurface, ProbeDepth } from '../schema';
+import { agentProbedPrompts, isAgentSurface, runsPerPromptOn } from '../schema';
 import type { CheckpointMatch, ProbeUnit } from '../stores/ports';
 
 export type {
@@ -51,27 +51,26 @@ export const unitRecordKey = (unit: ProbeUnit): string => {
 
 /**
  * The probe units a run plans for one section: chat surfaces cover every
- * prompt at the canonical run counts; agent surfaces follow the config's
- * agentProbes volume. Mirrors the pipeline's fan-out exactly — the planned
- * set is both the resume scope and the scoring denominator.
+ * prompt, agent surfaces the config's agentProbes subset, each at the depth
+ * runsPerPromptOn gives it. Mirrors the pipeline's fan-out exactly — the
+ * planned set is both the resume scope and the scoring denominator.
  */
-export const plannedProbeUnitsForSection = (args: {
-  sectionKey: string;
-  prompts: AeoPrompt[];
-  surfaces: readonly AeoSurface[];
-  agentProbes: AgentProbeConfig;
-}): ProbeUnit[] => {
+export const plannedProbeUnitsForSection = (
+  args: ProbeDepth & {
+    sectionKey: string;
+    prompts: AeoPrompt[];
+    surfaces: readonly AeoSurface[];
+  },
+): ProbeUnit[] => {
   const chatSurfaces = args.surfaces.filter((s) => !isAgentSurface(s));
   const agentSurfaces = args.surfaces.filter(isAgentSurface);
-  const agentPrompts = args.agentProbes.maxPromptsPerSection
-    ? args.prompts.slice(0, args.agentProbes.maxPromptsPerSection)
-    : args.prompts;
+  const agentPrompts = agentProbedPrompts(args.prompts, args.agentProbes);
 
   const units: ProbeUnit[] = [];
 
   for (const prompt of args.prompts) {
     for (const surface of chatSurfaces) {
-      for (let run = 1; run <= surfaceRunCounts[surface]; run += 1) {
+      for (let run = 1; run <= runsPerPromptOn(surface, args); run += 1) {
         units.push(
           createUnit({
             sectionKey: args.sectionKey,
@@ -86,7 +85,7 @@ export const plannedProbeUnitsForSection = (args: {
 
   for (const prompt of agentPrompts) {
     for (const surface of agentSurfaces) {
-      for (let run = 1; run <= args.agentProbes.runsPerPrompt; run += 1) {
+      for (let run = 1; run <= runsPerPromptOn(surface, args); run += 1) {
         units.push(
           createUnit({
             sectionKey: args.sectionKey,

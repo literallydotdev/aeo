@@ -158,6 +158,7 @@ const baseArgs = (overrides: Partial<SectionRunArgs> = {}): SectionRunArgs => {
     language: 'en',
     surfaces: ['perplexity', 'google_ai_overview'],
     agentProbes: { runsPerPrompt: 2 },
+    chatProbes: undefined,
     agentCliVersions: { claudeCode: null, codex: null, cursor: null },
     runId: 'RUN1',
     probeStore: new MemoryProbeStore(),

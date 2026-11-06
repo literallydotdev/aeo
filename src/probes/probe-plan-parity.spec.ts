@@ -33,6 +33,7 @@ describe('probes - probe batch plan parity', () => {
       language: 'en',
       prompts: promptInputs,
       surfaces: chatSurfaces,
+      chatProbes: undefined,
       filter: (unit) => {
         offered.add(probeUnitKey({ sectionKey: section, ...unit }));
 
@@ -45,12 +46,43 @@ describe('probes - probe batch plan parity', () => {
       prompts,
       surfaces: chatSurfaces,
       agentProbes: { runsPerPrompt: 2 },
+      chatProbes: undefined,
     });
 
     expect(results).toEqual([]);
     expect(offered).toEqual(new Set(planned.map(probeUnitKey)));
     // 2 prompts × (2+2+2+2+1) canonical chat runs.
     expect(offered.size).toBe(18);
+  });
+
+  it('should offer exactly the planned chat units at a configured chat depth', async () => {
+    const chatProbes = { runsPerPrompt: 3 };
+    const offered = new Set<string>();
+    const results = await runProbesForPrompts({
+      geography: 'us',
+      language: 'en',
+      prompts: promptInputs,
+      surfaces: chatSurfaces,
+      chatProbes,
+      filter: (unit) => {
+        offered.add(probeUnitKey({ sectionKey: section, ...unit }));
+
+        return false;
+      },
+    });
+
+    const planned = plannedProbeUnitsForSection({
+      sectionKey: section,
+      prompts,
+      surfaces: chatSurfaces,
+      agentProbes: { runsPerPrompt: 2 },
+      chatProbes,
+    });
+
+    expect(results).toEqual([]);
+    expect(offered).toEqual(new Set(planned.map(probeUnitKey)));
+    // 2 prompts × 3 runs × 5 chat surfaces, AI Overview included.
+    expect(offered.size).toBe(30);
   });
 
   it('should offer exactly the planned agent units in the agent batch, cap and runs included', async () => {
@@ -75,6 +107,7 @@ describe('probes - probe batch plan parity', () => {
       prompts,
       surfaces: agentSurfaces,
       agentProbes,
+      chatProbes: undefined,
     });
 
     expect(outcomes).toEqual([]);

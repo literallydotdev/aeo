@@ -14,7 +14,12 @@ export const toolId = 'literally-aeo';
 // The package version, recorded in every journal and bundle; the build and
 // version.spec.ts refuse a mismatch with package.json.
 export const toolVersion = '0.2.0';
-export const bundleSchemaVersion = 1;
+// Version 2: config.json may set chatProbes, and agentProbes.runsPerPrompt
+// above 2. A verifier that reads only version 1 then refuses the bundle as
+// unsupported instead of dropping its depth and failing it.
+export const bundleSchemaVersion = 2;
+// A version 1 bundle reads as version 2 at the standard depth.
+export const readableBundleSchemaVersions: readonly number[] = [1, 2];
 export const traceSchemaVersion = 1;
 export const canonicalization = 'literally-aeo-canonical-json-v1';
 // Bump when the arithmetic the verifier recomputes changes

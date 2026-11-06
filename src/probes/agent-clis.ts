@@ -523,9 +523,8 @@ export const runAgentProbesForPrompts = async (args: {
   prompts: ProbePromptInput[];
   surfaces?: readonly AeoAgentSurface[];
   versions: AgentCliVersions;
-  // Runs per prompt per surface — defaults to the canonical surfaceRunCounts
-  // value; report configs may lower it to shrink the agent batch (spec §5,
-  // revised 2026-08-21).
+  // Runs per prompt per surface: the config's agentProbes depth (spec §5,
+  // revised 2026-08-21). Omitted = the canonical surfaceRunCounts value.
   runsPerPrompt?: number;
   // Unit-level gate for store resume: return false to skip a planned
   // (prompt × surface × run) execution. Omitted = run everything.

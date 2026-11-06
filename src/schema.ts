@@ -4,7 +4,11 @@ import {
   brandSchema,
   aeoPromptSchema,
   aeoSurfaceSchema,
+  isAgentSurface,
   sourceCategorySchema,
+  surfaceRunCounts,
+  type AeoChatSurface,
+  type AeoSurface,
 } from './report/core/schema';
 import { coverageThresholdsSchema } from './coverage-schema';
 import { groundingBundleSchema } from './grounding/schema';
@@ -23,13 +27,21 @@ export const aeoSectionConfigSchema = z.object({
   competitors: z.array(brandSchema).optional(),
 });
 
+// Measurement depth: how many times each prompt is asked on a surface. A
+// report may measure fewer prompts more deeply. The ceiling keeps one
+// typo from planning thousands of paid answers; maxPlannedUnits and the
+// budget still bound the run as a whole.
+const maxRunsPerPrompt = 25;
+
+const runsPerPromptSchema = z.number().int().min(1).max(maxRunsPerPrompt);
+
 // Agent probe volume (spec §5, revised 2026-08-21): defaults are the
-// canonical 2 runs per prompt over every prompt; reports may shrink the
-// agent batch. Changing either value after the first committed run is an
-// agent-baseline reset — call it out in the methodology note.
+// canonical 2 runs per prompt over every prompt. Changing either value after
+// the first committed run is an agent-baseline reset — call it out in the
+// methodology note.
 export const agentProbeConfigSchema = z.object({
   // Runs per prompt per agent surface.
-  runsPerPrompt: z.number().int().min(1).max(2).default(2),
+  runsPerPrompt: runsPerPromptSchema.default(2),
   // Cap on how many of each section's prompts get agent probes — the FIRST N
   // prompts in config order, so the subset is stable across runs. Omitted =
   // all prompts.
@@ -37,6 +49,55 @@ export const agentProbeConfigSchema = z.object({
 });
 
 export type AgentProbeConfig = z.infer<typeof agentProbeConfigSchema>;
+
+/** agentProbedPrompts is the prompts the coding agents are asked: the first
+ * maxPromptsPerSection in config order, or every prompt. */
+export const agentProbedPrompts = <Prompt>(
+  prompts: readonly Prompt[],
+  agentProbes: AgentProbeConfig,
+): Prompt[] => {
+  return prompts.slice(0, agentProbes.maxPromptsPerSection ?? prompts.length);
+};
+
+// Chat probe volume. Optional with no default, so a config without it parses,
+// and digests, exactly as configs did before chat depth was configurable:
+// bundles exported earlier still verify. Omitted = the canonical
+// surfaceRunCounts (2 per surface, 1 for AI Overview); set = that many runs
+// on every chat surface. AI Overview included: each of its runs is a live
+// search, sampling whether an overview appears and what it says.
+export const chatProbeConfigSchema = z
+  .object({ runsPerPrompt: runsPerPromptSchema })
+  .strict();
+
+export type ChatProbeConfig = z.infer<typeof chatProbeConfigSchema>;
+
+/** chatRunsPerPrompt is how many times each prompt is asked on a chat
+ * surface. */
+export const chatRunsPerPrompt = (
+  surface: AeoChatSurface,
+  chatProbes: ChatProbeConfig | undefined,
+): number => {
+  return chatProbes?.runsPerPrompt ?? surfaceRunCounts[surface];
+};
+
+export type ProbeDepth = {
+  agentProbes: AgentProbeConfig;
+  chatProbes: ChatProbeConfig | undefined;
+};
+
+/** runsPerPromptOn is how many times each prompt is asked on a surface: the
+ * depth the plan is built at, which the probe batches and every
+ * planned-answer denominator must match. */
+export const runsPerPromptOn = (
+  surface: AeoSurface,
+  depth: ProbeDepth,
+): number => {
+  if (isAgentSurface(surface)) {
+    return depth.agentProbes.runsPerPrompt;
+  }
+
+  return chatRunsPerPrompt(surface, depth.chatProbes);
+};
 
 const ownedCompetitorDomainSchema = z
   .string()
@@ -67,6 +128,9 @@ export const aeoAuditConfigSchema = z.object({
   // the schema — consumers read config.agentProbes directly, no fallbacks.
   // prefault({}) runs {} through the inner schema so its own defaults fill.
   agentProbes: agentProbeConfigSchema.prefault({}),
+  // Read through runsPerPromptOn or chatRunsPerPrompt, which own the
+  // fallback to the canonical counts.
+  chatProbes: chatProbeConfigSchema.optional(),
   // Renderability targets — docs, pricing, comparison pages (§7.4).
   moneyPages: z.array(z.string().url()),
   // Grounds accuracy flagging (§7.2): claims contradicting this brief are

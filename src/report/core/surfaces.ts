@@ -44,8 +44,10 @@ export const isAgentSurface = (surface: string): surface is AeoAgentSurface => {
 
 // Runs per prompt per surface — canonical (2/2/2/2/1 for the chat surfaces,
 // matching the console exactly; 2 each for the agent CLIs per spec §5).
-// Consumers compute planned-run denominators from this table, so a captured-
-// answer shortfall lowers share of voice instead of hiding.
+// The default depth: a config's chatProbes and agentProbes override it, and
+// runsPerPromptOn (schema.ts) is the rule every planned-run denominator
+// reads, so a captured-answer shortfall lowers share of voice instead of
+// hiding.
 export const surfaceRunCounts: Readonly<Record<AeoSurface, number>> = {
   chatgpt: 2,
   gemini: 2,
@@ -55,10 +57,4 @@ export const surfaceRunCounts: Readonly<Record<AeoSurface, number>> = {
   claude_code: 2,
   codex: 2,
   cursor: 2,
-};
-
-export const plannedRunsPerPrompt = (
-  surfaces: readonly AeoSurface[],
-): number => {
-  return surfaces.reduce((sum, surface) => sum + surfaceRunCounts[surface], 0);
 };

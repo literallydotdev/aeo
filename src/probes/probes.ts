@@ -3,8 +3,13 @@ import { gateway } from '@ai-sdk/gateway';
 import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
 import { anthropic } from '@ai-sdk/anthropic';
-import type { AeoChatSurface, AeoSurface, RetrievalLog } from '../schema';
-import { chatSurfaces, surfaceRunCounts } from '../schema';
+import type {
+  AeoChatSurface,
+  AeoSurface,
+  ChatProbeConfig,
+  RetrievalLog,
+} from '../schema';
+import { chatRunsPerPrompt, chatSurfaces } from '../schema';
 import { surfaceRetrievalExposure } from '../retrieval';
 import { createLog } from '../lib/log';
 import { servedModelOf } from '../models/served-model';
@@ -115,6 +120,9 @@ export type ProbeJob = {
   // Which chat surfaces to run — defaults to all five. Lets `--surfaces`
   // iterate cheaply without touching the canonical run counts.
   surfaces?: readonly AeoChatSurface[];
+  // Runs per prompt; undefined = the canonical surfaceRunCounts. Must be
+  // the depth the plan was built with, or resume and scoring disagree.
+  chatProbes: ChatProbeConfig | undefined;
   // Unit-level gate for store resume: return false to skip a planned
   // (prompt × surface × run) execution. Omitted = run everything.
   filter?: (unit: {
@@ -401,18 +409,23 @@ const unexposedRetrieval = (surface: AeoChatSurface): RetrievalLog => {
   return { exposure: surfaceRetrievalExposure[surface], calls: [] };
 };
 
-// Builds the 5-surface probe configuration. The list and per-surface run
-// counts are the canonical console behavior — run counts live in
-// surfaceRunCounts (schema.ts) so scoring denominators stay in sync.
+// Builds the 5-surface probe configuration. Run counts come from
+// chatRunsPerPrompt (schema.ts), the rule the plan and the scoring
+// denominators read too.
 const buildProbeModels = (args: {
   geography: string;
   language: string;
   surfaces: readonly AeoChatSurface[];
+  chatProbes: ChatProbeConfig | undefined;
 }): ProbeModelConfig[] => {
+  const runsOn = (surface: AeoChatSurface) => {
+    return chatRunsPerPrompt(surface, args.chatProbes);
+  };
+
   const all: ProbeModelConfig[] = [
     {
       name: 'chatgpt',
-      runs: surfaceRunCounts.chatgpt,
+      runs: runsOn('chatgpt'),
       provider: 'gateway',
       probe: async (promptText) => {
         return runSearchRequiredProbe({
@@ -426,7 +439,7 @@ const buildProbeModels = (args: {
     },
     {
       name: 'gemini',
-      runs: surfaceRunCounts.gemini,
+      runs: runsOn('gemini'),
       provider: 'gateway',
       probe: async (promptText) => {
         return runSearchRequiredProbe({
@@ -441,7 +454,7 @@ const buildProbeModels = (args: {
     },
     {
       name: 'claude',
-      runs: surfaceRunCounts.claude,
+      runs: runsOn('claude'),
       provider: 'gateway',
       probe: async (promptText) => {
         return runSearchRequiredProbe({
@@ -457,7 +470,7 @@ const buildProbeModels = (args: {
     },
     {
       name: 'perplexity',
-      runs: surfaceRunCounts.perplexity,
+      runs: runsOn('perplexity'),
       provider: 'gateway',
       probe: async (promptText) => {
         // Perplexity cites with bare numeric markers ([1], [2]) and returns
@@ -513,7 +526,7 @@ const buildProbeModels = (args: {
     },
     {
       name: 'google_ai_overview',
-      runs: surfaceRunCounts.google_ai_overview,
+      runs: runsOn('google_ai_overview'),
       provider: 'dataforseo',
       probe: async (promptText) => {
         const retrieval = unexposedRetrieval('google_ai_overview');
@@ -606,6 +619,7 @@ export const runProbesForPrompts = async (
     geography: job.geography,
     language: job.language,
     surfaces: job.surfaces ?? chatSurfaces,
+    chatProbes: job.chatProbes,
   });
 
   const limiter = job.limiter ?? unlimited();

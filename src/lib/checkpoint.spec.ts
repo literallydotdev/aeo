@@ -30,6 +30,7 @@ describe('checkpoint - plannedProbeUnitsForSection()', () => {
       prompts: promptsFixture,
       surfaces: ['claude', 'google_ai_overview', 'claude_code'],
       agentProbes: { runsPerPrompt: 2 },
+      chatProbes: undefined,
     });
 
     // Claude 2 runs, google_ai_overview 1 run and claude_code 2 runs make 5 per prompt.
@@ -40,12 +41,32 @@ describe('checkpoint - plannedProbeUnitsForSection()', () => {
     expect(units.filter((u) => u.surface === 'claude_code')).toHaveLength(4);
   });
 
+  it('should plan every chat surface at a configured chat depth, AI Overview included', () => {
+    const units = plannedProbeUnitsForSection({
+      sectionKey: 'section_a',
+      prompts: promptsFixture,
+      surfaces: ['claude', 'google_ai_overview', 'claude_code'],
+      agentProbes: { runsPerPrompt: 3 },
+      chatProbes: { runsPerPrompt: 12 },
+    });
+
+    const aiOverviewRuns = units
+      .filter((u) => u.surface === 'google_ai_overview' && u.promptId === 'p1')
+      .map((u) => u.runIndex);
+
+    // 2 prompts × (12 claude + 12 AI Overview + 3 claude_code).
+    expect(units).toHaveLength(54);
+    expect(aiOverviewRuns).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    expect(units.filter((u) => u.surface === 'claude_code')).toHaveLength(6);
+  });
+
   it('should cap agent prompts at maxPromptsPerSection without touching chat coverage', () => {
     const units = plannedProbeUnitsForSection({
       sectionKey: 'section_a',
       prompts: promptsFixture,
       surfaces: ['claude', 'codex'],
       agentProbes: { runsPerPrompt: 1, maxPromptsPerSection: 1 },
+      chatProbes: undefined,
     });
 
     const agentUnits = units.filter((u) => u.surface === 'codex');

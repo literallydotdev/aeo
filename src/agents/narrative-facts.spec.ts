@@ -229,4 +229,35 @@ describe('narrative-facts - buildNarrativeFacts()', () => {
       facts.filter(({ factId }) => factId.startsWith('market:')),
     ).toHaveLength(2);
   });
+
+  it('should count chat planned answers at the configured chat depth, AI Overview included', () => {
+    const config = aeoAuditConfigSchema.parse({
+      ...configFixture,
+      chatProbes: { runsPerPrompt: 5 },
+    });
+    const snapshot = aeoSnapshotSchema.parse(snapshotFixture);
+    const [section] = snapshot.sections;
+    const configured = config.sections.find(({ key }) => key === section?.key);
+
+    assert(section && configured);
+
+    section.visibility.surfaces = ['claude', 'google_ai_overview'];
+    section.visibility.matrix = [];
+
+    const facts = buildNarrativeFacts(
+      { ...snapshot, sections: [section] },
+      config,
+      'run-1',
+    );
+
+    // 5 runs on each surface, where the canonical depth plans 2 + 1.
+    expect(
+      facts.find(
+        ({ factId }) => factId === `market:${section.key}:chat:brand:mentions`,
+      ),
+    ).toMatchObject({
+      numerator: 0,
+      denominator: configured.prompts.length * 10,
+    });
+  });
 });

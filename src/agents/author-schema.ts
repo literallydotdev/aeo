@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { aeoAuditConfigSchema, aeoSectionConfigSchema } from '../schema';
+import {
+  aeoAuditConfigSchema,
+  aeoSectionConfigSchema,
+  agentProbeConfigSchema,
+} from '../schema';
 import { proposedProductFactSchema } from '../grounding/schema';
 
 // ============================================================================
@@ -17,8 +21,16 @@ export const authorOutputSchema = aeoAuditConfigSchema
     sourceOverrides: true,
     productGrounding: true,
     competitorQualification: true,
+    // Depth decides what a run costs, so the operator sets it in audit.json
+    // with the estimate in front of them, never the author.
+    chatProbes: true,
   })
   .extend({
+    // The agent batch the author could always propose: 1 or 2 runs per
+    // prompt. A deeper one is the operator's call, as chat depth is.
+    agentProbes: agentProbeConfigSchema
+      .extend({ runsPerPrompt: z.number().int().min(1).max(2).default(2) })
+      .prefault({}),
     sections: z
       .array(
         aeoSectionConfigSchema.extend({

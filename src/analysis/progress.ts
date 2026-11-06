@@ -115,6 +115,7 @@ export const projectProgressMeasurement = (
         prompts: section.prompts,
         surfaces,
         agentProbes: config.agentProbes,
+        chatProbes: config.chatProbes,
       }),
     );
   const planned = new Map<string, ProbeUnit>();

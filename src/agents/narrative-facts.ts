@@ -1,10 +1,6 @@
+import { plannedProbeUnitsForSection } from '../lib/checkpoint';
 import type { AeoAuditConfig, AeoSnapshot, AeoSurface } from '../schema';
-import {
-  allSurfaces,
-  isAgentSurface,
-  surfaceLabels,
-  surfaceRunCounts,
-} from '../surfaces';
+import { allSurfaces, isAgentSurface, surfaceLabels } from '../surfaces';
 import type { ReportFact } from './facts';
 import { pendingReportCopy } from './copy-schema';
 
@@ -110,16 +106,6 @@ export const buildNarrativeFacts = (
       unit: 'count',
       sentence: `This audit tested ${config.brand.name} in the ${market} section using these questions: ${JSON.stringify(configured.prompts.map(({ text }) => text))}. These are the configured audit questions, not measured search demand or verified customer conversations. Locale: ${config.geography}, language: ${config.language}.`,
     });
-    const planned = (surface: AeoSurface) => {
-      return isAgentSurface(surface)
-        ? Math.min(
-            configured.prompts.length,
-            config.agentProbes.maxPromptsPerSection ??
-              configured.prompts.length,
-          ) * config.agentProbes.runsPerPrompt
-        : configured.prompts.length * surfaceRunCounts[surface];
-    };
-
     for (const group of ['chat', 'agents'] as const) {
       const surfaces = section.visibility.surfaces.filter(
         (surface) => isAgentSurface(surface) === (group === 'agents'),
@@ -132,10 +118,13 @@ export const buildNarrativeFacts = (
       const rows = section.visibility.matrix.filter((row) =>
         surfaces.includes(row.surface),
       );
-      const denominator = surfaces.reduce(
-        (sum, surface) => sum + planned(surface),
-        0,
-      );
+      const denominator = plannedProbeUnitsForSection({
+        sectionKey: section.key,
+        prompts: configured.prompts,
+        surfaces,
+        agentProbes: config.agentProbes,
+        chatProbes: config.chatProbes,
+      }).length;
       const names =
         group === 'agents' ? 'coding agents' : 'chat and search assistants';
       const entities = [

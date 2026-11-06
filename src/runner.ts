@@ -127,6 +127,7 @@ export const planRun = (
       prompts: section.prompts,
       surfaces,
       agentProbes: config.agentProbes,
+      chatProbes: config.chatProbes,
     }),
   );
 

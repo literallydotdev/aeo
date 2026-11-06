@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { canonicalJson } from '../lib/canonical-json';
 import { isDomainCited } from '../analysis/domain-match';
+import { plannedProbeUnitsForSection } from '../lib/checkpoint';
 import type { AeoAuditConfig, AeoSnapshot } from '../schema';
-import { isAgentSurface, surfaceRunCounts } from '../surfaces';
 import type {
   ClaimAssessment,
   ClaimCandidate,
@@ -129,13 +129,13 @@ export const buildFactCatalog = ({
       const rows = section.visibility.matrix.filter(
         (row) => row.surface === surface,
       );
-      const count = isAgentSurface(surface)
-        ? Math.min(
-            configured.prompts.length,
-            config.agentProbes.maxPromptsPerSection ??
-              configured.prompts.length,
-          ) * config.agentProbes.runsPerPrompt
-        : configured.prompts.length * surfaceRunCounts[surface];
+      const count = plannedProbeUnitsForSection({
+        sectionKey: section.key,
+        prompts: configured.prompts,
+        surfaces: [surface],
+        agentProbes: config.agentProbes,
+        chatProbes: config.chatProbes,
+      }).length;
 
       for (const metric of ['mentions', 'citations'] as const) {
         const numerator = rows.filter((row) =>

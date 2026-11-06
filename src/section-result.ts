@@ -6,6 +6,7 @@ import type {
   AeoVisibility,
 } from './schema';
 import {
+  agentProbedPrompts,
   agentSurfaces,
   allSurfaces,
   chatSurfaces,
@@ -48,6 +49,7 @@ export const assembleSectionResult = (
     | 'prompts'
     | 'surfaces'
     | 'agentProbes'
+    | 'chatProbes'
   >,
   capture: SectionCaptureSummary,
   analyses: readonly PromptAnalysisResult[],
@@ -60,10 +62,8 @@ export const assembleSectionResult = (
     (s): s is AeoAgentSurface => isAgentSurface(s),
   );
 
-  const agentRunsPerPrompt = args.agentProbes.runsPerPrompt;
-  const agentPrompts = args.agentProbes.maxPromptsPerSection
-    ? args.prompts.slice(0, args.agentProbes.maxPromptsPerSection)
-    : args.prompts;
+  const depth = { agentProbes: args.agentProbes, chatProbes: args.chatProbes };
+  const agentPrompts = agentProbedPrompts(args.prompts, args.agentProbes);
 
   const probeCount = capture.probeCount;
   const analysisFailures: SectionRunResult['analysisFailures'] =
@@ -120,6 +120,7 @@ export const assembleSectionResult = (
             .filter((r) => !isAgentSurface(r.surface))
             .map(toScoringInput),
           surfaces: selectedChatSurfaces,
+          depth,
         })
       : null;
 
@@ -134,7 +135,7 @@ export const assembleSectionResult = (
           prompts: agentPromptsForScoring,
           results: agentResults.map(toScoringInput),
           surfaces: selectedAgentSurfaces,
-          runsPerSurface: agentRunsPerPrompt,
+          depth,
         })
       : null;
 

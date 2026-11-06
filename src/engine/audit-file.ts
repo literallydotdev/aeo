@@ -11,6 +11,7 @@ import {
   agentProbeConfigSchema,
   allSurfaces,
   brandSchema,
+  chatProbeConfigSchema,
   coverageThresholdsSchema,
   defaultMaxPlannedUnits,
   isAgentSurface,
@@ -102,7 +103,11 @@ export const auditFileSchema = z
       .array(aeoSurfaceSchema)
       .min(1)
       .default([...allSurfaces]),
-    agentProbes: agentProbeConfigSchema.prefault({}),
+    // Strict here, unlike the internal config that bundles keep: a
+    // misspelled key is refused, never dropped for the default depth.
+    agentProbes: agentProbeConfigSchema.strict().prefault({}),
+    // Absent = the standard depth (2 runs per prompt, 1 on AI Overview).
+    chatProbes: chatProbeConfigSchema.optional(),
     geography: z.string().default('us'),
     language: z.string().default('en'),
     moneyPages: z.array(z.url()).default([]),
@@ -213,6 +218,7 @@ export const toAuditConfig = (file: AuditFile): AeoAuditConfig => {
     }),
     sections: file.sections,
     agentProbes: file.agentProbes,
+    ...(file.chatProbes !== undefined && { chatProbes: file.chatProbes }),
     moneyPages: file.moneyPages,
     productBrief: file.productBrief,
     surfaces: {
