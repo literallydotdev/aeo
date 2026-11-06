@@ -1,5 +1,9 @@
-import type { AeoTechnicalChecks } from '../schema';
+import {
+  describeSiteError,
+  type SiteRequest,
+} from '../grounding/guarded-request';
 import { createLog } from '../lib/log';
+import type { AeoTechnicalChecks } from '../schema';
 
 const log = createLog('CrawlerAccess');
 
@@ -65,18 +69,17 @@ export const aiBotRoster: readonly AiBot[] = [
   { bot: 'CCBot', kind: 'training' },
 ];
 
-const fetchTimeoutMs = 15_000;
-const probeIntervalMs = 1000;
+const requestTimeoutInMs = 15_000;
+const auditUserAgent = 'literally-aeo-audit/1.0';
 const controlUserAgent =
   'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
+// RFC 9309 §2.3.1.2 and §2.5: follow at least five redirects for
+// robots.txt, and parse at least its first 500 KiB.
+const robotsRedirects = 5;
+const robotsMaxBytes = 500 * 1024;
+const pageRedirects = 5;
 
 type LiveVerdict = 'ok' | 'refused_as_bot' | 'inconclusive';
-
-const sleep = (ms: number) => {
-  return new Promise<void>((resolve) => {
-    setTimeout(resolve, ms);
-  });
-};
 
 const isRefused = (code: number | null) => {
   return code === 403 || code === 429;
@@ -97,27 +100,38 @@ const getLiveVerdict = (
   return isRefused(liveStatus) ? 'refused_as_bot' : 'ok';
 };
 
-const describeError = (error: unknown): string => {
-  return error instanceof Error ? error.message : String(error);
+const getOrigin = (brandDomain: string): string => {
+  return `https://${brandDomain.replace(/^https?:\/\//, '').replace(/\/.*$/, '')}`;
 };
 
 export const runCrawlerAccessCheck = async (
   brandDomain: string,
+  request: SiteRequest,
 ): Promise<NonNullable<AeoTechnicalChecks['crawlerAccess']>> => {
-  const origin = `https://${brandDomain.replace(/^https?:\/\//, '').replace(/\/.*$/, '')}`;
+  const origin = getOrigin(brandDomain);
   const robotsUrl = `${origin}/robots.txt`;
 
   let robotsBody: string | null = null;
   let robotsFetchError: string | null = null;
+  let robotsTruncated = false;
 
   try {
-    const response = await fetch(robotsUrl, {
-      signal: AbortSignal.timeout(fetchTimeoutMs),
-      headers: { 'user-agent': 'literally-aeo-audit/1.0' },
+    const response = await request({
+      url: robotsUrl,
+      timeoutInMs: requestTimeoutInMs,
+      userAgent: auditUserAgent,
+      accept: '*/*',
+      redirects: robotsRedirects,
+      body: {
+        contentTypes: 'any',
+        maxBytes: robotsMaxBytes,
+        oversize: 'truncate',
+      },
     });
 
-    if (response.ok) {
-      robotsBody = await response.text();
+    if (response.status >= 200 && response.status < 300) {
+      robotsBody = response.body?.toString('utf8') ?? '';
+      robotsTruncated = response.isTruncated;
     } else if (response.status === 404) {
       // No robots.txt = allow all; that is a real answer, not an error.
       robotsBody = '';
@@ -125,25 +139,30 @@ export const runCrawlerAccessCheck = async (
       robotsFetchError = `HTTP ${response.status}`;
     }
   } catch (error) {
-    robotsFetchError = describeError(error);
+    robotsFetchError = describeSiteError(error);
   }
 
   const groups = robotsBody !== null ? parseRobotsTxt(robotsBody) : null;
 
-  // One request at a time, spaced like a polite crawler: six bot agents
-  // fired at once from one address looks like an attack to a rate rule and
-  // colours every answer after the first.
-  const status = async (userAgent: string): Promise<number | null> => {
+  // The request is paced per host by its caller: six bot agents fired at
+  // once from one address looks like an attack to a rate rule and colours
+  // every answer after the first.
+  const getStatus = async (userAgent: string): Promise<number | null> => {
     try {
-      const response = await fetch(origin, {
-        signal: AbortSignal.timeout(fetchTimeoutMs),
-        headers: { 'user-agent': userAgent },
-        redirect: 'follow',
+      const response = await request({
+        url: origin,
+        timeoutInMs: requestTimeoutInMs,
+        userAgent,
+        accept: '*/*',
+        redirects: pageRedirects,
       });
 
       return response.status;
     } catch (error) {
-      log.warn('Live UA probe failed', { userAgent, error: String(error) });
+      log.warn('Live UA probe failed', {
+        userAgent,
+        error: describeSiteError(error),
+      });
 
       return null;
     }
@@ -156,11 +175,7 @@ export const runCrawlerAccessCheck = async (
       continue;
     }
 
-    if (probed.length > 0) {
-      await sleep(probeIntervalMs);
-    }
-
-    probed.push({ bot, liveStatus: await status(bot.liveProbeUa) });
+    probed.push({ bot, liveStatus: await getStatus(bot.liveProbeUa) });
   }
 
   // The control: the same page, from the same address, as an ordinary
@@ -168,14 +183,10 @@ export const runCrawlerAccessCheck = async (
   // that presented as that bot from an address the site cannot verify as
   // the bot's own (Cloudflare and others verify search bots by IP), so it
   // never proves the real bot is blocked. A browser refused too says the
-  // address is blocked, which says nothing about bots. Botpress's report
-  // called five bots blocked on that evidence (2026-09-15).
-  if (probed.length > 0) {
-    await sleep(probeIntervalMs);
-  }
-
+  // address is blocked, which says nothing about bots. An earlier report
+  // called five bots blocked on that evidence.
   const controlStatus =
-    probed.length > 0 ? await status(controlUserAgent) : null;
+    probed.length > 0 ? await getStatus(controlUserAgent) : null;
 
   const bots = aiBotRoster.map((bot) => {
     const robotsAllowed = groups ? isRootAllowed(groups, bot.bot) : null;
@@ -210,6 +221,7 @@ export const runCrawlerAccessCheck = async (
   log.info('Crawler access check completed', {
     robotsUrl,
     robotsFetchError,
+    robotsTruncated,
     controlStatus,
     bots: bots.length,
     robotsBlocked: bots.filter((b) => b.robotsAllowed === false).length,
@@ -221,6 +233,7 @@ export const runCrawlerAccessCheck = async (
     robotsUrl,
     fetchedAt: new Date().toISOString(),
     robotsFetchError,
+    robotsTruncated,
     controlStatus,
     bots,
   };
@@ -228,11 +241,14 @@ export const runCrawlerAccessCheck = async (
 
 export const checkLlmsTxt = async (
   brandDomain: string,
+  request: SiteRequest,
 ): Promise<NonNullable<AeoTechnicalChecks['llmsTxt']>> => {
-  const origin = `https://${brandDomain.replace(/^https?:\/\//, '').replace(/\/.*$/, '')}`;
+  const origin = getOrigin(brandDomain);
+  // Started together, sent one after the other: the request is paced per
+  // host.
   const [llmsTxt, llmsFullTxt] = await Promise.all([
-    urlExists(`${origin}/llms.txt`),
-    urlExists(`${origin}/llms-full.txt`),
+    isTextFileServed(`${origin}/llms.txt`, request),
+    isTextFileServed(`${origin}/llms-full.txt`, request),
   ]);
 
   log.debug('llms.txt check completed', { origin, llmsTxt, llmsFullTxt });
@@ -240,21 +256,25 @@ export const checkLlmsTxt = async (
   return { llmsTxt, llmsFullTxt };
 };
 
-const urlExists = async (url: string): Promise<boolean> => {
+const isTextFileServed = async (
+  url: string,
+  request: SiteRequest,
+): Promise<boolean> => {
   try {
-    const response = await fetch(url, {
-      signal: AbortSignal.timeout(fetchTimeoutMs),
-      headers: { 'user-agent': 'literally-aeo-audit/1.0' },
+    const response = await request({
+      url,
+      timeoutInMs: requestTimeoutInMs,
+      userAgent: auditUserAgent,
+      accept: 'text/plain,text/markdown,*/*',
+      redirects: pageRedirects,
     });
 
-    if (!response.ok) {
+    if (response.status < 200 || response.status >= 300) {
       return false;
     }
 
     // Some sites soft-404 to an HTML page; llms.txt is plain text.
-    const contentType = response.headers.get('content-type') ?? '';
-
-    return !contentType.includes('text/html');
+    return !response.contentType.includes('text/html');
   } catch {
     // An unreachable file is reported as missing, which is what the check asks.
     return false;

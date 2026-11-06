@@ -1,54 +1,80 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import {
+  SourceRetrievalError,
+  type GuardedResponse,
+  type SiteRequest,
+} from '../grounding/guarded-request';
 import { runCrawlerAccessCheck } from './crawler-access';
 
 // ============================================================================
 // The live half of the crawler access check against a fake origin: what a
 // bot-agent refusal may and may not claim, given the browser-agent control
-// from the same address, and that probes go out one at a time.
+// from the same address, and what a refused or truncated fetch records. The
+// guard and the spacing per host are guarded-request.spec.ts's.
 // ============================================================================
 
-type FakeFetchOptions = {
+type FakeSiteOptions = {
   robots?: string;
+  robotsTruncated?: boolean;
+  robotsError?: Error;
 };
 
-const stubFetch = (
-  statusFor: (userAgent: string) => number,
-  { robots = 'User-agent: *\nAllow: /\n' }: FakeFetchOptions = {},
+const fakeResponse = (
+  url: string,
+  status: number,
+  { body, isTruncated = false }: { body?: string; isTruncated?: boolean } = {},
+): GuardedResponse => {
+  return {
+    url,
+    status,
+    contentType: 'text/plain',
+    body: body === undefined ? undefined : Buffer.from(body),
+    isTruncated,
+    hops: [{ url, status }],
+  };
+};
+
+const fakeSite = (
+  statusFor: (userAgent: string) => number | Error,
+  {
+    robots = 'User-agent: *\nAllow: /\n',
+    robotsTruncated = false,
+    robotsError,
+  }: FakeSiteOptions = {},
 ) => {
-  const calls: { userAgent: string; at: number }[] = [];
+  const calls: { url: string; userAgent: string }[] = [];
 
-  const mockFetch = vi.fn((url: string, init?: RequestInit) => {
-    const userAgent = new Headers(init?.headers).get('user-agent') ?? '';
+  const mockRequest: SiteRequest = (options) => {
+    calls.push({ url: options.url, userAgent: options.userAgent });
 
-    calls.push({ userAgent, at: Date.now() });
-
-    if (url.endsWith('/robots.txt')) {
-      return Promise.resolve(new Response(robots, { status: 200 }));
+    if (options.url.endsWith('/robots.txt')) {
+      return robotsError
+        ? Promise.reject(robotsError)
+        : Promise.resolve(
+            fakeResponse(options.url, 200, {
+              body: robots,
+              isTruncated: robotsTruncated,
+            }),
+          );
     }
 
-    return Promise.resolve(new Response('', { status: statusFor(userAgent) }));
-  });
+    const status = statusFor(options.userAgent);
 
-  vi.stubGlobal('fetch', mockFetch);
+    return status instanceof Error
+      ? Promise.reject(status)
+      : Promise.resolve(fakeResponse(options.url, status));
+  };
 
-  return calls;
+  return { calls, mockRequest };
 };
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-  vi.useRealTimers();
-});
 
 describe('crawler-access - runCrawlerAccessCheck()', () => {
   it('should call a bot served alongside the browser control OK, and a bot refused while the browser is served "refused as bot"', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const calls = stubFetch((userAgent) =>
+    const { calls, mockRequest } = fakeSite((userAgent) =>
       /PerplexityBot|Claude-User/.test(userAgent) ? 403 : 200,
     );
 
-    const pending = runCrawlerAccessCheck('example.com');
-    await vi.runAllTimersAsync();
-    const result = await pending;
+    const result = await runCrawlerAccessCheck('example.com', mockRequest);
 
     const byBot = Object.fromEntries(result.bots.map((bot) => [bot.bot, bot]));
     const agents = calls.map((call) => call.userAgent);
@@ -73,7 +99,7 @@ describe('crawler-access - runCrawlerAccessCheck()', () => {
       liveBlocked: null,
     });
     expect(byBot['GPTBot']).not.toHaveProperty('liveVerdict');
-    // One request at a time, the control last.
+    // The control last.
     expect(agents.at(-1)).toContain('Chrome/128');
     expect(agents.filter((agent) => agent.includes('Chrome/128'))).toHaveLength(
       1,
@@ -81,12 +107,9 @@ describe('crawler-access - runCrawlerAccessCheck()', () => {
   });
 
   it('should be inconclusive when the browser control is refused too, or when a probe failed', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    stubFetch(() => 403);
+    const { mockRequest } = fakeSite(() => 403);
 
-    const pending = runCrawlerAccessCheck('example.com');
-    await vi.runAllTimersAsync();
-    const result = await pending;
+    const result = await runCrawlerAccessCheck('example.com', mockRequest);
 
     const probedBots = result.bots.filter((bot) => bot.liveStatus !== null);
 
@@ -103,15 +126,12 @@ describe('crawler-access - runCrawlerAccessCheck()', () => {
   });
 
   it('should keep the robots.txt verdicts independent of the live probes', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    stubFetch(() => 200, {
+    const { mockRequest } = fakeSite(() => 200, {
       robots:
         'User-agent: PerplexityBot\nDisallow: /\n\nUser-agent: *\nAllow: /\n',
     });
 
-    const pending = runCrawlerAccessCheck('example.com');
-    await vi.runAllTimersAsync();
-    const result = await pending;
+    const result = await runCrawlerAccessCheck('example.com', mockRequest);
 
     const perplexity = result.bots.find((bot) => bot.bot === 'PerplexityBot');
 
@@ -122,5 +142,48 @@ describe('crawler-access - runCrawlerAccessCheck()', () => {
     expect(
       result.bots.find((bot) => bot.bot === 'OAI-SearchBot'),
     ).toMatchObject({ robotsAllowed: true });
+  });
+
+  it('should record a robots.txt cut at the RFC 9309 bound as truncated', async () => {
+    const { mockRequest } = fakeSite(() => 200, { robotsTruncated: true });
+
+    const result = await runCrawlerAccessCheck('example.com', mockRequest);
+
+    expect(result).toMatchObject({
+      robotsFetchError: null,
+      robotsTruncated: true,
+    });
+  });
+
+  it('should record a robots.txt redirect to an unsafe destination as the reason, with no verdicts', async () => {
+    const { mockRequest } = fakeSite(() => 200, {
+      robotsError: new SourceRetrievalError(
+        'unsafe_destination',
+        'Source must use public HTTPS with no credentials: example.com.',
+      ),
+    });
+
+    const result = await runCrawlerAccessCheck('example.com', mockRequest);
+
+    expect(result.robotsFetchError).toMatch(/^unsafe_destination: /);
+    expect(result.bots.every((bot) => bot.robotsAllowed === null)).toBe(true);
+  });
+
+  it('should call a live probe refused by the guard inconclusive, never blocked', async () => {
+    const { mockRequest } = fakeSite((userAgent) =>
+      userAgent.includes('OAI-SearchBot')
+        ? new SourceRetrievalError('unsafe_destination', 'Private source.')
+        : 200,
+    );
+
+    const result = await runCrawlerAccessCheck('example.com', mockRequest);
+
+    expect(
+      result.bots.find((bot) => bot.bot === 'OAI-SearchBot'),
+    ).toMatchObject({
+      liveStatus: null,
+      liveBlocked: null,
+      liveVerdict: 'inconclusive',
+    });
   });
 });

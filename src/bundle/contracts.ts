@@ -13,7 +13,7 @@ import { canonicalDigest } from './json';
 export const toolId = 'literally-aeo';
 // The package version, recorded in every journal and bundle; the build and
 // version.spec.ts refuse a mismatch with package.json.
-export const toolVersion = '0.2.0';
+export const toolVersion = '0.2.1';
 // Version 2: config.json may set chatProbes, and agentProbes.runsPerPrompt
 // above 2. A verifier that reads only version 1 then refuses the bundle as
 // unsupported instead of dropping its depth and failing it.

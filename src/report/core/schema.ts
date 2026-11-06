@@ -297,6 +297,10 @@ export const aeoTechnicalChecksSchema = z.object({
       robotsUrl: z.string(),
       fetchedAt: z.string(),
       robotsFetchError: z.string().nullable(),
+      // True when robots.txt ran past the 500 KiB RFC 9309 asks a reader to
+      // parse: the verdicts rest on that prefix. Absent on snapshots written
+      // before the bound existed.
+      robotsTruncated: z.boolean().optional(),
       bots: z.array(
         z.object({
           bot: z.string(),

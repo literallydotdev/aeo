@@ -1,4 +1,9 @@
 import { recorded, type ExecutionRecorder } from '../bundle/recorder';
+import {
+  createHostPacer,
+  guardedRequest,
+  type SiteRequest,
+} from '../grounding/guarded-request';
 import type { AeoAuditConfig, AeoTechnicalChecks } from '../schema';
 import type { PartialFailure } from '../probes/web-tool-guard';
 import { checkLlmsTxt, runCrawlerAccessCheck } from './crawler-access';
@@ -11,6 +16,10 @@ import { runRenderabilityCheck } from './renderability';
 // run with a stub — checks are live fetches and a Playwright browser.
 // ============================================================================
 
+// At most one request at a time per host, this far apart, across every check
+// of the phase (specs/aeo-checks-and-reach-spec.md §3.1).
+const hostIntervalInMs = 1000;
+
 export type CheckPhaseResult = {
   checks: AeoTechnicalChecks;
   failures: PartialFailure[];
@@ -21,6 +30,10 @@ export const runTechnicalChecks = async (
   recorder?: ExecutionRecorder,
 ): Promise<CheckPhaseResult> => {
   const failures: PartialFailure[] = [];
+  const pace = createHostPacer(hostIntervalInMs);
+  const request: SiteRequest = (options) => {
+    return guardedRequest({ ...options, pace });
+  };
 
   // One operation per check, with its parameters and its extracted result
   // (spec §7.2). The checks' own HTTP requests and raw bodies stay inside
@@ -52,13 +65,13 @@ export const runTechnicalChecks = async (
 
   const [crawlerAccess, llmsTxt, renderability] = await Promise.all([
     check('crawler_access', { domain: config.brand.domain }, () =>
-      runCrawlerAccessCheck(config.brand.domain),
+      runCrawlerAccessCheck(config.brand.domain, request),
     ),
     check('llms_txt', { domain: config.brand.domain }, () =>
-      checkLlmsTxt(config.brand.domain),
+      checkLlmsTxt(config.brand.domain, request),
     ),
     check('renderability', { moneyPages: config.moneyPages }, () =>
-      runRenderabilityCheck(config.moneyPages),
+      runRenderabilityCheck(config.moneyPages, { request, pace }),
     ),
   ]);
 

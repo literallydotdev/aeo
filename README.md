@@ -46,6 +46,12 @@ literally-aeo verify audit-run.aeo.zip   # offline verification
   factual grounding searches.
 - For coding-agent surfaces, the CLI of each one you measure (Claude Code,
   Codex, Cursor) and its own login.
+- For `moneyPages`, Playwright's Chromium, which renders each page for the
+  renderability check (`literally-aeo doctor` names the install command).
+  Money pages must be public https pages on the brand's site or its
+  subdomains; a page on another host needs that host in
+  `runPolicy.checkHosts`, at most 20 of each. Every request the site checks
+  make, the browser's included, goes only to public addresses.
 
 ## Model and cost
 

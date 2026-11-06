@@ -120,7 +120,11 @@ user would rather measure fewer questions more deeply, set
 of each question per assistant); left out, each question is asked twice
 (once on AI Overviews). Run
 `literally-aeo doctor --config draft/audit.json --env-file .env --json`
-after editing.
+after editing. Money pages must be on the company's site or its
+subdomains; for a page on another host the user owns (a docs site, say),
+add that host to `runPolicy.checkHosts`. With money pages, doctor also
+checks that Chromium launches and, if not, names the command that
+installs it.
 
 ## Checkpoint 6: approve the audit cost
 

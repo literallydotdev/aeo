@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { canonicalDigest } from '../bundle/json';
+import { requireDefined } from '../__fixtures__/require-defined';
 import { writeEnv } from '../lib/env';
 import { readAuthorEvidence } from './author';
 import {
@@ -26,6 +27,24 @@ import {
 import { runPreflight } from './preflight';
 import { auditCopyFile, recordRunConfiguration } from './run-configuration';
 import { exampleAuditFile } from './templates';
+
+const browser = vi.hoisted(() => ({ installed: true }));
+
+// The Chromium preflight launches the browser; here a fake one that is or is
+// not installed.
+vi.mock('playwright', () => ({
+  chromium: {
+    launch: () =>
+      browser.installed
+        ? Promise.resolve({
+            version: () => '150.0.0.0',
+            close: () => Promise.resolve(),
+          })
+        : Promise.reject(
+            new Error("browserType.launch: Executable doesn't exist at /x"),
+          ),
+  },
+}));
 
 let root: string;
 
@@ -259,6 +278,39 @@ describe('preflight - runPreflight()', () => {
       'DATAFORSEO_PASSWORD',
     );
   });
+
+  it('should check Chromium only when money pages are rendered, and name the install command when it is missing', async () => {
+    const envFile = path.join(root, 'empty.env');
+
+    await writeFile(envFile, '');
+    const settings = await readSettings(envFile);
+    const preflight = (rendersPages: boolean) => {
+      return runPreflight({
+        surfaces: ['chatgpt'],
+        settings,
+        dir: path.join(root, 'run'),
+        rendersPages,
+      });
+    };
+    const chromiumOf = (checks: { name: string }[]) => {
+      return checks.find((check) => check.name === 'chromium (money pages)');
+    };
+
+    browser.installed = false;
+    const missing = chromiumOf(await preflight(true));
+    const notNeeded = chromiumOf(await preflight(false));
+
+    browser.installed = true;
+    const present = chromiumOf(await preflight(true));
+
+    expect(notNeeded).toBeUndefined();
+    expect(missing).toMatchObject({ ok: false });
+    expect(missing).toHaveProperty(
+      'detail',
+      expect.stringMatching(/npx playwright@\d+\.\d+\.\d+ install chromium/),
+    );
+    expect(present).toMatchObject({ ok: true });
+  });
 });
 
 describe('budget - resolveRunBudget()', () => {
@@ -394,6 +446,81 @@ describe('audit-file - market', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+});
+
+describe('audit-file - money pages', () => {
+  const withPages = (
+    moneyPages: string[],
+    checkHosts?: string[],
+  ): ReturnType<typeof auditFileSchema.safeParse> => {
+    return auditFileSchema.safeParse({
+      ...exampleAuditFile,
+      moneyPages,
+      ...(checkHosts && { runPolicy: { checkHosts } }),
+    });
+  };
+
+  it('should accept pages on the brand site, its www and its subdomains', () => {
+    const result = withPages([
+      'https://northwind.example/pricing',
+      'https://www.northwind.example/',
+      'https://docs.northwind.example/start',
+    ]);
+
+    expect(result.success).toBe(true);
+  });
+
+  it.each([
+    ['plain http', 'http://northwind.example/pricing'],
+    ['a port', 'https://northwind.example:8443/'],
+    ['credentials', 'https://user:secret@northwind.example/'],
+    ['a private address', 'https://10.0.0.1/'],
+    ['the metadata address', 'https://169.254.169.254/latest/meta-data'],
+    ['localhost', 'https://localhost/'],
+  ])('should refuse a page with %s', (_case, page) => {
+    expect(withPages([page]).success).toBe(false);
+  });
+
+  it('should refuse a page on another host, naming runPolicy.checkHosts', () => {
+    const result = withPages(['https://docs.acme.example/']);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toContain('runPolicy.checkHosts');
+  });
+
+  it('should accept a page on a host named in runPolicy.checkHosts, and NOT change the measurement', () => {
+    const allowed = withPages(['https://docs.acme.example/'], ['acme.example']);
+    const plain = withPages(['https://docs.acme.example/']);
+
+    expect(allowed.success).toBe(true);
+    expect(plain.success).toBe(false);
+
+    const file = requireDefined(allowed.data, 'the allowed audit file');
+    const without = planLocalRun({
+      ...file,
+      runPolicy: { ...file.runPolicy, checkHosts: [] },
+    });
+
+    expect(planLocalRun(file).digests).toEqual(without.digests);
+  });
+
+  it.each([
+    ['a URL', 'https://acme.example/'],
+    ['a private address', '10.0.0.1'],
+    ['a local name', 'printer.local'],
+    ['a port', 'acme.example:8443'],
+  ])('should refuse %s as a check host', (_case, host) => {
+    expect(withPages([], [host]).success).toBe(false);
+  });
+
+  it('should refuse more than 20 money pages', () => {
+    const pages = Array.from(
+      { length: 21 },
+      (_, index) => `https://northwind.example/${index}`,
+    );
+
+    expect(withPages(pages).success).toBe(false);
   });
 });
 

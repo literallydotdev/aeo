@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { contentHash } from '../stores/content-hash';
-import { fetchGroundingSource, validateResearchUrl } from './fetch';
+import { fetchGroundingSource } from './fetch';
+import { validateResearchUrl } from './guarded-request';
 import { GroundingIntegrityError } from './validation';
 import {
   groundingSourceSchema,

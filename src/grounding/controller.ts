@@ -4,7 +4,7 @@ import {
   ModelBudgetError,
   type ModelCallAccounting,
 } from '../models/accounting';
-import { SourceRetrievalError } from './fetch';
+import { SourceRetrievalError } from './guarded-request';
 import { proposedAssessmentSchema } from './model';
 import {
   adjudicationVersion,

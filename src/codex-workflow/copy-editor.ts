@@ -79,9 +79,9 @@ export const copyEditCall = (args: {
   // facts, in the order it is given up when the whole does not fit the
   // role's input limit: every previous edit carries a full draft, the
   // review history grows a review per block per round, and the rule
-  // documents are voice, not evidence. Botpress's copy pass (2026-09-15)
-  // refused the edit before any model call because all of it together was
-  // over the limit, and the report shipped without a narrative.
+  // documents are voice, not evidence. One run's copy pass refused the
+  // edit before any model call because all of it together was over the
+  // limit, and the report shipped without a narrative.
   const trims: { name: string; apply: () => void }[] = [
     {
       name: 'older_edits',

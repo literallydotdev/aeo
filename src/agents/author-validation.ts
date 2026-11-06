@@ -1,11 +1,8 @@
 import { aeoAuditConfigSchema, type AeoAuditConfig } from '../schema';
 import { normalizeDomain } from '../analysis/scoring';
 import banlist from '../author/banlist.json';
-import {
-  canonicalResearchUrl,
-  fetchGroundingSource,
-  SourceRetrievalError,
-} from '../grounding/fetch';
+import { canonicalResearchUrl, fetchGroundingSource } from '../grounding/fetch';
+import { SourceRetrievalError } from '../grounding/guarded-request';
 import { credentialDetected } from './credentials';
 import {
   authorNotesSchema,

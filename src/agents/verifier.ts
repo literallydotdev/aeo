@@ -318,8 +318,8 @@ export const checkPremiseVerdicts = (
     // The premise findings are the evidence; the block flag follows them. A
     // pass over an unsupported premise is a failed block with that finding,
     // which the verifier's own edit then repairs: refusing it as an invalid
-    // review sent Botpress's copy pass round the same review six times and
-    // failed the pipeline (2026-09-15). A failure that names nothing is
+    // review once sent a run's copy pass round the same review six times
+    // and failed the pipeline. A failure that names nothing is
     // still a verdict the host cannot act on. A pass with stray text in
     // `errors` is a pass.
     if (!review.passed && !blockRejections.size) {
