@@ -5,6 +5,7 @@ import {
   mkdtemp,
   open,
   readFile,
+  truncate,
   readdir,
   rename,
   rm,
@@ -42,14 +43,13 @@ import {
 } from './file-publication';
 import { hasErrorCode } from './fs-errors';
 import { openFileVersionStores } from './local-versions';
+import { parseUnitRecord, ProbeStoreIntegrityError } from './unit-record';
 import type { AnalysisEntry } from './memory';
 import {
   UnitConflictError,
   type AnalysisEntryMeta,
   type AnalysisStore,
-  type CapturedUnitRecord,
   type CheckpointMatch,
-  type FailedUnitRecord,
   type ProbeStore,
   type ProbeUnit,
   type ReportArtifacts,
@@ -128,9 +128,14 @@ const readJsonl = async (filePath: string): Promise<unknown[]> => {
 class JsonlFile {
   readonly filePath: string;
   #queue: Promise<void> = Promise.resolve();
+  // Where an unterminated last line starts: cut before the first append, so
+  // the append starts a line of its own instead of joining the torn bytes
+  // into a row no reader can parse. A reader never changes the file.
+  #tornTailAt: number | undefined;
 
-  constructor(filePath: string) {
+  constructor(filePath: string, { tornTailAt }: { tornTailAt?: number } = {}) {
     this.filePath = filePath;
+    this.#tornTailAt = tornTailAt;
   }
 
   append(line: string): Promise<void> {
@@ -147,6 +152,12 @@ class JsonlFile {
 
       await mkdir(directory, { recursive: true, mode: 0o700 });
       await chmod(directory, 0o700);
+
+      if (this.#tornTailAt !== undefined && flag === 'a') {
+        await truncate(this.filePath, this.#tornTailAt);
+      }
+
+      this.#tornTailAt = undefined;
 
       const file = await open(this.filePath, flag, 0o600);
 
@@ -167,62 +178,64 @@ class JsonlFile {
   }
 }
 
-// The stored probe payload is trusted as written by put(); a line is only
-// checked for the unit key and its outcome fields.
-const hasUnitKey = (row: object): row is ProbeUnit => {
-  return (
-    'sectionKey' in row &&
-    typeof row.sectionKey === 'string' &&
-    'promptId' in row &&
-    typeof row.promptId === 'string' &&
-    'promptText' in row &&
-    typeof row.promptText === 'string' &&
-    'surface' in row &&
-    typeof row.surface === 'string' &&
-    'runIndex' in row &&
-    typeof row.runIndex === 'number'
-  );
-};
+/**
+ * readUnitRecords reads a probe store's lines, each validated
+ * (unit-record.ts). The one line not read is an unterminated last line: an
+ * append the process did not finish, so a write `put` never acknowledged.
+ * Its byte offset is returned so the store's first write can cut it off.
+ */
+const readUnitRecords = async (
+  filePath: string,
+): Promise<{ records: UnitRecord[]; tornTailAt: number | undefined }> => {
+  const raw = await readFile(filePath, 'utf8').catch((err: unknown) => {
+    if (hasErrorCode(err, 'ENOENT')) {
+      return '';
+    }
 
-const isFailedUnitLine = (row: ProbeUnit): row is FailedUnitRecord => {
-  return 'status' in row && row.status === 'failed';
-};
+    throw err;
+  });
+  const lines = raw.split('\n');
+  const records: UnitRecord[] = [];
+  let tornTailAt: number | undefined;
 
-const isCapturedUnitLine = (
-  row: ProbeUnit,
-): row is Omit<CapturedUnitRecord, 'status'> => {
-  return (
-    'probe' in row &&
-    Boolean(row.probe) &&
-    'capturedAt' in row &&
-    typeof row.capturedAt === 'string'
-  );
-};
+  for (const [index, line] of lines.entries()) {
+    if (!line.trim()) {
+      continue;
+    }
 
-// Stored line shape: the record as-is. Lines written before unit outcomes
-// existed carry no `status`; they are captured records.
-const parseUnitRecord = (row: unknown): UnitRecord | null => {
-  if (!row || typeof row !== 'object' || !hasUnitKey(row)) {
-    return null;
+    const where = `${filePath}:${index + 1}`;
+    let row: unknown;
+
+    try {
+      row = JSON.parse(line);
+    } catch {
+      if (index === lines.length - 1) {
+        log.warn('Cut an unterminated last probe store line', { where });
+        tornTailAt = Buffer.byteLength(raw) - Buffer.byteLength(line);
+        continue;
+      }
+
+      throw new ProbeStoreIntegrityError(
+        `Probe store row ${where} is not JSON. Please repair or remove the row; the run stops rather than probe a banked unit again.`,
+      );
+    }
+
+    records.push(parseUnitRecord(row, where));
   }
 
-  if (isFailedUnitLine(row)) {
-    return row;
-  }
-
-  if (isCapturedUnitLine(row)) {
-    return { ...row, status: 'captured' };
-  }
-
-  return null;
+  return { records, tornTailAt };
 };
 
 export class FileProbeStore implements ProbeStore {
   readonly #file: JsonlFile;
   readonly #records: Map<string, UnitRecord>;
 
-  private constructor(filePath: string, records: Map<string, UnitRecord>) {
-    this.#file = new JsonlFile(filePath);
+  private constructor(
+    filePath: string,
+    records: Map<string, UnitRecord>,
+    tornTailAt: number | undefined,
+  ) {
+    this.#file = new JsonlFile(filePath, { tornTailAt });
     this.#records = records;
   }
 
@@ -236,16 +249,14 @@ export class FileProbeStore implements ProbeStore {
     );
     const records = new Map<string, UnitRecord>();
 
-    for (const row of await readJsonl(filePath)) {
-      const record = parseUnitRecord(row);
+    const { records: read, tornTailAt } = await readUnitRecords(filePath);
 
-      // Last line wins on load — the file is a log of writes.
-      if (record) {
-        records.set(unitRecordKey(record), record);
-      }
+    // Last line wins on load — the file is a log of writes.
+    for (const record of read) {
+      records.set(unitRecordKey(record), record);
     }
 
-    return new FileProbeStore(filePath, records);
+    return new FileProbeStore(filePath, records, tornTailAt);
   }
 
   get size(): number {

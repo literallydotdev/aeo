@@ -12,6 +12,7 @@ import type { RunPlan } from '../runner';
 import type { AeoAuditConfig, RunRequest } from '../schema';
 import { contentHash } from '../stores/content-hash';
 import type { CapturedUnitRecord, ProbeStore, Stores } from '../stores/ports';
+import { parseUnitRecord } from '../stores/unit-record';
 import { isAgentSurface, type AeoAgentSurface } from '../surfaces';
 import type { ProbeTrace } from '../probes/probe-trace';
 
@@ -112,6 +113,14 @@ export const captureForRun = async (
   const { config, plan } = deps;
   const now = deps.now ?? (() => new Date());
   const captureSection = deps.captureSection ?? captureSectionProbes;
+
+  // Every banked row is validated before the first section dispatches: the
+  // sections settle independently, so a row refused inside one would let
+  // the others spend while it fails (phase 3 item 6).
+  for (const record of await deps.stores.probeStore.list()) {
+    parseUnitRecord(record, unitRecordKey(record));
+  }
+
   const startedAt = now().toISOString();
   const settled = await Promise.allSettled(
     plan.sections.map((section) => captureSection(sectionArgs(deps, section))),
