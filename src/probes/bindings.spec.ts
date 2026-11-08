@@ -5,7 +5,7 @@ import {
 } from '../engine/preflight';
 import { surfaceRetrievalExposure } from '../retrieval';
 import { allSurfaces } from '../surfaces';
-import { agentAuthEnv } from './agent-clis';
+import { agentAuthEnv, assertAgentAuth } from './agent-clis';
 import {
   defaultProbeBindings,
   probeAdapterProfiles,
@@ -71,6 +71,27 @@ describe('preflight - credentialSettingNames', () => {
     );
     expect(credentialSettingNames).not.toContain('DATAFORSEO_LOGIN');
     expect(credentialSettingNames).not.toContain('CODEX_HOME');
+  });
+});
+
+describe('agent-clis - assertAgentAuth()', () => {
+  it('should need one of a coding agent grouped auth settings in a non-interactive run, any one', () => {
+    const runtimeWith = (env: Record<string, string>) => {
+      return { env, claudeConfigDir: null };
+    };
+
+    expect(() => assertAgentAuth(['codex'], runtimeWith({}))).toThrow(
+      /codex — one of OPENAI_API_KEY, CODEX_HOME/,
+    );
+    expect(() =>
+      assertAgentAuth(['codex'], runtimeWith({ CODEX_HOME: '/fake/codex' })),
+    ).not.toThrow();
+    expect(() =>
+      assertAgentAuth(
+        ['claude_code'],
+        runtimeWith({ ANTHROPIC_API_KEY: 'fake-anthropic-key' }),
+      ),
+    ).not.toThrow();
   });
 });
 

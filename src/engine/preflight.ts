@@ -7,7 +7,12 @@ import {
   detectAgentClis,
   versionForSurface,
 } from '../probes/agent-clis';
-import { probeAdapterProfiles } from '../probes/bindings';
+import {
+  probeAdapterProfiles,
+  profileOf,
+  type ProbeBinding,
+  type RunBindings,
+} from '../probes/bindings';
 import {
   agentSurfaces,
   isAgentSurface,
@@ -77,6 +82,21 @@ export const runSettingNames = [
   ...Object.values(agentAuthEnv).flatMap((auth) => auth.anyOf),
 ];
 
+// A coding agent's probes bill its own plan, outside the run's cap; Codex
+// on an API key bills that OpenAI account, which the cap does not see.
+const agentAuthDetail = (
+  surface: AeoAgentSurface,
+  auth: ReturnType<typeof agentAuthMode>,
+): string => {
+  if (auth.kind === 'cli_session') {
+    return 'uses the CLI login on this machine, checked by a canary before the run';
+  }
+
+  return surface === 'codex' && auth.name === 'OPENAI_API_KEY'
+    ? `authenticates with ${auth.name}, billed to that OpenAI account outside the run's cap`
+    : `authenticates with ${auth.name}`;
+};
+
 /** How an agent surface authenticates on this machine: a variable, or the
  * CLI's own login, which only the run's canary can prove. */
 export const agentAuthMode = (
@@ -90,6 +110,46 @@ export const agentAuthMode = (
   return name === undefined
     ? { kind: 'cli_session' }
     : { kind: 'variable', name };
+};
+
+const sourceLabel = (name: string, settings: Settings): string => {
+  const source = settings.sourceOf(name);
+
+  if (source === undefined) {
+    return `${name} not set`;
+  }
+
+  return `${name} from the ${source === 'environment' ? 'process environment' : 'env file'}`;
+};
+
+/** bindingLabel names an adapter and the model it is bound to. */
+const bindingLabel = (binding: ProbeBinding): string => {
+  return binding.model === undefined
+    ? binding.adapter
+    : `${binding.adapter} with ${binding.model}`;
+};
+
+/** A chat surface's bound adapter, with the settings it needs by name and
+ * where each is set, never its value. */
+const chatBindingCheck = (
+  surface: AeoSurface,
+  binding: ProbeBinding,
+  settings: Settings,
+): PreflightCheck => {
+  const required = profileOf(binding).settings.filter(
+    (setting) => setting.group === undefined,
+  );
+
+  return {
+    name: `${surface} probes`,
+    ok: required.every(
+      (setting) => settings.sourceOf(setting.name) !== undefined,
+    ),
+    detail: [
+      bindingLabel(binding),
+      ...required.map((setting) => sourceLabel(setting.name, settings)),
+    ].join('; '),
+  };
 };
 
 const settingCheck = (name: string, settings: Settings): PreflightCheck => {
@@ -231,8 +291,11 @@ export const runPreflight = async (args: {
   groundingSearch?: boolean;
   /** Money pages are rendered in Chromium by the renderability check. */
   rendersPages?: boolean;
+  /** The bindings the run measures with: each surface's adapter, whose
+   * settings preflight requires. */
+  bindings: RunBindings;
 }): Promise<PreflightCheck[]> => {
-  const { surfaces, settings } = args;
+  const { surfaces, settings, bindings } = args;
   const nodeMajor = Number(process.versions.node.split('.')[0]);
   const versions = await detectAgentClis();
   const agents = surfaces.filter(isAgentSurface);
@@ -246,28 +309,45 @@ export const runPreflight = async (args: {
     modelCheck(args.model),
     // Every stage session runs on Codex, whatever is measured.
     await codexCheck(),
-    settingCheck(gatewaySetting, settings),
   ];
 
-  // A pinned search provider without its credential never degrades to
+  // Each setting the run needs once: the gateway key always, for the
+  // host's own model calls whatever is measured; every ungrouped setting of
+  // a bound adapter in scope; and the search provider's pair when full
+  // grounding searches through it, so a pinned provider never degrades to
   // `unavailable` searches mid-run (spec §3.3).
-  if (surfaces.includes('google_ai_overview') || args.groundingSearch) {
-    checks.push(
-      ...overviewSettings.map((name) => settingCheck(name, settings)),
-    );
-  }
+  const chatSurfaces = surfaces.filter((surface) => !isAgentSurface(surface));
+  const required = new Set<string>([
+    gatewaySetting,
+    ...chatSurfaces.flatMap((surface) =>
+      profileOf(bindings[surface])
+        .settings.filter((setting) => setting.group === undefined)
+        .map((setting) => setting.name),
+    ),
+    ...(args.groundingSearch ? overviewSettings : []),
+  ]);
 
+  checks.push(
+    ...[...required].map((name) => settingCheck(name, settings)),
+    ...chatSurfaces.map((surface) =>
+      chatBindingCheck(surface, bindings[surface], settings),
+    ),
+  );
+
+  // A coding agent authenticates with any one of its adapter's auth
+  // settings, or with the CLI's own login, which only the canary can prove.
   for (const surface of agents) {
     const version = versionForSurface(surface, versions);
     const auth = agentAuthMode(surface, settings);
+    const binding = bindingLabel(bindings[surface]);
 
     checks.push({
       name: `${surface} probes`,
       ok: version !== null,
       detail:
         version === null
-          ? `\`${cliNameForSurface(surface)}\` not found on PATH`
-          : `${cliNameForSurface(surface)} ${version}; ${auth.kind === 'variable' ? `authenticates with ${auth.name}` : 'uses the CLI login on this machine, checked by a canary before the run'}`,
+          ? `${binding}; \`${cliNameForSurface(surface)}\` not found on PATH`
+          : `${binding}; ${cliNameForSurface(surface)} ${version}; ${agentAuthDetail(surface, auth)}`,
     });
   }
 

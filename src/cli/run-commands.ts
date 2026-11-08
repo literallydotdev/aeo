@@ -178,6 +178,7 @@ export const runDoctor = async (flags: Flags) => {
     model: file.model,
     groundingSearch: usesGroundingSearch(request),
     rendersPages: file.moneyPages.length > 0,
+    bindings: await estimateBindingsOf(path.join(runDirOf(flags), bankDir)),
   });
   const ok = checks.every((check) => check.ok);
 
@@ -250,6 +251,14 @@ export const runPlan = async (flags: Flags) => {
         formatLine(`Section ${section.key}`, `${section.questions} questions`),
       ),
       formatLine('Surfaces', summary.surfaces.join(', ')),
+      ...(summary.surfaces.includes('codex')
+        ? [
+            formatLine(
+              'Codex billing',
+              "on a Codex login, your plan; on OPENAI_API_KEY, that OpenAI account, outside this run's cap",
+            ),
+          ]
+        : []),
       ...Object.entries(bySurface).map(([surface, count]) =>
         formatLine(`  ${surface}`, `${count} answers`),
       ),
@@ -314,6 +323,7 @@ export const runRun = async (flags: Flags) => {
     model: file.model,
     groundingSearch: usesGroundingSearch(request),
     rendersPages: file.moneyPages.length > 0,
+    bindings: await estimateBindingsOf(path.join(dir, bankDir)),
   });
   const failing = checks.filter((check) => !check.ok);
 
@@ -421,6 +431,7 @@ export const runAuthor = async (flags: Flags, usage: string) => {
     settings,
     dir,
     groundingSearch: true,
+    bindings: defaultProbeBindings,
   });
   const failing = checks.filter((check) => !check.ok);
 
@@ -566,6 +577,8 @@ export const runRejudge = async (flags: Flags, usage: string) => {
     dir,
     model: file.model,
     groundingSearch: usesGroundingSearch(request),
+    // Nothing is probed again; the settings checked are the same.
+    bindings: defaultProbeBindings,
   });
   const failing = checks.filter((check) => !check.ok);
 

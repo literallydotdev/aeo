@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { canonicalDigest } from '../bundle/json';
 import { requireDefined } from '../__fixtures__/require-defined';
 import { writeEnv } from '../lib/env';
+import { defaultProbeBindings } from '../probes/bindings';
 import { readAuthorEvidence } from './author';
 import {
   auditFileSchema,
@@ -24,7 +25,7 @@ import {
   runDirectoryState,
   usesGroundingSearch,
 } from './local-run';
-import { runPreflight } from './preflight';
+import { agentAuthMode, runPreflight } from './preflight';
 import { auditCopyFile, recordRunConfiguration } from './run-configuration';
 import { exampleAuditFile } from './templates';
 
@@ -264,6 +265,91 @@ describe('preflight - runPreflight()', () => {
     vi.unstubAllEnvs();
   });
 
+  const settingsOf = async (lines: string) => {
+    const envFile = path.join(root, 'settings.env');
+
+    // The env file is the only source: the developer's own values never
+    // reach these checks.
+    for (const name of [
+      'AI_GATEWAY_API_KEY',
+      'DATAFORSEO_LOGIN',
+      'DATAFORSEO_PASSWORD',
+      'OPENAI_API_KEY',
+      'CODEX_HOME',
+    ]) {
+      vi.stubEnv(name, undefined);
+    }
+
+    await writeFile(envFile, lines);
+
+    return readSettings(envFile);
+  };
+
+  it('should require the gateway key for the host calls even when only coding agents are measured', async () => {
+    const checks = await runPreflight({
+      surfaces: ['codex'],
+      bindings: defaultProbeBindings,
+      settings: await settingsOf(''),
+      dir: path.join(root, 'run'),
+    });
+
+    expect(
+      checks.find((check) => check.name === 'AI_GATEWAY_API_KEY'),
+    ).toMatchObject({
+      ok: false,
+    });
+  });
+
+  it('should list each bound adapter with its settings by name and source, never by value', async () => {
+    const checks = await runPreflight({
+      surfaces: ['chatgpt', 'google_ai_overview'],
+      bindings: defaultProbeBindings,
+      settings: await settingsOf(
+        'AI_GATEWAY_API_KEY=fake-secret-value-1\nDATAFORSEO_LOGIN=fake-login\n',
+      ),
+      dir: path.join(root, 'run'),
+    });
+
+    expect(checks.find((check) => check.name === 'chatgpt probes')).toEqual({
+      name: 'chatgpt probes',
+      ok: true,
+      detail:
+        'gateway.openai@1 with openai/gpt-5.4-mini; AI_GATEWAY_API_KEY from the env file',
+    });
+    expect(
+      checks.find((check) => check.name === 'google_ai_overview probes'),
+    ).toEqual({
+      name: 'google_ai_overview probes',
+      ok: false,
+      detail:
+        'dataforseo.ai_overview@1; DATAFORSEO_LOGIN from the env file; DATAFORSEO_PASSWORD not set',
+    });
+    expect(JSON.stringify(checks)).not.toContain('fake-secret-value-1');
+  });
+
+  it("should accept any one of a coding agent's grouped auth settings, and disclose Codex billed outside the cap", async () => {
+    expect(
+      agentAuthMode('codex', await settingsOf('CODEX_HOME=/fake/codex-home\n')),
+    ).toEqual({ kind: 'variable', name: 'CODEX_HOME' });
+    expect(agentAuthMode('codex', await settingsOf(''))).toEqual({
+      kind: 'cli_session',
+    });
+
+    vi.stubEnv('AEO_CODEX_BIN', process.execPath);
+    const checks = await runPreflight({
+      surfaces: ['codex'],
+      bindings: defaultProbeBindings,
+      settings: await settingsOf('OPENAI_API_KEY=fake-openai-key\n'),
+      dir: path.join(root, 'run'),
+    });
+
+    expect(
+      checks.find((check) => check.name === 'codex probes')?.detail,
+    ).toContain(
+      "authenticates with OPENAI_API_KEY, billed to that OpenAI account outside the run's cap",
+    );
+  });
+
   it('should ask for the DataForSEO pair only when AI Overviews are measured', async () => {
     const envFile = path.join(root, 'empty.env');
 
@@ -272,11 +358,13 @@ describe('preflight - runPreflight()', () => {
 
     const chatOnly = await runPreflight({
       surfaces: ['chatgpt'],
+      bindings: defaultProbeBindings,
       settings,
       dir: path.join(root, 'run'),
     });
     const withOverviews = await runPreflight({
       surfaces: ['chatgpt', 'google_ai_overview'],
+      bindings: defaultProbeBindings,
       settings,
       dir: path.join(root, 'run'),
     });
@@ -297,6 +385,7 @@ describe('preflight - runPreflight()', () => {
     const preflight = (rendersPages: boolean) => {
       return runPreflight({
         surfaces: ['chatgpt'],
+        bindings: defaultProbeBindings,
         settings,
         dir: path.join(root, 'run'),
         rendersPages,
@@ -550,6 +639,7 @@ describe('preflight - grounding search', () => {
     const settings = await readSettings(envFile);
     const checks = await runPreflight({
       surfaces: ['chatgpt'],
+      bindings: defaultProbeBindings,
       settings,
       dir: path.join(root, 'run'),
       groundingSearch: true,
