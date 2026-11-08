@@ -206,6 +206,9 @@ export const projectProgressMeasurement = (
     const cliVersion =
       capture?.probeProfile.cliVersion ?? row?.agentCliVersion ?? null;
     const parameters = capture?.probeProfile.parameters ?? null;
+    // Hashed exactly when recorded: a capture without it was taken with its
+    // surface's legacy adapter, and digests as earlier releases did.
+    const adapter = capture?.probeProfile.adapter;
     const hasParameters =
       parameters !== null && Object.keys(parameters).length > 0;
     // Empty strings carry no metadata, so these checks are truthiness checks.
@@ -244,7 +247,13 @@ export const projectProgressMeasurement = (
       cliVersion,
       collectionMetadataKnown,
       collectionMethodDigest: collectionMetadataKnown
-        ? contentHash({ requestedModel, reportedModel, cliVersion, parameters })
+        ? contentHash({
+            requestedModel,
+            reportedModel,
+            cliVersion,
+            parameters,
+            ...(adapter === undefined ? {} : { adapter }),
+          })
         : null,
     };
   });

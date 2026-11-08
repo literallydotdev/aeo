@@ -25,6 +25,7 @@ import type { ProbeLimiter } from './probes/limits';
 import { withSection, type ProbeTrace } from './probes/probe-trace';
 import { requestedModelOf } from './probes/attempt';
 import type { ProbeDependencies, RunBindings } from './probes/bindings';
+import { legacyProbeBindings } from './probes/legacy-bindings';
 import {
   plannedProbeUnitsForSection,
   probeUnitKey,
@@ -220,6 +221,19 @@ const capturedRequestedModel = (
   );
 };
 
+// The adapter a capture records (probe adapters spec §4.6): only one that
+// is not the surface's legacy adapter, so a capture taken with the legacy
+// adapter keeps the bytes, profile and collection digest older releases
+// gave it. Absent means the legacy adapter.
+const recordedAdapterOf = (
+  surface: AeoSurface,
+  bindings: RunBindings,
+): { adapter?: string } => {
+  const { adapter } = bindings[surface];
+
+  return adapter === legacyProbeBindings[surface].adapter ? {} : { adapter };
+};
+
 const isAgentProbe = (probe: Probe): probe is AgentProbeResult => {
   return isAgentSurface(probe.modelName);
 };
@@ -342,6 +356,10 @@ export const captureSectionProbes = async (
             language: args.language,
             agentProbes: args.agentProbes,
           },
+          ...recordedAdapterOf(
+            probe.modelName,
+            args.probeDependencies.bindings,
+          ),
         },
         probe,
       });
