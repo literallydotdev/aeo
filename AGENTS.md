@@ -118,4 +118,6 @@ One body of guidance for Claude Code, Cursor and Codex. Map and sync rules:
 Bump `version` in `package.json` and `toolVersion`, re-check the list
 prices in `src/models/supported-models.ts`, merge, then tag
 `vX.Y.Z` and push the tag. `release.yml` checks, packs and publishes through
-npm trusted publishing (approval in the `npm` environment), with provenance.
+npm trusted publishing, with provenance. Nothing waits for approval: pushing
+the tag is the publish, and an npm version can never be reused, so tag only
+the merged commit that passed the gate.
