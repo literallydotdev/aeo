@@ -3,12 +3,12 @@ import {
   ModelBudgetError,
   type ModelCallAccounting,
 } from '../models/accounting';
-import { probeUsd } from '../models/cost-coefficients';
+import { defaultProfileOf } from './bindings';
 import type { ProbeTrace } from './probe-trace';
 
 // ============================================================================
 // Probes on the run's ledger (specs/aeo-claude-operator-spec.md §4.2): every
-// probe attempt is reserved at its surface's high estimate before it is
+// probe attempt is reserved at its adapter's high estimate before it is
 // dispatched and settled with the cost the gateway reported; one that
 // reported none keeps charging its estimate. An attempt the cap cannot afford is never
 // dispatched; the run learns of it through `exhausted` and stops resumable,
@@ -29,10 +29,11 @@ export const chargedProbeTrace = (
 
   const charged: ProbeTrace = {
     start: async (attempt) => {
-      const estimateUsd = probeUsd[attempt.surface].high;
+      const profile = defaultProfileOf(attempt.surface);
+      const estimateUsd = profile.estimateUsd.high;
       const callId = `probe:${attempt.surface}:${attempt.promptId}:${attempt.runIndex}:${attempt.attempt}:${randomUUID()}`;
-      // The coding-agent surfaces run on the operator's own login.
-      const isPaid = estimateUsd > 0;
+      // The coding-agent surfaces run on the operator's own plan.
+      const isPaid = profile.billing === 'metered';
 
       if (isPaid) {
         try {

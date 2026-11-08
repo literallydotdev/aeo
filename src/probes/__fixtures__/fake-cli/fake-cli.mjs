@@ -177,6 +177,13 @@ switch (mode) {
     break;
   }
   case 'env-dump': {
+    // Codex shape first: the existing test reads the result line last.
+    out(
+      JSON.stringify({
+        type: 'item.completed',
+        item: { type: 'agent_message', text: JSON.stringify(process.env) },
+      }),
+    );
     out(resultEvent(JSON.stringify(process.env)));
     break;
   }

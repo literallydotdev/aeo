@@ -12,11 +12,7 @@ import type {
 } from './schema';
 import { agentProbedPrompts, isAgentSurface } from './schema';
 import { createLog } from './lib/log';
-import {
-  aiSearchProbeModels,
-  runProbesForPrompts,
-  type ProbeResult,
-} from './probes/probes';
+import { runProbesForPrompts, type ProbeResult } from './probes/probes';
 import {
   runAgentProbesForPrompts,
   type AgentCliVersions,
@@ -27,6 +23,8 @@ import type { ProbeOutcome } from './probes/outcomes';
 import type { ProbeFailureKind } from './probes/failure';
 import type { ProbeLimiter } from './probes/limits';
 import { withSection, type ProbeTrace } from './probes/probe-trace';
+import { requestedModelOf } from './probes/attempt';
+import { defaultProbeBindings } from './probes/bindings';
 import {
   plannedProbeUnitsForSection,
   probeUnitKey,
@@ -207,20 +205,13 @@ export type SectionCaptureSummary = Omit<SectionCapture, 'probes'> & {
   probeCount: number;
 };
 
-// The model a capture asked for: the pinned chat model for an AI-search
-// surface, the pinned CLI model for an agent probe, null for a CLI default.
-const requestedModelOf = (probe: CheckpointProbe): string | null => {
-  if (isProbeModelSurface(probe.modelName)) {
-    return aiSearchProbeModels[probe.modelName];
-  }
-
-  return 'requestedModel' in probe ? (probe.requestedModel ?? null) : null;
-};
-
-const isProbeModelSurface = (
-  surface: AeoSurface,
-): surface is keyof typeof aiSearchProbeModels => {
-  return surface in aiSearchProbeModels;
+// The model a capture asked for, by the binding that captured it: the bound
+// model of a model API, else the one an agent's answer names, else none.
+const capturedRequestedModel = (probe: CheckpointProbe): string | null => {
+  return requestedModelOf(
+    defaultProbeBindings[probe.modelName],
+    'requestedModel' in probe ? probe.requestedModel : undefined,
+  );
 };
 
 const isAgentProbe = (probe: Probe): probe is AgentProbeResult => {
@@ -330,7 +321,7 @@ export const captureSectionProbes = async (
         runId: args.runId,
         capturedAt: new Date().toISOString(),
         captureMetadata: {
-          requestedModel: requestedModelOf(probe),
+          requestedModel: capturedRequestedModel(probe),
           reportedModel: probe.reportedModel ?? null,
           // Progress comparisons hash these into each answer's collection
           // method, so they stay as earlier releases recorded them. Chat

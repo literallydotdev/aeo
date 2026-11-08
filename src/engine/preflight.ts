@@ -7,6 +7,7 @@ import {
   detectAgentClis,
   versionForSurface,
 } from '../probes/agent-clis';
+import { probeAdapterProfiles } from '../probes/bindings';
 import {
   agentSurfaces,
   isAgentSurface,
@@ -43,21 +44,31 @@ export type PreflightCheck = {
 const gatewaySetting = 'AI_GATEWAY_API_KEY';
 const overviewSettings = ['DATAFORSEO_LOGIN', 'DATAFORSEO_PASSWORD'] as const;
 
-// The run's own credentials, by variable name: their values never enter a
-// bundle. Values only; the names are not secret.
-export const credentialSettingNames = [
+// The engine's own secrets, outside the probe adapters' settings.
+export const engineSecretSettingNames = [
   'AI_GATEWAY_API_KEY',
   'DATAFORSEO_PASSWORD',
   'AEO_DATABASE_URL',
   'AEO_SITE_DATABASE_URL',
   'AEO_API_TOKEN',
-  'OPENAI_API_KEY',
-  'ANTHROPIC_API_KEY',
-  'CLAUDE_CODE_OAUTH_TOKEN',
   'GOOGLE_GENERATIVE_AI_API_KEY',
   'PERPLEXITY_API_KEY',
-  'CURSOR_API_KEY',
 ] as const;
+
+// The run's own credentials, by variable name: their values never enter a
+// bundle. Values only; the names are not secret. A probe adapter's
+// non-secret settings (a login name, a directory) stay out, or an export
+// would refuse a bundle that merely mentions them.
+export const credentialSettingNames: readonly string[] = [
+  ...new Set([
+    ...engineSecretSettingNames,
+    ...Object.values(probeAdapterProfiles).flatMap((profile) =>
+      profile.settings
+        .filter((setting) => setting.secret)
+        .map((setting) => setting.name),
+    ),
+  ]),
+];
 
 /** Every setting a run may read, for applying the env file. */
 export const runSettingNames = [

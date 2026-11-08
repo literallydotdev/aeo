@@ -23,6 +23,7 @@ import {
   type InternalModelRoleConfig,
 } from './profiles';
 import { servedModelOf } from './served-model';
+import { gatewayCostUsd } from './gateway-cost';
 
 export type StructuredCallUsage = {
   callId: string;
@@ -145,15 +146,6 @@ const reasoningEffortOf = (
       : undefined;
 
   return openai?.reasoningEffort ?? gatewayEffort;
-};
-
-const reportedNumber = (value: unknown): number | undefined => {
-  const number =
-    typeof value === 'string' && value.trim() ? Number(value) : value;
-
-  return typeof number === 'number' && Number.isFinite(number) && number >= 0
-    ? number
-    : undefined;
 };
 
 const isGatewayCreditRefusal = (error: unknown): boolean => {
@@ -320,7 +312,7 @@ const gatewayTransport: StructuredTransport = async (input) => {
     outputTokens: reported.outputTokens,
     cachedInputTokens: reported.inputTokenDetails.cacheReadTokens,
     reasoningTokens: reported.outputTokenDetails.reasoningTokens,
-    costUsd: reportedNumber(providerMetadata?.gateway?.cost),
+    costUsd: gatewayCostUsd(providerMetadata),
   };
 
   try {

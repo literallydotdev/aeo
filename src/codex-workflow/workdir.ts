@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { criteriaForRole, producerGuidance } from '../harness/criteria';
 import type { AeoAuditConfig } from '../schema';
+import { searchSourcesMarker } from '../probes/answer-text';
 import type { CapturedUnitRecord } from '../stores/ports';
 import { isStageName, stageJsonSchema, stageSchemas } from './schemas';
 
@@ -13,8 +14,6 @@ import { isStageName, stageJsonSchema, stageSchemas } from './schemas';
 // block is kept, marked, so a stage sees what was cited without mistaking a
 // publisher for a mention.
 // ============================================================================
-
-export const sourcesMarker = 'Sources used by search:';
 
 export type AnswerFile = {
   /** Path relative to the work directory. */
@@ -79,7 +78,7 @@ export const answerFilePath = (record: {
 
 /** The body of a captured answer: everything before the sources block. */
 export const answerBody = (text: string): string => {
-  const at = text.lastIndexOf(sourcesMarker);
+  const at = text.lastIndexOf(searchSourcesMarker);
 
   return (at < 0 ? text : text.slice(0, at)).trim();
 };
@@ -121,7 +120,7 @@ export const materializeWorkdir = async (args: {
   for (const record of args.captured) {
     const file = answerFilePath(record);
     const text = record.probe.text;
-    const at = text.lastIndexOf(sourcesMarker);
+    const at = text.lastIndexOf(searchSourcesMarker);
     const body = answerBody(text);
     const sources = at < 0 ? '' : text.slice(at);
     const content = [
