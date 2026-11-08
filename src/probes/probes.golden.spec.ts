@@ -21,6 +21,7 @@ import {
   failedStream,
   openGoldenRecorder,
   readChatFixture,
+  expectGolden,
   readGolden,
   readOperations,
   settle,
@@ -229,7 +230,7 @@ describe('probes - runProbesForPrompts() golden pins', () => {
         }),
     });
 
-    expect(pinned).toEqual(golden.chatgptSuccess);
+    expectGolden(pinned, golden.chatgptSuccess);
   });
 
   it('should bank Gemini with its grounding redirects resolved, keeping one that does not resolve', async () => {
@@ -257,7 +258,7 @@ describe('probes - runProbesForPrompts() golden pins', () => {
       network: { redirects },
     });
 
-    expect(pinned).toEqual(golden.geminiSuccess);
+    expectGolden(pinned, golden.geminiSuccess);
   });
 
   it('should bank Claude with its search results and no reported cost', async () => {
@@ -269,7 +270,7 @@ describe('probes - runProbesForPrompts() golden pins', () => {
         }),
     });
 
-    expect(pinned).toEqual(golden.claudeSuccess);
+    expectGolden(pinned, golden.claudeSuccess);
   });
 
   it('should bank Perplexity with its out-of-band sources appended', async () => {
@@ -304,7 +305,7 @@ describe('probes - runProbesForPrompts() golden pins', () => {
         }),
     });
 
-    expect(pinned).toEqual(golden.perplexitySuccess);
+    expectGolden(pinned, golden.perplexitySuccess);
   });
 
   it('should fail Perplexity with empty text and sources as empty_answer after one retry', async () => {
@@ -327,7 +328,7 @@ describe('probes - runProbesForPrompts() golden pins', () => {
         }),
     });
 
-    expect(pinned).toEqual(golden.perplexityEmptyWithSources);
+    expectGolden(pinned, golden.perplexityEmptyWithSources);
   });
 
   it('should bank the synthesis follow-up with the search call sources', async () => {
@@ -362,7 +363,7 @@ describe('probes - runProbesForPrompts() golden pins', () => {
             }),
     });
 
-    expect(pinned).toEqual(golden.followUpWithSearchSources);
+    expectGolden(pinned, golden.followUpWithSearchSources);
   });
 
   it('should bank the synthesis follow-up with its own sources when the search call had none', async () => {
@@ -394,7 +395,31 @@ describe('probes - runProbesForPrompts() golden pins', () => {
             }),
     });
 
-    expect(pinned).toEqual(golden.followUpWithOwnSources);
+    expectGolden(pinned, golden.followUpWithOwnSources);
+  });
+
+  it('should fail a search whose synthesis follow-up also returns no text as empty_answer after one retry', async () => {
+    const pinned = await runCase({
+      surface: 'claude',
+      stream: (options) =>
+        options.toolChoice === 'none'
+          ? answeredStream({
+              text: '  ',
+              sources: [],
+              providerMetadata: undefined,
+            })
+          : answeredStream({
+              steps: fixtures.anthropic.steps,
+              text: '',
+              sources: fixtures.anthropic.sources,
+              finishReason: 'tool-calls',
+              toolCalls: [{ toolName: 'web_search' }],
+              response: { messages: [] },
+              providerMetadata: undefined,
+            }),
+    });
+
+    expectGolden(pinned, golden.followUpEmpty);
   });
 
   it('should bank an AI Overview with its references', async () => {
@@ -427,7 +452,7 @@ describe('probes - runProbesForPrompts() golden pins', () => {
       },
     });
 
-    expect(pinned).toEqual(golden.aiOverviewReferences);
+    expectGolden(pinned, golden.aiOverviewReferences);
   });
 
   it('should bank an AI Overview with its Google redirects resolved and their domain labels dropped', async () => {
@@ -468,7 +493,7 @@ describe('probes - runProbesForPrompts() golden pins', () => {
       },
     });
 
-    expect(pinned).toEqual(golden.aiOverviewRedirect);
+    expectGolden(pinned, golden.aiOverviewRedirect);
   });
 
   it('should bank an AI Overview with empty markdown and references as the source block alone', async () => {
@@ -493,7 +518,7 @@ describe('probes - runProbesForPrompts() golden pins', () => {
       },
     });
 
-    expect(pinned).toEqual(golden.aiOverviewEmptyMarkdown);
+    expectGolden(pinned, golden.aiOverviewEmptyMarkdown);
   });
 
   it('should bank a SERP without an AI Overview as an honest absence', async () => {
@@ -504,7 +529,7 @@ describe('probes - runProbesForPrompts() golden pins', () => {
       },
     });
 
-    expect(pinned).toEqual(golden.aiOverviewNoOverview);
+    expectGolden(pinned, golden.aiOverviewNoOverview);
   });
 
   it('should record a retried failure and the attempt that succeeded after it', async () => {
@@ -525,7 +550,7 @@ describe('probes - runProbesForPrompts() golden pins', () => {
           : searchAnswer(fixtures.openai),
     });
 
-    expect(pinned).toEqual(golden.retriedFailure);
+    expectGolden(pinned, golden.retriedFailure);
   });
 
   it('should record a capture whose banking failed, and fail the unit as persistence', async () => {
@@ -541,7 +566,7 @@ describe('probes - runProbesForPrompts() golden pins', () => {
       onResult: () => Promise.reject(new Error('store down')),
     });
 
-    expect(pinned).toEqual(golden.persistenceBankingFailed);
+    expectGolden(pinned, golden.persistenceBankingFailed);
   });
 
   it('should fail the unit as persistence with the journal error when an operation cannot be opened or closed', async () => {
@@ -579,7 +604,7 @@ describe('probes - runProbesForPrompts() golden pins', () => {
       }),
     );
 
-    expect({ notOpened, notClosed }).toEqual(golden.persistenceJournal);
+    expectGolden({ notOpened, notClosed }, golden.persistenceJournal);
     expect(provider.streamText).toHaveBeenCalledTimes(1);
   });
 });

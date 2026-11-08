@@ -1236,6 +1236,220 @@
     ],
     "network": []
   },
+  "followUpEmpty": {
+    "outcome": {
+      "status": "failed",
+      "unit": {
+        "promptId": "p1",
+        "surface": "claude",
+        "runIndex": 1
+      },
+      "kind": "empty_answer",
+      "attempts": 2,
+      "lastError": "claude completed a required web search but returned no answer text (tool calls: 1, sources: 14)"
+    },
+    "banked": [],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "claude",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": "anthropic/claude-sonnet-4.5"
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "failed",
+          "kind": "empty_answer",
+          "error": "claude completed a required web search but returned no answer text (tool calls: 1, sources: 14)"
+        }
+      },
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "claude",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 2,
+          "retryOf": "op-1",
+          "requestedModel": "anthropic/claude-sonnet-4.5"
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "failed",
+          "kind": "empty_answer",
+          "error": "claude completed a required web search but returned no answer text (tool calls: 1, sources: 14)"
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "claude",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "claude",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": "anthropic/claude-sonnet-4.5"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "failed",
+          "outputs": {},
+          "details": {
+            "kind": "empty_answer",
+            "error": "claude completed a required web search but returned no answer text (tool calls: 1, sources: 14)"
+          }
+        },
+        "objects": []
+      },
+      {
+        "type": "operation_started",
+        "operation": "op-2",
+        "payload": {
+          "kind": "probe",
+          "role": "claude",
+          "attempt": 2,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "claude",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": "op-1",
+            "requestedModel": "anthropic/claude-sonnet-4.5"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-2",
+        "payload": {
+          "outcome": "failed",
+          "outputs": {},
+          "details": {
+            "kind": "empty_answer",
+            "error": "claude completed a required web search but returned no answer text (tool calls: 1, sources: 14)"
+          }
+        },
+        "objects": []
+      }
+    ],
+    "requests": [
+      {
+        "model": "gateway:anthropic/claude-sonnet-4.5",
+        "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+        "maxOutputTokens": 2000,
+        "toolChoice": "required",
+        "maxRetries": 0,
+        "tools": [
+          {
+            "name": "web_search",
+            "id": "anthropic.web_search_20250305",
+            "args": {
+              "maxUses": 5
+            }
+          }
+        ]
+      },
+      {
+        "model": "gateway:anthropic/claude-sonnet-4.5",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?"
+          },
+          {
+            "role": "user",
+            "content": "Using the web search results from the previous turn, answer the original question in a complete, readable response. Do not perform another search. If the search results were insufficient, say what was missing."
+          }
+        ],
+        "maxOutputTokens": 2000,
+        "toolChoice": "none",
+        "maxRetries": 0,
+        "tools": [
+          {
+            "name": "web_search",
+            "id": "anthropic.web_search_20250305",
+            "args": {
+              "maxUses": 5
+            }
+          }
+        ]
+      },
+      {
+        "model": "gateway:anthropic/claude-sonnet-4.5",
+        "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+        "maxOutputTokens": 2000,
+        "toolChoice": "required",
+        "maxRetries": 0,
+        "tools": [
+          {
+            "name": "web_search",
+            "id": "anthropic.web_search_20250305",
+            "args": {
+              "maxUses": 5
+            }
+          }
+        ]
+      },
+      {
+        "model": "gateway:anthropic/claude-sonnet-4.5",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?"
+          },
+          {
+            "role": "user",
+            "content": "Using the web search results from the previous turn, answer the original question in a complete, readable response. Do not perform another search. If the search results were insufficient, say what was missing."
+          }
+        ],
+        "maxOutputTokens": 2000,
+        "toolChoice": "none",
+        "maxRetries": 0,
+        "tools": [
+          {
+            "name": "web_search",
+            "id": "anthropic.web_search_20250305",
+            "args": {
+              "maxUses": 5
+            }
+          }
+        ]
+      }
+    ],
+    "network": []
+  },
   "aiOverviewReferences": {
     "outcome": {
       "status": "captured",

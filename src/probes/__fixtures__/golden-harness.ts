@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { vi } from 'vitest';
+import { expect, vi } from 'vitest';
 import { readJournal } from '../../bundle/journal';
 import { openRecorder, type ExecutionRecorder } from '../../bundle/recorder';
 import { readEnv } from '../../lib/env';
@@ -29,6 +29,16 @@ export const readGolden = async (name: string): Promise<unknown> => {
   return JSON.parse(
     await readFile(path.join(fixturesDir, 'golden', name), 'utf8'),
   );
+};
+
+/**
+ * expectGolden compares a pinned value with its recorded one, key order
+ * included: a banked record and a journal object are stored as JSON, whose
+ * bytes follow the order the keys were written in.
+ */
+export const expectGolden = (actual: unknown, expected: unknown): void => {
+  expect(actual).toEqual(expected);
+  expect(JSON.stringify(actual)).toBe(JSON.stringify(expected));
 };
 
 /** A settled stream: every member resolves from one answer. */

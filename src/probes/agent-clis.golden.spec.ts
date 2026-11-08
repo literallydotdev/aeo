@@ -7,7 +7,6 @@ import {
   beforeAll,
   beforeEach,
   describe,
-  expect,
   it,
   vi,
 } from 'vitest';
@@ -16,6 +15,7 @@ import type { AeoAgentSurface } from '../schema';
 import {
   createFakeCliHost,
   openGoldenRecorder,
+  expectGolden,
   readGolden,
   readOperations,
   spyTrace,
@@ -155,7 +155,7 @@ describe('agent-clis - runAgentProbesForPrompts() golden pins', () => {
       }),
     });
 
-    expect(pinned).toEqual(golden.claudeCodeSearched);
+    expectGolden(pinned, golden.claudeCodeSearched);
   });
 
   it('should bank Claude Code from a captured stream without tool calls', async () => {
@@ -165,7 +165,7 @@ describe('agent-clis - runAgentProbesForPrompts() golden pins', () => {
       }),
     });
 
-    expect(pinned).toEqual(golden.claudeCodeNoTools);
+    expectGolden(pinned, golden.claudeCodeNoTools);
   });
 
   it('should bank Claude Code with an unknown usedWebSearch when the stream has no turn events', async () => {
@@ -173,7 +173,7 @@ describe('agent-clis - runAgentProbesForPrompts() golden pins', () => {
       runtime: await host.runtime({ mode: 'result-only' }),
     });
 
-    expect(pinned).toEqual(golden.claudeCodeUnknownWebSearch);
+    expectGolden(pinned, golden.claudeCodeUnknownWebSearch);
   });
 
   it('should bank Codex with the pinned model it asked for, learned from the answer', async () => {
@@ -184,7 +184,7 @@ describe('agent-clis - runAgentProbesForPrompts() golden pins', () => {
       }),
     });
 
-    expect(pinned).toEqual(golden.codexPinnedModel);
+    expectGolden(pinned, golden.codexPinnedModel);
   });
 
   it('should bank Codex without a requested model when none is pinned', async () => {
@@ -192,7 +192,7 @@ describe('agent-clis - runAgentProbesForPrompts() golden pins', () => {
       runtime: await host.runtime({ mode: 'replay codex-no-tools.ndjson' }),
     });
 
-    expect(pinned).toEqual(golden.codexDefaultModel);
+    expectGolden(pinned, golden.codexDefaultModel);
   });
 
   it('should bank Cursor from a captured stream that searched and fetched', async () => {
@@ -200,7 +200,7 @@ describe('agent-clis - runAgentProbesForPrompts() golden pins', () => {
       runtime: await host.runtime({ mode: 'replay cursor-searched.ndjson' }),
     });
 
-    expect(pinned).toEqual(golden.cursorSearched);
+    expectGolden(pinned, golden.cursorSearched);
   });
 
   it('should record a retried failure with its message and both attempts', async () => {
@@ -208,7 +208,7 @@ describe('agent-clis - runAgentProbesForPrompts() golden pins', () => {
       runtime: await host.runtime({ mode: 'exit1' }),
     });
 
-    expect(pinned).toEqual(golden.retriedFailure);
+    expectGolden(pinned, golden.retriedFailure);
   }, 30_000);
 
   it('should record a capture whose banking failed, and fail the unit as persistence', async () => {
@@ -217,7 +217,7 @@ describe('agent-clis - runAgentProbesForPrompts() golden pins', () => {
       onResult: () => Promise.reject(new Error('store down')),
     });
 
-    expect(pinned).toEqual(golden.persistenceBankingFailed);
+    expectGolden(pinned, golden.persistenceBankingFailed);
   });
 
   it('should start each CLI with the arguments the probe method names', async () => {
@@ -230,7 +230,7 @@ describe('agent-clis - runAgentProbesForPrompts() golden pins', () => {
       cursor: await argvOf('cursor'),
     };
 
-    expect(argv).toEqual(golden.argv);
+    expectGolden(argv, golden.argv);
   });
 });
 
@@ -253,7 +253,7 @@ describe('agent-clis - runCanaryProbe() golden pins', () => {
       journal: await readOperations(root),
     };
 
-    expect(pinned).toEqual(golden.canaryPassed);
+    expectGolden(pinned, golden.canaryPassed);
   });
 
   it('should record a failed canary and name every failing surface', async () => {
@@ -279,6 +279,6 @@ describe('agent-clis - runCanaryProbe() golden pins', () => {
       journal: await readOperations(root),
     };
 
-    expect(pinned).toEqual(golden.canaryFailed);
+    expectGolden(pinned, golden.canaryFailed);
   });
 });

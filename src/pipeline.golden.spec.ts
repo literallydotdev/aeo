@@ -7,7 +7,6 @@ import {
   beforeAll,
   beforeEach,
   describe,
-  expect,
   it,
   vi,
 } from 'vitest';
@@ -17,6 +16,7 @@ import {
   answeredStream,
   createFakeCliHost,
   createFakeNetwork,
+  expectGolden,
   readGolden,
   stubAgentEnvironment,
   type FakeCliHost,
@@ -240,6 +240,6 @@ describe('pipeline - captureSectionProbes() golden pins', () => {
       manifest,
     };
 
-    expect(pinned).toEqual(golden.allSurfaces);
+    expectGolden(pinned, golden.allSurfaces);
   });
 });
