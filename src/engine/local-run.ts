@@ -1,6 +1,5 @@
 import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { createGateway } from '@ai-sdk/gateway';
 import { measurementDigest, RunOrigin } from '../bundle/contracts';
 import {
   openRecorder,
@@ -35,8 +34,7 @@ import {
 } from '../models/accounting';
 import { resolveSupportedModel } from '../models/supported-models';
 import { chargedProbeTrace } from '../probes/charged-trace';
-import type { ProbeDependencies, RunBindings } from '../probes/bindings';
-import { createDataForSeoProbeClient } from '../probes/dataforseo';
+import { probeDependenciesOf } from '../probes/bindings';
 import type { InternalModelContext } from '../models/context';
 import { ProbeLimiter } from '../probes/limits';
 import { planRun, type RunPlan } from '../runner';
@@ -128,27 +126,6 @@ export const runDirectoryState = async (
   }
 
   return (await exists(runInputsFile)) ? 'resumable' : 'new';
-};
-
-/** probeDependenciesOf creates the run's probe clients from its settings;
- * a client whose credentials are not set is absent, and preflight has
- * already required them for every surface in scope. */
-const probeDependenciesOf = (
-  env: NodeJS.ProcessEnv,
-  bindings: RunBindings,
-): ProbeDependencies => {
-  const login = env.DATAFORSEO_LOGIN;
-  const password = env.DATAFORSEO_PASSWORD;
-
-  const dependencies: ProbeDependencies = {
-    bindings,
-    gateway: createGateway({ apiKey: env.AI_GATEWAY_API_KEY }),
-    ...(login && password
-      ? { dataForSeo: createDataForSeoProbeClient({ login, password }) }
-      : {}),
-  };
-
-  return dependencies;
 };
 
 /** Thrown before any paid work when an agent surface cannot be probed. */

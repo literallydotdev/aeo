@@ -9,6 +9,7 @@ import { agentAuthEnv, assertAgentAuth } from './agent-clis';
 import {
   defaultProbeBindings,
   probeAdapterProfiles,
+  probeDependenciesOf,
   profileOf,
 } from './bindings';
 import { legacyProbeBindings } from './legacy-bindings';
@@ -37,6 +38,37 @@ describe('bindings - defaultProbeBindings', () => {
 
     expect(declared).toEqual(surfaceRetrievalExposure);
   });
+});
+
+describe('bindings - probeDependenciesOf()', () => {
+  it('should create the gateway and the DataForSEO client from the settings it is given', () => {
+    const dependencies = probeDependenciesOf(
+      {
+        AI_GATEWAY_API_KEY: 'gateway-test-key',
+        DATAFORSEO_LOGIN: 'login',
+        DATAFORSEO_PASSWORD: 'password',
+      },
+      defaultProbeBindings,
+    );
+
+    expect(dependencies.bindings).toBe(defaultProbeBindings);
+    expect(dependencies.gateway('openai/gpt-5.4-mini')).toMatchObject({
+      modelId: 'openai/gpt-5.4-mini',
+    });
+    expect(dependencies.dataForSeo).toBeDefined();
+  });
+
+  it.each([
+    ['no login', { DATAFORSEO_PASSWORD: 'password' }],
+    ['no password', { DATAFORSEO_LOGIN: 'login' }],
+  ])(
+    'should create no DataForSEO client with %s, leaving preflight to name it',
+    (_case, settings) => {
+      expect(
+        probeDependenciesOf(settings, defaultProbeBindings).dataForSeo,
+      ).toBeUndefined();
+    },
+  );
 });
 
 describe('preflight - credentialSettingNames', () => {

@@ -1,3 +1,4 @@
+import { createGateway } from '@ai-sdk/gateway';
 import { toolVersion } from '../bundle/contracts';
 import type { CapturedUnitRecord } from '../stores/ports';
 import {
@@ -26,7 +27,10 @@ import {
   createGatewayPerplexityAdapter,
   gatewayPerplexityProfile,
 } from './adapters/gateway-perplexity';
-import type { DataForSeoProbeClient } from './dataforseo';
+import {
+  createDataForSeoProbeClient,
+  type DataForSeoProbeClient,
+} from './dataforseo';
 import { resolveDataForSeoLocale } from './dataforseo-locale';
 import { legacyProbeBindings, type ProbeBinding } from './legacy-bindings';
 
@@ -82,6 +86,31 @@ export type ChatAdapterRegistry = (
   surface: AeoChatSurface,
   binding: ProbeBinding,
 ) => ProbeAdapter | undefined;
+
+/**
+ * probeDependenciesOf creates a run's probe clients from its settings, for
+ * the local run and for a host alike: the engine builds the gateway with its
+ * own pinned provider package, which shapes every probe request. A client
+ * whose credentials are not set is absent; preflight requires them for every
+ * surface in scope.
+ */
+export const probeDependenciesOf = (
+  env: NodeJS.ProcessEnv,
+  bindings: RunBindings,
+): ProbeDependencies => {
+  const login = env.DATAFORSEO_LOGIN;
+  const password = env.DATAFORSEO_PASSWORD;
+
+  const dependencies: ProbeDependencies = {
+    bindings,
+    gateway: createGateway({ apiKey: env.AI_GATEWAY_API_KEY }),
+    ...(login && password
+      ? { dataForSeo: createDataForSeoProbeClient({ login, password }) }
+      : {}),
+  };
+
+  return dependencies;
+};
 
 export const defaultProbeBindings: RunBindings = legacyProbeBindings;
 
