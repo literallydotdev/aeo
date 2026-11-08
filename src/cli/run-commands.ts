@@ -174,6 +174,7 @@ export const runDoctor = async (flags: Flags) => {
     dir: runDirOf(flags),
     model: file.model,
     groundingSearch: usesGroundingSearch(request),
+    rendersPages: file.moneyPages.length > 0,
   });
   const ok = checks.every((check) => check.ok);
 
@@ -307,6 +308,7 @@ export const runRun = async (flags: Flags) => {
     dir,
     model: file.model,
     groundingSearch: usesGroundingSearch(request),
+    rendersPages: file.moneyPages.length > 0,
   });
   const failing = checks.filter((check) => !check.ok);
 

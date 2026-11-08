@@ -418,7 +418,7 @@ describe('verifier - checkPremiseVerdicts()', () => {
   it('should fail the block on an unsupported premise whatever the block flag says, and refuse a failure that names nothing', () => {
     // The premise findings are the evidence: a pass over an unsupported
     // premise is a finding the verifier then edits, not an invalid review
-    // (six identical refusals failed the Botpress copy pass, 2026-09-15).
+    // (six identical refusals once failed a run's copy pass).
     const passedOverUnsupported = createVerdict();
     passedOverUnsupported.premise.supported = false;
     const failedWithoutFinding = createVerdict();

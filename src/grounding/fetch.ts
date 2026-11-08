@@ -1,9 +1,10 @@
-import { lookup } from 'node:dns/promises';
-import { isIP } from 'node:net';
-import { request } from 'node:https';
 import { load } from 'cheerio';
 import { contentHash } from '../stores/content-hash';
-import { isPublicAddress } from '../workflow/callbacks';
+import {
+  guardedRequest,
+  SourceRetrievalError,
+  validateResearchUrl,
+} from './guarded-request';
 import { sourceExtractionVersion, type GroundingSource } from './schema';
 
 export const sourceLimits = {
@@ -12,74 +13,6 @@ export const sourceLimits = {
   retainedBytes: 16_384,
   redirects: 3,
 } as const;
-
-export type SourceRetrievalReason =
-  | 'unsafe_destination'
-  | 'timeout'
-  | 'too_large'
-  | 'unsupported_content'
-  | 'http_error'
-  | 'empty_content'
-  | 'network_error';
-
-export class SourceRetrievalError extends Error {
-  readonly reason: SourceRetrievalReason;
-  readonly status: number | undefined;
-
-  constructor(
-    reason: SourceRetrievalReason,
-    message: string,
-    { status, cause }: { status?: number; cause?: unknown } = {},
-  ) {
-    super(message, cause === undefined ? undefined : { cause });
-    this.name = 'SourceRetrievalError';
-    this.reason = reason;
-    this.status = status;
-  }
-}
-
-export const validateResearchUrl = (value: string): URL => {
-  let url: URL;
-
-  try {
-    url = new URL(value);
-  } catch {
-    throw new SourceRetrievalError(
-      'unsafe_destination',
-      `Invalid source URL: ${value}.`,
-    );
-  }
-
-  if (
-    url.protocol !== 'https:' ||
-    url.username ||
-    url.password ||
-    url.port ||
-    url.hostname === 'localhost' ||
-    url.hostname.endsWith('.localhost') ||
-    url.hostname.endsWith('.local') ||
-    url.hostname.endsWith('.internal') ||
-    url.hostname === 'metadata.google.internal'
-  ) {
-    throw new SourceRetrievalError(
-      'unsafe_destination',
-      `Source must use public HTTPS with no credentials: ${url.hostname}.`,
-    );
-  }
-
-  const host = url.hostname.replace(/^\[|\]$/g, '');
-
-  if (isIP(host) && !isPublicAddress(host)) {
-    throw new SourceRetrievalError(
-      'unsafe_destination',
-      `Private source destination: ${host}.`,
-    );
-  }
-
-  url.hash = '';
-
-  return url;
-};
 
 /**
  * canonicalResearchUrl returns a URL as research receipts compare it: no
@@ -97,155 +30,6 @@ export const canonicalResearchUrl = (value: string): string => {
   }
 
   return url.href;
-};
-
-const withAbort = <T>(promise: Promise<T>, signal: AbortSignal): Promise<T> => {
-  signal.throwIfAborted();
-
-  return new Promise((resolve, reject) => {
-    const aborted = () => {
-      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors -- AbortSignal.reason is typed any; rejecting with it keeps the caller's abort error.
-      reject(signal.reason);
-    };
-
-    signal.addEventListener('abort', aborted, { once: true });
-
-    promise.then(resolve, reject).finally(() => {
-      signal.removeEventListener('abort', aborted);
-    });
-  });
-};
-
-const requestDocument = async (
-  url: URL,
-  signal: AbortSignal,
-): Promise<{
-  status: number;
-  location?: string;
-  contentType: string;
-  body: string;
-}> => {
-  const host = url.hostname.replace(/^\[|\]$/g, '');
-  const addresses = await withAbort(lookup(host, { all: true }), signal);
-
-  if (
-    addresses.length === 0 ||
-    addresses.some(({ address }) => !isPublicAddress(address))
-  ) {
-    throw new SourceRetrievalError(
-      'unsafe_destination',
-      `Source DNS must resolve exclusively to public addresses: ${host}.`,
-    );
-  }
-
-  const [firstAddress] = addresses;
-
-  if (!firstAddress) {
-    throw new SourceRetrievalError(
-      'unsafe_destination',
-      `Source DNS returned no address: ${host}.`,
-    );
-  }
-
-  signal.throwIfAborted();
-
-  return new Promise((resolve, reject) => {
-    const req = request(
-      url,
-      {
-        method: 'GET',
-        signal,
-        headers: {
-          'accept': 'text/html,text/plain',
-          'accept-encoding': 'identity',
-          'user-agent': 'Literally-AEO-Research/1',
-        },
-        lookup: (_host, options, callback) => {
-          if (options.all) {
-            callback(null, [firstAddress]);
-          } else {
-            callback(null, firstAddress.address, firstAddress.family);
-          }
-        },
-      },
-      (response) => {
-        const status = response.statusCode ?? 0;
-        const contentType = response.headers['content-type'] ?? '';
-
-        if (status >= 300 && status < 400) {
-          response.destroy();
-          resolve({
-            status,
-            location: response.headers.location,
-            contentType,
-            body: '',
-          });
-
-          return;
-        }
-
-        if (status < 200 || status >= 300) {
-          response.destroy();
-          reject(
-            new SourceRetrievalError('http_error', `Source HTTP ${status}.`, {
-              status,
-            }),
-          );
-
-          return;
-        }
-
-        if (
-          !/^(text\/html|text\/plain|application\/xhtml\+xml)(;|$)/i.test(
-            contentType,
-          ) ||
-          (response.headers['content-encoding'] &&
-            response.headers['content-encoding'] !== 'identity')
-        ) {
-          response.destroy();
-          reject(
-            new SourceRetrievalError(
-              'unsupported_content',
-              `Unsupported source content: ${contentType}.`,
-            ),
-          );
-
-          return;
-        }
-
-        const chunks: Buffer[] = [];
-        let bytes = 0;
-        response.on('data', (chunk: Buffer) => {
-          bytes += chunk.length;
-
-          if (bytes > sourceLimits.receivedBytes) {
-            response.destroy();
-            reject(
-              new SourceRetrievalError(
-                'too_large',
-                `Source response exceeds byte limit: ${bytes} bytes.`,
-              ),
-            );
-
-            return;
-          }
-
-          chunks.push(chunk);
-        });
-
-        response.once('error', reject);
-        response.once('end', () => {
-          resolve({
-            status,
-            contentType,
-            body: Buffer.concat(chunks).toString('utf8'),
-          });
-        });
-      },
-    );
-    req.once('error', reject);
-    req.end();
-  });
 };
 
 /**
@@ -382,67 +166,46 @@ export const fetchGroundingSource = async (args: {
   /** Body bytes received for the final document. */
   bytes: number;
 }> => {
-  const signal = AbortSignal.any([
-    AbortSignal.timeout(sourceLimits.timeoutMs),
-    ...(args.signal ? [args.signal] : []),
-  ]);
-  let url = validateResearchUrl(args.url);
-
-  try {
-    for (
-      let redirects = 0;
-      redirects <= sourceLimits.redirects;
-      redirects += 1
-    ) {
+  const response = await guardedRequest({
+    url: args.url,
+    timeoutInMs: sourceLimits.timeoutMs,
+    signal: args.signal,
+    userAgent: 'Literally-AEO-Research/1',
+    accept: 'text/html,text/plain',
+    redirects: sourceLimits.redirects,
+    body: {
+      contentTypes: /^(text\/html|text\/plain|application\/xhtml\+xml)(;|$)/i,
+      maxBytes: sourceLimits.receivedBytes,
+      oversize: 'refuse',
+    },
+    pace: async (_url, send) => {
       await args.beforeRequest?.();
-      signal.throwIfAborted();
 
-      const response = await requestDocument(url, signal);
+      return send();
+    },
+  });
 
-      if (response.status >= 300 && response.status < 400) {
-        if (!response.location || redirects === sourceLimits.redirects) {
-          throw new SourceRetrievalError(
-            'http_error',
-            `Source redirect limit exceeded: ${url.href}.`,
-          );
-        }
-
-        url = validateResearchUrl(new URL(response.location, url).href);
-
-        continue;
-      }
-
-      return {
-        ...extractSourceDocument({
-          requestedUrl: args.url,
-          finalUrl: url.href,
-          body: response.body,
-          contentType: response.contentType,
-          fetchedAt: new Date().toISOString(),
-          firstPartyHosts: args.firstPartyHosts,
-        }),
-        requestCount: redirects + 1,
-        bytes: Buffer.byteLength(response.body),
-      };
-    }
-
+  if (response.status < 200 || response.status >= 300) {
     throw new SourceRetrievalError(
       'http_error',
-      `Source redirect limit exceeded: ${url.href}.`,
-    );
-  } catch (error) {
-    if (args.signal?.aborted) {
-      throw args.signal.reason;
-    }
-
-    if (error instanceof SourceRetrievalError) {
-      throw error;
-    }
-
-    throw new SourceRetrievalError(
-      signal.aborted ? 'timeout' : 'network_error',
-      `Source retrieval failed: ${url.href}.`,
-      { cause: error },
+      `Source HTTP ${response.status}.`,
+      { status: response.status },
     );
   }
+
+  const body = response.body?.toString('utf8') ?? '';
+  const document = extractSourceDocument({
+    requestedUrl: args.url,
+    finalUrl: response.url,
+    body,
+    contentType: response.contentType,
+    fetchedAt: new Date().toISOString(),
+    firstPartyHosts: args.firstPartyHosts,
+  });
+
+  return {
+    ...document,
+    requestCount: response.hops.length,
+    bytes: Buffer.byteLength(body),
+  };
 };

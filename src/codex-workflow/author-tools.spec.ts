@@ -3,10 +3,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { fetchGroundingSource } from '../grounding/fetch';
-import {
-  extractSourceDocument,
-  SourceRetrievalError,
-} from '../grounding/fetch';
+import { extractSourceDocument } from '../grounding/fetch';
+import { SourceRetrievalError } from '../grounding/guarded-request';
 import { syntheticExample } from '../author/examples';
 import type { AuthorSearchAdapter } from './author-search';
 import {

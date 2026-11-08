@@ -7,9 +7,16 @@ import {
   canonicalResearchUrl,
   extractSourceDocument,
   fetchGroundingSource,
+} from '../grounding/fetch';
+import {
+  resolvePublicAddress,
   SourceRetrievalError,
   validateResearchUrl,
-} from '../grounding/fetch';
+} from '../grounding/guarded-request';
+import {
+  withBoundedPage,
+  withGuardedChromium,
+} from '../grounding/chromium-guard';
 import {
   groundingSourceSchema,
   type GroundingSource,
@@ -987,70 +994,42 @@ export const createAuthorTools = (options: AuthorToolsOptions): AuthorTools => {
 };
 
 /** Rendered HTML for a public page through the Chromium the image already
- * carries for the renderability check. The URL was validated and resolves
- * to public addresses; subresource requests are held to HTTPS and public
- * hosts as well. */
+ * carries for the renderability check. Every connection the browser makes
+ * passes the guarding proxy; the page's own host is checked first so a
+ * private destination fails with its own reason, not a tunnel error. */
 export const renderWithChromium = async (
   url: URL,
   signal: AbortSignal,
 ): Promise<string> => {
-  const { lookup } = await import('node:dns/promises');
-  const { isIP } = await import('node:net');
-  const { isPublicAddress } = await import('../workflow/callbacks');
-  const addresses = await lookup(url.hostname, { all: true });
+  await resolvePublicAddress(url.hostname, signal);
 
-  if (
-    !addresses.length ||
-    addresses.some(({ address }) => !isPublicAddress(address))
-  ) {
-    throw new SourceRetrievalError(
-      'unsafe_destination',
-      'Source DNS must resolve exclusively to public addresses',
-    );
-  }
+  const { result } = await withGuardedChromium(
+    (context) => {
+      return withBoundedPage(context, 60_000, async (page) => {
+        // Closing the page ends the navigation; its own failure changes
+        // nothing.
+        const abort = () => {
+          void page.close().catch(() => undefined);
+        };
 
-  const { chromium } = await import('playwright');
-  const browser = await chromium.launch();
+        signal.addEventListener('abort', abort, { once: true });
 
-  try {
-    const page = await browser.newPage({
-      userAgent: `${researchUserAgent}/1`,
-    });
+        try {
+          await page.goto(url.href, {
+            waitUntil: 'networkidle',
+            timeout: 45_000,
+          });
 
-    await page.route('**/*', (route) => {
-      const target = new URL(route.request().url());
-      const host = target.hostname.replace(/^\[|\]$/g, '');
+          return await page.content();
+        } finally {
+          signal.removeEventListener('abort', abort);
+        }
+      });
+    },
+    { userAgent: `${researchUserAgent}/1` },
+  );
 
-      if (
-        target.protocol !== 'https:' ||
-        (isIP(host) && !isPublicAddress(host)) ||
-        host === 'localhost' ||
-        host.endsWith('.local') ||
-        host.endsWith('.internal')
-      ) {
-        return route.abort();
-      }
-
-      return route.continue();
-    });
-
-    // Closing the page ends the navigation; its own failure changes nothing.
-    const abort = () => {
-      void page.close().catch(() => undefined);
-    };
-
-    signal.addEventListener('abort', abort, { once: true });
-
-    try {
-      await page.goto(url.href, { waitUntil: 'networkidle', timeout: 45_000 });
-
-      return await page.content();
-    } finally {
-      signal.removeEventListener('abort', abort);
-    }
-  } finally {
-    await browser.close();
-  }
+  return result;
 };
 
 /** Every research journal entry, in order; an absent journal is empty. */

@@ -775,8 +775,8 @@ export const writeReportCopy = async (
       throw error;
     }
 
-    // The verifier stayed unusable through its tries (Botpress, 2026-09-15:
-    // six invalid reviews failed the pipeline). The report ships on its
+    // The verifier stayed unusable through its tries (one run's six
+    // invalid reviews failed the pipeline). The report ships on its
     // verified facts with the improvement note; the saved draft is kept.
     ctx.log(
       `copy verifier stayed ${error.outcome} after its tries; delivering the verified facts without the narrative`,

@@ -1,10 +1,15 @@
 import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
+import {
+  SourceRetrievalError,
+  validateResearchUrl,
+} from '../grounding/guarded-request';
 import type { ModelBudgetLimits } from '../models/accounting';
 import { localModelProfile } from '../models/local-profile';
 import { resolveSupportedModel } from '../models/supported-models';
 import { resolveDataForSeoLocale } from '../probes/dataforseo-locale';
 import { probeLimitsSchema } from '../probes/limits';
+import { urlIsOnDomain } from '../report/core/domain-match';
 import {
   aeoAuditConfigSchema,
   aeoSurfaceSchema,
@@ -85,8 +90,60 @@ export const runPolicySchema = z
     // Caps every paid call of the run: probes, Codex stage sessions, host
     // model calls and searches (see BudgetPolicy).
     budget: budgetPolicySchema.prefault({}),
+    // Hosts off the brand's site whose pages the site checks may fetch (a
+    // docs site on another domain). A permission, not a measurement input:
+    // granting one never moves a baseline.
+    checkHosts: z.array(z.string().trim().min(1)).max(20).default([]),
   })
   .strict();
+
+/** Why a checkHosts entry is refused: it must be a bare public host name. */
+const checkHostProblem = (host: string): string | undefined => {
+  try {
+    const url = validateResearchUrl(`https://${host}/`);
+
+    if (url.hostname === host.toLowerCase()) {
+      return undefined;
+    }
+  } catch (err) {
+    if (!(err instanceof SourceRetrievalError)) {
+      throw err;
+    }
+  }
+
+  return `Use a bare public host name such as docs.acme.example, not ${JSON.stringify(host)}.`;
+};
+
+/**
+ * Why a money page is refused. The site checks fetch and render it, so it
+ * must be public https on the brand's site or its subdomains, or on a host
+ * the operator named in runPolicy.checkHosts.
+ */
+const moneyPageProblem = (
+  page: string,
+  file: {
+    brand: { domain: string };
+    runPolicy: { checkHosts: readonly string[] };
+  },
+): string | undefined => {
+  try {
+    validateResearchUrl(page);
+  } catch (err) {
+    if (err instanceof SourceRetrievalError) {
+      return `A money page must be a public https URL with no port or credentials: ${err.message}`;
+    }
+
+    throw err;
+  }
+
+  const hosts = [file.brand.domain, ...file.runPolicy.checkHosts];
+
+  if (hosts.some((host) => urlIsOnDomain(page, host))) {
+    return undefined;
+  }
+
+  return `${page} is not on ${file.brand.domain} or its subdomains. Name its host in runPolicy.checkHosts to let the site checks fetch it.`;
+};
 
 export const auditFileSchema = z
   .object({
@@ -110,7 +167,7 @@ export const auditFileSchema = z
     chatProbes: chatProbeConfigSchema.optional(),
     geography: z.string().default('us'),
     language: z.string().default('en'),
-    moneyPages: z.array(z.url()).default([]),
+    moneyPages: z.array(z.url()).max(20).default([]),
     productBrief: z.string().trim().min(1),
     // `full` researches and adjudicates the claims answers make about the
     // product; `extraction_only` keeps the claim inventory and skips both.
@@ -129,6 +186,30 @@ export const auditFileSchema = z
         message: `No search market for geography ${JSON.stringify(file.geography)} and language ${JSON.stringify(file.language)}; use a supported code such as us and en.`,
         path: ['geography'],
       });
+    }
+
+    for (const [index, host] of file.runPolicy.checkHosts.entries()) {
+      const problem = checkHostProblem(host);
+
+      if (problem !== undefined) {
+        context.addIssue({
+          code: 'custom',
+          message: problem,
+          path: ['runPolicy', 'checkHosts', index],
+        });
+      }
+    }
+
+    for (const [index, page] of file.moneyPages.entries()) {
+      const problem = moneyPageProblem(page, file);
+
+      if (problem !== undefined) {
+        context.addIssue({
+          code: 'custom',
+          message: problem,
+          path: ['moneyPages', index],
+        });
+      }
     }
 
     const keys = file.sections.map((section) => section.key);

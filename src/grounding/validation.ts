@@ -1,5 +1,5 @@
 import { contentHash } from '../stores/content-hash';
-import { validateResearchUrl } from './fetch';
+import { validateResearchUrl } from './guarded-request';
 import {
   groundingBundleSchema,
   type GroundingBundle,

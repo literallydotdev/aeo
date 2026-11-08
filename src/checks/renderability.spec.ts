@@ -1,9 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  SourceRetrievalError,
+  type HostPacer,
+  type SiteRequest,
+} from '../grounding/guarded-request';
 
 // ============================================================================
-// The rendered half of the renderability check against a fake browser: a
-// page that never goes network-idle still yields its text once loaded,
-// instead of the "could not check" botpress.com/docs got (2026-09-15).
+// The renderability check against a fake browser and a fake site: a page
+// that never goes network-idle still yields its text once loaded, instead of
+// "could not check"; a refused static fetch records its reason.
 // ============================================================================
 
 const browser = vi.hoisted(() => ({
@@ -41,14 +46,40 @@ vi.mock('playwright', () => ({
   chromium: {
     launch: () =>
       Promise.resolve({
-        newPage: () => Promise.resolve(mockPage),
+        newContext: () =>
+          Promise.resolve({
+            route: () => Promise.resolve(),
+            newPage: () => Promise.resolve(mockPage),
+          }),
         close: () => Promise.resolve(),
       }),
   },
 }));
 
+const fakeSite = (html: string | Error) => {
+  const paced: string[] = [];
+  const mockRequest: SiteRequest = (options) => {
+    return html instanceof Error
+      ? Promise.reject(html)
+      : Promise.resolve({
+          url: options.url,
+          status: 200,
+          contentType: 'text/html',
+          body: Buffer.from(html),
+          isTruncated: false,
+          hops: [{ url: options.url, status: 200 }],
+        });
+  };
+  const mockPace: HostPacer = (url, send) => {
+    paced.push(url.href);
+
+    return send();
+  };
+
+  return { paced, site: { request: mockRequest, pace: mockPace } };
+};
+
 afterEach(() => {
-  vi.unstubAllGlobals();
   browser.goto.mockReset();
   browser.waitForLoadState.mockReset();
   browser.settles = true;
@@ -57,20 +88,15 @@ afterEach(() => {
 describe('renderability - runRenderabilityCheck()', () => {
   it('should read the rendered text of a page that never goes network-idle', async () => {
     browser.settles = false;
-    vi.stubGlobal(
-      'fetch',
-      vi
-        .fn()
-        .mockResolvedValue(
-          new Response(
-            '<html><body><p>Rendered text with substance here</p></body></html>',
-            { status: 200 },
-          ),
-        ),
+    const { paced, site } = fakeSite(
+      '<html><body><p>Rendered text with substance here</p></body></html>',
     );
     const { runRenderabilityCheck } = await import('./renderability');
 
-    const [page] = await runRenderabilityCheck(['https://example.com/docs/']);
+    const [page] = await runRenderabilityCheck(
+      ['https://example.com/docs/'],
+      site,
+    );
 
     expect(page).toMatchObject({
       url: 'https://example.com/docs/',
@@ -83,24 +109,41 @@ describe('renderability - runRenderabilityCheck()', () => {
       expect.objectContaining({ waitUntil: 'load' }),
     );
     expect(browser.waitForLoadState).toHaveBeenCalledWith('networkidle');
+    // The render is spaced like any other request to the host.
+    expect(paced).toEqual(['https://example.com/docs/']);
   });
 
   it('should NOT flag a small page whose text only exists after JavaScript', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi
-        .fn()
-        .mockResolvedValue(
-          new Response('<html><body></body></html>', { status: 200 }),
-        ),
-    );
+    const { site } = fakeSite('<html><body></body></html>');
     const { runRenderabilityCheck } = await import('./renderability');
 
-    const [page] = await runRenderabilityCheck(['https://example.com/app']);
+    const [page] = await runRenderabilityCheck(
+      ['https://example.com/app'],
+      site,
+    );
 
     expect(page).toMatchObject({ error: null, staticTextChars: 0 });
     // Small pages fall under the absolute threshold: not flagged for a
     // cookie banner's worth of text.
     expect(page?.flagged).toBe(false);
+  });
+
+  it('should record a static fetch the guard refused as the page error, and NOT render it', async () => {
+    const { paced, site } = fakeSite(
+      new SourceRetrievalError(
+        'unsafe_destination',
+        'Source must use public HTTPS with no credentials: example.com.',
+      ),
+    );
+    const { runRenderabilityCheck } = await import('./renderability');
+
+    const [page] = await runRenderabilityCheck(
+      ['https://example.com/pricing'],
+      site,
+    );
+
+    expect(page?.error).toMatch(/^unsafe_destination: /);
+    expect(paced).toEqual([]);
+    expect(browser.goto).not.toHaveBeenCalled();
   });
 });

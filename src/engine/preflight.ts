@@ -1,4 +1,5 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import {
   agentAuthEnv,
@@ -109,6 +110,49 @@ const directoryCheck = async (dir: string): Promise<PreflightCheck> => {
   }
 };
 
+/** The command that installs the Chromium this package's Playwright drives;
+ * an unversioned `npx playwright` may fetch another release's browser. */
+const chromiumInstallCommand = (): string => {
+  const manifest: unknown = createRequire(import.meta.url)(
+    'playwright/package.json',
+  );
+  const version =
+    typeof manifest === 'object' &&
+    manifest !== null &&
+    'version' in manifest &&
+    typeof manifest.version === 'string'
+      ? `@${manifest.version}`
+      : '';
+
+  return `npx playwright${version} install chromium`;
+};
+
+/** The renderability check renders every money page in Chromium: a
+ * missing browser stops the run here, not after the probes were paid for. */
+const chromiumCheck = async (): Promise<PreflightCheck> => {
+  try {
+    const { chromium } = await import('playwright');
+    const browser = await chromium.launch();
+    const version = browser.version();
+
+    await browser.close();
+
+    return {
+      name: 'chromium (money pages)',
+      ok: true,
+      detail: `Chromium ${version} launches`,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message.split('\n')[0] : '';
+
+    return {
+      name: 'chromium (money pages)',
+      ok: false,
+      detail: `does not launch (${message}); run \`${chromiumInstallCommand()}\`, or remove moneyPages from audit.json`,
+    };
+  }
+};
+
 /** The model audit.json names, or the recommended one: refused when it is
  * not on the supported list, which the detail then prints. */
 export const modelCheck = (model: string | undefined): PreflightCheck => {
@@ -174,6 +218,8 @@ export const runPreflight = async (args: {
   model?: string;
   /** Full grounding researches through the pinned search provider. */
   groundingSearch?: boolean;
+  /** Money pages are rendered in Chromium by the renderability check. */
+  rendersPages?: boolean;
 }): Promise<PreflightCheck[]> => {
   const { surfaces, settings } = args;
   const nodeMajor = Number(process.versions.node.split('.')[0]);
@@ -231,6 +277,10 @@ export const runPreflight = async (args: {
           ? `\`${cliNameForSurface(surface)}\` not installed; needed only when the config measures coding agents`
           : `${cliNameForSurface(surface)} ${version} installed; this config does not measure it`,
     });
+  }
+
+  if (args.rendersPages) {
+    checks.push(await chromiumCheck());
   }
 
   checks.push(await directoryCheck(args.dir));
