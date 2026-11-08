@@ -3,6 +3,7 @@ import {
   ModelBudgetError,
   type ModelCallAccounting,
 } from '../models/accounting';
+import { createLog } from '../lib/log';
 import { defaultProfileOf } from './bindings';
 import type { ProbeTrace } from './probe-trace';
 
@@ -14,6 +15,8 @@ import type { ProbeTrace } from './probe-trace';
 // dispatched; the run learns of it through `exhausted` and stops resumable,
 // with every answer captured so far banked.
 // ============================================================================
+
+const log = createLog('ChargedProbeTrace');
 
 export type ChargedTrace = {
   trace: ProbeTrace;
@@ -56,7 +59,28 @@ export const chargedProbeTrace = (
         }
       }
 
-      const handle = await trace.start(attempt);
+      let handle: Awaited<ReturnType<ProbeTrace['start']>>;
+
+      try {
+        handle = await trace.start(attempt);
+      } catch (error) {
+        // Not dispatched, so not charged. A release that fails leaves the
+        // reservation charging its estimate: an overstatement of the spend,
+        // never an understatement.
+        if (isPaid) {
+          await ledger.release(callId).catch((releaseError: unknown) => {
+            log.warn('Probe reservation could not be released', {
+              callId,
+              error:
+                releaseError instanceof Error
+                  ? releaseError.message
+                  : String(releaseError),
+            });
+          });
+        }
+
+        throw error;
+      }
 
       return {
         id: handle.id,

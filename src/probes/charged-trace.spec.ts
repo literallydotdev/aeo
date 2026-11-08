@@ -82,6 +82,21 @@ describe('charged-trace - chargedProbeTrace()', () => {
     expect(charged.exhausted()).toBeInstanceOf(ModelBudgetError);
   });
 
+  it('should release the reservation, recording no cost, when the probe operation cannot be opened', async () => {
+    const ledger = ledgerOf(10);
+    const unrecordable: ProbeTrace = {
+      start: () => Promise.reject(new Error('read-only file system')),
+    };
+    const charged = chargedProbeTrace(unrecordable, ledger);
+
+    await expect(charged.trace.start(attempt)).rejects.toThrow(
+      'read-only file system',
+    );
+    expect(ledger.state.calls).toEqual({});
+    expect(chargedTotal(Object.values(ledger.state.calls)).usd).toBe(0);
+    expect(charged.exhausted()).toBeUndefined();
+  });
+
   it("should charge nothing for a coding-agent probe on the operator's own login", async () => {
     const ledger = ledgerOf(0.001);
 

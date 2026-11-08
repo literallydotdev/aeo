@@ -556,6 +556,7 @@ export const extractClaimCandidates = async (args: {
           observe: (id, evidence) =>
             args.accounting.observe?.(id, evidence) ?? Promise.resolve(),
           settle: (id, usage) => args.accounting.settle(id, usage),
+          release: (id) => args.accounting.release(id),
           reserve: async (call) => {
             const hadInFlight = inFlight.size > 0;
 

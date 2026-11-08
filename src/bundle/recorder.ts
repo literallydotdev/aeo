@@ -384,10 +384,27 @@ export const recordingAccounting = (
     });
   };
 
+  // A released call was never dispatched: its operation ends cancelled,
+  // with no response and no cost.
+  const release = async (callId: string) => {
+    await accounting.release(callId);
+
+    const handle = open.get(callId);
+
+    open.delete(callId);
+    requests.delete(callId);
+    responses.delete(callId);
+    await handle?.finish({
+      outcome: 'cancelled',
+      details: { released: true },
+    });
+  };
+
   const wrapped: ModelCallAccounting = {
     deadlineAt: accounting.deadlineAt,
     reserve,
     settle,
+    release,
     observe,
     assertOwned: () => accounting.assertOwned(),
   };

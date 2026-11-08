@@ -41,6 +41,10 @@ export const trackResearchUsage = async <T>(
           call.usage = usage;
         }
       },
+      release: async (id) => {
+        await accounting.release(id);
+        calls.delete(id);
+      },
     });
   } finally {
     onUsage?.(chargedTotal(calls.values()));

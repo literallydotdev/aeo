@@ -192,6 +192,40 @@ describe('recorder - recordingAccounting()', () => {
       events.filter((event) => event.type === 'operation_finished'),
     ).toHaveLength(1);
   });
+
+  it('should end a released call as cancelled, with no response and no cost', async () => {
+    const recorder = await openRecorder(root, {
+      origin: 'local',
+      runId: 'r1',
+      ...syntheticDigests,
+    });
+    const ledger = createMemoryModelAccounting({
+      maxUsd: 1,
+      maxTokens: 10_000,
+      deadlineAt: '2099-01-01T00:00:00.000Z',
+    });
+    const accounting = recordingAccounting(ledger, recorder);
+
+    await accounting.reserve({
+      callId: 'c1',
+      role: 'perception',
+      reservedUsd: 0.01,
+      inputTokens: 100,
+      maxOutputTokens: 100,
+    });
+    await accounting.release('c1');
+
+    const finished = (await readEvents(root)).find(
+      (event) => event.type === 'operation_finished',
+    );
+
+    expect(finished?.payload).toEqual({
+      outcome: 'cancelled',
+      outputs: {},
+      details: { released: true },
+    });
+    expect(ledger.state.calls).toEqual({});
+  });
 });
 
 describe('recorder - generateStructured() through a recording accounting', () => {
