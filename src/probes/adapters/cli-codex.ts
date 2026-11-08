@@ -21,7 +21,7 @@ export const codexProfile: ProbeAdapterProfile = {
   ],
   pool: 'codex',
   retry: 'agent',
-  estimateUsd: probeUsd.codex,
+  estimateUsd: probeUsd[ProbeAdapterId.CLI_CODEX],
   billing: 'subscription',
   resolvesRedirects: false,
 };

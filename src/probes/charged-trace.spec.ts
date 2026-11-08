@@ -39,7 +39,7 @@ describe('charged-trace - chargedProbeTrace()', () => {
 
     expect(Object.values(ledger.state.calls)[0]).toMatchObject({
       role: 'probe:chatgpt',
-      reservedUsd: probeUsd.chatgpt.high,
+      reservedUsd: probeUsd['gateway.openai@1'].high,
     });
 
     await handle.end({
@@ -72,12 +72,12 @@ describe('charged-trace - chargedProbeTrace()', () => {
       valid: false,
     });
     expect(chargedTotal(Object.values(ledger.state.calls)).usd).toBe(
-      probeUsd.chatgpt.high,
+      probeUsd['gateway.openai@1'].high,
     );
   });
 
   it('should NOT dispatch a probe the cap cannot afford, and report the refusal', async () => {
-    const ledger = ledgerOf(probeUsd.chatgpt.high / 2);
+    const ledger = ledgerOf(probeUsd['gateway.openai@1'].high / 2);
     const charged = chargedProbeTrace(trace, ledger, defaultProbeBindings);
 
     await expect(charged.trace.start(attempt)).rejects.toThrow(

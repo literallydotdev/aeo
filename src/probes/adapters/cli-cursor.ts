@@ -18,7 +18,7 @@ export const cursorProfile: ProbeAdapterProfile = {
   settings: [{ name: 'CURSOR_API_KEY', secret: true, group: 'auth' }],
   pool: 'cursor',
   retry: 'agent',
-  estimateUsd: probeUsd.cursor,
+  estimateUsd: probeUsd[ProbeAdapterId.CLI_CURSOR],
   billing: 'subscription',
   resolvesRedirects: false,
 };

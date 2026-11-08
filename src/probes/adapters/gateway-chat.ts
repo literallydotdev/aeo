@@ -264,7 +264,6 @@ const searchProbe = async ({
 
 const gatewayChatProfile = (
   id: ProbeAdapterProfile['id'],
-  surface: 'chatgpt' | 'gemini' | 'claude',
   retrieval: ProbeAdapterProfile['observes']['retrieval'],
 ): ProbeAdapterProfile => {
   return {
@@ -273,7 +272,7 @@ const gatewayChatProfile = (
     settings: [{ name: 'AI_GATEWAY_API_KEY', secret: true }],
     pool: 'gateway',
     retry: 'chat',
-    estimateUsd: probeUsd[surface],
+    estimateUsd: probeUsd[id],
     billing: 'metered',
     resolvesRedirects: true,
   };
@@ -286,30 +285,18 @@ export type GatewayChatAdapterId =
 
 const gatewayChatMethods: Record<GatewayChatAdapterId, GatewayChatMethod> = {
   [ProbeAdapterId.GATEWAY_OPENAI]: {
-    profile: gatewayChatProfile(
-      ProbeAdapterId.GATEWAY_OPENAI,
-      'chatgpt',
-      'full',
-    ),
+    profile: gatewayChatProfile(ProbeAdapterId.GATEWAY_OPENAI, 'full'),
     tools: () => ({ web_search: openai.tools.webSearch({}) }),
     extractRetrieval: (result) => extractOpenAiRetrieval(result.steps),
   },
   [ProbeAdapterId.GATEWAY_GOOGLE]: {
-    profile: gatewayChatProfile(
-      ProbeAdapterId.GATEWAY_GOOGLE,
-      'gemini',
-      'partial',
-    ),
+    profile: gatewayChatProfile(ProbeAdapterId.GATEWAY_GOOGLE, 'partial'),
     tools: () => ({ google_search: google.tools.googleSearch({}) }),
     extractRetrieval: (result) =>
       extractGeminiRetrieval(result.providerMetadata),
   },
   [ProbeAdapterId.GATEWAY_ANTHROPIC]: {
-    profile: gatewayChatProfile(
-      ProbeAdapterId.GATEWAY_ANTHROPIC,
-      'claude',
-      'full',
-    ),
+    profile: gatewayChatProfile(ProbeAdapterId.GATEWAY_ANTHROPIC, 'full'),
     tools: () => ({
       web_search: anthropic.tools.webSearch_20250305({ maxUses: 5 }),
     }),

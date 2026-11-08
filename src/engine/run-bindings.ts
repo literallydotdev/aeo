@@ -37,6 +37,39 @@ const frozenBindingsSchema = z
   .strict();
 
 /**
+ * estimateBindingsOf is the bindings a run directory's estimate prices: its
+ * frozen bindings once it has usable ones, else the defaults a new run
+ * would freeze. Read-only. A frozen binding the engine cannot build is the
+ * run's start to refuse (exit 2), not the estimate's.
+ */
+export const estimateBindingsOf = async (
+  bankPath: string,
+): Promise<RunBindings> => {
+  const text = await readFile(path.join(bankPath, bindingsFile), 'utf8').catch(
+    (err: unknown) => {
+      if (hasErrorCode(err, 'ENOENT')) {
+        return undefined;
+      }
+
+      throw err;
+    },
+  );
+
+  if (text === undefined) {
+    return defaultProbeBindings;
+  }
+
+  try {
+    return availableBindings(
+      frozenBindingsSchema.parse(JSON.parse(text)).bindings,
+    );
+  } catch {
+    // Refused with its reason when the run starts.
+    return defaultProbeBindings;
+  }
+};
+
+/**
  * resolveRunBindings returns the bindings a run measures with: the frozen
  * ones on a resume, refused when the installed engine cannot build them;
  * otherwise the defaults for a new run, or the legacy bindings for a run

@@ -31,7 +31,7 @@ export const gatewayPerplexityProfile: ProbeAdapterProfile = {
   settings: [{ name: 'AI_GATEWAY_API_KEY', secret: true }],
   pool: 'gateway',
   retry: 'chat',
-  estimateUsd: probeUsd.perplexity,
+  estimateUsd: probeUsd[ProbeAdapterId.GATEWAY_PERPLEXITY],
   billing: 'metered',
   resolvesRedirects: true,
 };

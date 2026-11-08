@@ -40,7 +40,7 @@ const fakeAdapter = (
     settings: [],
     pool: 'gateway',
     retry: 'chat',
-    estimateUsd: probeUsd.chatgpt,
+    estimateUsd: probeUsd['gateway.openai@1'],
     billing: 'metered',
     resolvesRedirects: false,
     request: (promptText) => ({

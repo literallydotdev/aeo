@@ -21,7 +21,7 @@ export const claudeCodeProfile: ProbeAdapterProfile = {
   ],
   pool: 'claude_code',
   retry: 'agent',
-  estimateUsd: probeUsd.claude_code,
+  estimateUsd: probeUsd[ProbeAdapterId.CLI_CLAUDE_CODE],
   billing: 'subscription',
   resolvesRedirects: false,
 };

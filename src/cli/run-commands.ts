@@ -20,6 +20,7 @@ import {
   type RunCostEstimate,
 } from '../engine/cost-estimate';
 import {
+  bankDir,
   openLocalRun,
   planLocalRun,
   PreflightFailedError,
@@ -32,7 +33,8 @@ import {
   runSettingNames,
 } from '../engine/preflight';
 import { prepareRejudgment } from '../engine/rejudge';
-import { RunBindingsError } from '../probes/bindings';
+import { defaultProbeBindings, RunBindingsError } from '../probes/bindings';
+import { estimateBindingsOf } from '../engine/run-bindings';
 import {
   readAuthorEvidence,
   readBrief,
@@ -211,6 +213,7 @@ export const runPlan = async (flags: Flags) => {
     plan,
     model,
     grounding: request.grounding,
+    bindings: await estimateBindingsOf(path.join(dir, bankDir)),
   });
   const summary = {
     brand: config.brand.name,
@@ -296,6 +299,7 @@ export const runRun = async (flags: Flags) => {
       plan,
       model: resolveSupportedModel(file.model),
       grounding: request.grounding,
+      bindings: await estimateBindingsOf(path.join(dir, bankDir)),
     }),
   });
 
@@ -541,6 +545,7 @@ export const runRejudge = async (flags: Flags, usage: string) => {
       plan: { units: plan.units, probesBySurface: new Map() },
       model: resolveSupportedModel(file.model),
       grounding: request.grounding,
+      bindings: defaultProbeBindings,
     }),
   });
 

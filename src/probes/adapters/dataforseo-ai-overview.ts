@@ -30,7 +30,7 @@ export const dataForSeoAiOverviewProfile: ProbeAdapterProfile = {
   ],
   pool: 'dataforseo',
   retry: 'chat',
-  estimateUsd: probeUsd.google_ai_overview,
+  estimateUsd: probeUsd[ProbeAdapterId.DATAFORSEO_AI_OVERVIEW],
   billing: 'metered',
   resolvesRedirects: true,
 };
