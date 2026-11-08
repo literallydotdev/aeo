@@ -10,7 +10,7 @@ import {
   type BankedAnswer,
 } from './attempt';
 import { ProbeFailure } from './failure';
-import { unlimited } from './limits';
+import { ProbeLimiter, unlimited } from './limits';
 import type {
   ProbeAttemptEnd,
   ProbeAttemptStart,
@@ -239,32 +239,139 @@ describe('attempt - runProbeUnit()', () => {
     ]);
   });
 
-  it('should pause the pool on capacity for coding agents only', async () => {
-    const capacity = () => {
-      return vi
-        .fn<ProbeAdapter['probe']>()
-        .mockRejectedValueOnce(new ProbeFailure('capacity', 'overloaded'))
-        .mockResolvedValueOnce(answerOf());
-    };
-    const paused = async (family: 'chat' | 'agent') => {
-      const limiter = unlimited();
-      const pause = vi.spyOn(limiter, 'pause');
-      const run = runProbeUnit(fakeAdapter(capacity()), unit, {
-        rules: attemptRules[family],
-        limiter,
-        log,
-        logContext: {},
-        toResult,
-      });
-
-      await vi.runAllTimersAsync();
-      await run;
-
-      return pause.mock.calls.length;
+  it('should pause only the adapter that hit capacity, never another surface on its pool', async () => {
+    const limiter = unlimited();
+    const perplexityProbe = vi
+      .fn<ProbeAdapter['probe']>()
+      .mockRejectedValueOnce(new ProbeFailure('capacity', 'Too many requests'))
+      .mockResolvedValue(answerOf());
+    const chatgptProbe = vi.fn(() => Promise.resolve(answerOf()));
+    const host = {
+      rules: attemptRules.chat,
+      limiter,
+      log,
+      logContext: {},
+      toResult,
     };
 
-    expect(await paused('chat')).toBe(0);
-    expect(await paused('agent')).toBe(1);
+    const perplexity = runProbeUnit(
+      fakeAdapter(perplexityProbe, {
+        id: 'gateway.perplexity@1',
+        surface: 'perplexity',
+      }),
+      unit,
+      host,
+    );
+
+    // Perplexity's first attempt meets capacity and pauses its adapter.
+    await vi.advanceTimersByTimeAsync(0);
+
+    const chatgpt = runProbeUnit(fakeAdapter(chatgptProbe), unit, host);
+    const secondPerplexity = runProbeUnit(
+      fakeAdapter(perplexityProbe, {
+        id: 'gateway.perplexity@1',
+        surface: 'perplexity',
+      }),
+      { ...unit, runIndex: 2 },
+      host,
+    );
+
+    await vi.advanceTimersByTimeAsync(0);
+
+    // The gateway pool serves both: ChatGPT is not held back, Perplexity is.
+    expect(chatgptProbe).toHaveBeenCalledOnce();
+    expect(perplexityProbe).toHaveBeenCalledOnce();
+
+    await vi.runAllTimersAsync();
+
+    await expect(chatgpt).resolves.toMatchObject({ status: 'captured' });
+    await expect(perplexity).resolves.toMatchObject({
+      status: 'captured',
+      attempts: 2,
+    });
+    await expect(secondPerplexity).resolves.toMatchObject({
+      status: 'captured',
+    });
+  });
+
+  it('should jitter a chat retry around its ladder delay', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(1);
+    const probe = vi
+      .fn<ProbeAdapter['probe']>()
+      .mockRejectedValueOnce(new ProbeFailure('capacity', 'Too many requests'))
+      .mockResolvedValue(answerOf());
+
+    const run = runProbeUnit(fakeAdapter(probe), unit, {
+      rules: attemptRules.chat,
+      limiter: unlimited(),
+      log,
+      logContext: {},
+      toResult,
+    });
+
+    // The ladder says 60 seconds; +20% jitter makes it 72.
+    await vi.advanceTimersByTimeAsync(70_000);
+    expect(probe).toHaveBeenCalledOnce();
+
+    await vi.advanceTimersByTimeAsync(3_000);
+    await expect(run).resolves.toMatchObject({
+      status: 'captured',
+      attempts: 2,
+    });
+  });
+
+  it('should NOT dispatch a unit whose run was aborted while it waited for a pool slot', async () => {
+    const limiter = new ProbeLimiter({
+      gateway: 1,
+      dataforseo: 1,
+      claude_code: 1,
+      codex: 1,
+      cursor: 1,
+      analyzer: 1,
+    });
+    const controller = new AbortController();
+    let finishFirst: (answer: ProbeAnswer) => void = () => undefined;
+    const first = vi.fn(
+      () =>
+        new Promise<ProbeAnswer>((resolve) => {
+          finishFirst = resolve;
+        }),
+    );
+    const queued = vi.fn(() => Promise.resolve(answerOf()));
+    const { trace, calls } = recordingTrace();
+    const host = {
+      rules: attemptRules.chat,
+      trace,
+      limiter,
+      signal: controller.signal,
+      log,
+      logContext: {},
+      toResult,
+    };
+
+    const holding = runProbeUnit(fakeAdapter(first), unit, host);
+    const waiting = runProbeUnit(
+      fakeAdapter(queued),
+      { ...unit, runIndex: 2 },
+      host,
+    );
+
+    await vi.advanceTimersByTimeAsync(0);
+    controller.abort();
+    finishFirst(answerOf());
+
+    await expect(holding).resolves.toMatchObject({ status: 'captured' });
+    await expect(waiting).resolves.toMatchObject({
+      status: 'failed',
+      kind: 'timeout',
+      attempts: 0,
+      lastError: 'run aborted before the unit executed',
+    });
+    expect(queued).not.toHaveBeenCalled();
+    // Only the first unit opened an operation.
+    expect(
+      calls.filter((call) => 'attempt' in call && 'promptId' in call),
+    ).toHaveLength(1);
   });
 
   it('should stop before dispatch once the run is aborted', async () => {

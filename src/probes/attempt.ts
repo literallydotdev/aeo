@@ -29,10 +29,11 @@ import {
 // failure taxonomy, answer finalisation and banking before anything else
 // can fail. An adapter only asks and classifies.
 //
-// Each family keeps the rules it had before the loop was shared, divergences
-// included (attemptRules): chat units take their pool without the abort
-// signal, never jitter and never pause the pool on capacity; coding agents
-// do all three; a canary takes no pool. These are run policy, not method.
+// Chat units and coding agents run under the same rules (attemptRules) and
+// differ only in their retry ladder: each takes its pool slot aware of the
+// abort signal, jitters its retries, and on capacity pauses its own adapter
+// rather than the whole pool, which serves other surfaces. A canary takes
+// no pool and keeps the default ladder. These are run policy, not method.
 // ============================================================================
 
 type AttemptRules = {
@@ -42,8 +43,8 @@ type AttemptRules = {
   /** ±20% on every retry delay, so units that failed together do not all
    * retry in the same second. */
   jitter: boolean;
-  /** null: the attempt takes no pool slot. */
-  pool: { abortable: boolean; pausedOnCapacity: boolean } | null;
+  /** Whether the attempt takes a slot on its adapter's pool. */
+  pooled: boolean;
   completedLevel: 'debug' | 'info';
 };
 
@@ -51,22 +52,22 @@ export const attemptRules = {
   chat: {
     label: 'Probe',
     policy: probeRetryPolicy,
-    jitter: false,
-    pool: { abortable: false, pausedOnCapacity: false },
+    jitter: true,
+    pooled: true,
     completedLevel: 'debug',
   },
   agent: {
     label: 'Agent probe',
     policy: agentProbeRetryPolicy,
     jitter: true,
-    pool: { abortable: true, pausedOnCapacity: true },
+    pooled: true,
     completedLevel: 'info',
   },
   canary: {
     label: 'Canary probe',
     policy: probeRetryPolicy,
     jitter: false,
-    pool: null,
+    pooled: false,
     completedLevel: 'info',
   },
 } as const satisfies Record<string, AttemptRules>;
@@ -127,18 +128,41 @@ export const requestedModelOf = (
   return bound.model ?? answeredModel ?? null;
 };
 
+/** The key one adapter's capacity pause is held under: the adapter serving
+ * this surface, never the pool it shares with others. */
+const pauseKeyOf = (adapter: ProbeAdapter): string => {
+  return `${adapter.id}|${adapter.surface}`;
+};
+
+/** A unit whose run was aborted while it waited for its pool slot: it is
+ * not dispatched once the slot frees. */
+class AbortedBeforeDispatchError extends Error {
+  constructor() {
+    super('run aborted before the unit executed');
+    this.name = 'AbortedBeforeDispatchError';
+  }
+}
+
 const inPool = async <T>(
   adapter: ProbeAdapter,
   { rules, limiter, signal }: AttemptHost,
   work: () => Promise<T>,
 ): Promise<T> => {
-  if (rules.pool === null || !limiter) {
+  if (!rules.pooled || !limiter) {
     return work();
   }
 
-  return rules.pool.abortable
-    ? limiter.run(adapter.pool, work, { signal })
-    : limiter.run(adapter.pool, work);
+  return limiter.run(
+    adapter.pool,
+    async () => {
+      if (signal?.aborted) {
+        throw new AbortedBeforeDispatchError();
+      }
+
+      return work();
+    },
+    { signal, pauseKey: pauseKeyOf(adapter) },
+  );
 };
 
 /**
@@ -157,7 +181,7 @@ export const runProbeAttempts = async (
 
   // A wiring mistake, refused before the first attempt: inside one it would
   // be classified and retried as a provider failure.
-  if (rules.pool !== null && !host.limiter) {
+  if (rules.pooled && !host.limiter) {
     throw new Error(
       `Please give the ${rules.label} attempts of ${adapter.surface} a pool limiter.`,
     );
@@ -207,6 +231,16 @@ export const runProbeAttempts = async (
         handle,
       };
     } catch (error) {
+      // Never dispatched: the unit stays as unattempted as it was.
+      if (error instanceof AbortedBeforeDispatchError) {
+        return {
+          status: 'failed',
+          kind: 'timeout',
+          attempts: attempt - 1,
+          lastError: error.message,
+        };
+      }
+
       if (error instanceof ProbeTraceError) {
         return {
           status: 'failed',
@@ -261,9 +295,10 @@ export const runProbeAttempts = async (
         };
       }
 
-      // The whole pool waits the window out, not only this unit.
-      if (failure.kind === 'capacity' && rules.pool?.pausedOnCapacity) {
-        host.limiter?.pause(adapter.pool, delayMs);
+      // Every unit of this adapter waits the window out, not only this one;
+      // other surfaces on the same pool keep going.
+      if (failure.kind === 'capacity' && rules.pooled) {
+        host.limiter?.pause(pauseKeyOf(adapter), delayMs);
       }
 
       await sleep(delayMs, signal);
