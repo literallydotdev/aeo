@@ -243,11 +243,21 @@ describe('env-file - readSettings()', () => {
   });
 });
 
+/**
+ * stubPreflightMachine gives preflight a machine without agent CLIs: the
+ * Codex check only needs a binary that starts (the dependency's own is
+ * tested in codex-binary.spec.ts), and an empty PATH keeps the detection of
+ * `claude` and `cursor-agent` from starting whatever this machine has
+ * installed, which made the result and its duration depend on the machine.
+ */
+const stubPreflightMachine = () => {
+  vi.stubEnv('AEO_CODEX_BIN', process.execPath);
+  vi.stubEnv('PATH', path.join(root, 'no-agent-clis'));
+};
+
 describe('preflight - runPreflight()', () => {
-  // The check only needs a Codex that starts; the dependency's own binary is
-  // tested in codex-binary.spec.ts.
   beforeEach(() => {
-    vi.stubEnv('AEO_CODEX_BIN', process.execPath);
+    stubPreflightMachine();
   });
 
   afterEach(() => {
@@ -525,6 +535,14 @@ describe('audit-file - money pages', () => {
 });
 
 describe('preflight - grounding search', () => {
+  beforeEach(() => {
+    stubPreflightMachine();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('should ask for the DataForSEO pair when full grounding searches through it', async () => {
     const envFile = path.join(root, 'empty.env');
 
