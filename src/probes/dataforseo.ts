@@ -89,6 +89,17 @@ export type DataForSeoProbeClient = {
 };
 
 const baseUrl = 'https://api.dataforseo.com/v3';
+export const aiOverviewEndpoint = '/serp/google/organic/live/advanced';
+
+/** aiOverviewTask is the SERP task an AI Overview probe sends. */
+export const aiOverviewTask = (query: string, locale: DataForSeoLocale) => {
+  return {
+    keyword: query,
+    language_code: locale.languageCode,
+    location_code: locale.locationCode,
+    load_async_ai_overview: true,
+  };
+};
 const requestDelayMs = 50;
 const requestTimeoutMs = 30_000;
 const maxResponseBytes = 8 * 1024 * 1024;
@@ -304,19 +315,9 @@ export const createDataForSeoProbeClient = ({
 
   const getGoogleAIOverview: DataForSeoProbeClient['getGoogleAIOverview'] =
     async (query, locale) => {
-      const tasks = [
-        {
-          keyword: query,
-          language_code: locale.languageCode,
-          location_code: locale.locationCode,
-          load_async_ai_overview: true,
-        },
-      ];
-
-      const results = await apiRequest(
-        '/serp/google/organic/live/advanced',
-        tasks,
-      );
+      const results = await apiRequest(aiOverviewEndpoint, [
+        aiOverviewTask(query, locale),
+      ]);
 
       if (results.length === 0) {
         throw new ProbeFailure(

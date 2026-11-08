@@ -43,6 +43,10 @@ const fakeAdapter = (
     estimateUsd: probeUsd.chatgpt,
     billing: 'metered',
     resolvesRedirects: false,
+    request: (promptText) => ({
+      prompt: `Asked: ${promptText}`,
+      parameters: { model: 'test-model-1' },
+    }),
     probe,
     classifyError: (error) =>
       error instanceof ProbeFailure
@@ -144,6 +148,11 @@ describe('attempt - runProbeUnit()', () => {
         runIndex: 1,
         attempt: 1,
         requestedModel: 'test-model-1',
+        adapter: 'gateway.openai@1',
+        request: {
+          prompt: 'Asked: Which file store?',
+          parameters: { model: 'test-model-1' },
+        },
       },
       {
         outcome: 'succeeded',

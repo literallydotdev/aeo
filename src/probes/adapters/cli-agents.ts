@@ -7,7 +7,11 @@ import type {
   ProbeAnswer,
 } from '../adapter';
 import { claudeCodeProfile, runClaudeCodeProbe } from './cli-claude-code';
-import { codexProfile, runCodexProbe } from './cli-codex';
+import {
+  codexProfile,
+  codexRequestParameters,
+  runCodexProbe,
+} from './cli-codex';
 import { cursorProfile, runCursorProbe } from './cli-cursor';
 import {
   agentProbeTimeoutMs,
@@ -38,6 +42,16 @@ const agentAnswerSchema = z.object({
   requestedModel: z.string().nullable().optional(),
   reportedModel: z.string().optional(),
 });
+
+// What a CLI probe's request records beyond its prompt: the CLI, and for
+// Codex the model and sandbox it is started with.
+const requestParameters: Readonly<
+  Record<AeoAgentSurface, (env: NodeJS.ProcessEnv) => Record<string, unknown>>
+> = {
+  claude_code: () => ({ cli: 'claude' }),
+  codex: codexRequestParameters,
+  cursor: () => ({ cli: 'cursor-agent' }),
+};
 
 const localProbes: Readonly<Record<AeoAgentSurface, AgentProbeFn>> = {
   claude_code: runClaudeCodeProbe,
@@ -81,6 +95,10 @@ export const createCliAdapter = (
   const adapter: ProbeAdapter = {
     ...cliAdapterProfiles[surface],
     surface,
+    request: (promptText) => ({
+      prompt: promptText,
+      parameters: requestParameters[surface](runtime.env),
+    }),
     probe: async (promptText, { signal }) => {
       const answer = await run(promptText, runtime, signal);
       const probeAnswer: ProbeAnswer = {

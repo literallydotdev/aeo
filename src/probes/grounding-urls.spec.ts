@@ -4,6 +4,7 @@ import {
   isGroundingRedirectUrl,
   resolveGroundingRedirects,
   rewriteTextUrls,
+  traceGroundingRedirects,
 } from './grounding-urls';
 
 // Ported from the console's grounding-urls.test.ts (behavioral parity), plus
@@ -57,6 +58,53 @@ describe('grounding-urls - extractGroundingRedirectUrls()', () => {
     expect(
       extractGroundingRedirectUrls('Plain answer citing https://sentry.io'),
     ).toEqual([]);
+  });
+});
+
+describe('grounding-urls - traceGroundingRedirects()', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('should report each wrapper target or why it has none, with its hops, in the order found', async () => {
+    const responses: Record<string, () => Promise<Response>> = {
+      [gotoBare]: () => Promise.resolve(redirectResponse(gotoWww, 301)),
+      [gotoWww]: () =>
+        Promise.resolve(redirectResponse('https://rival.example/blog')),
+      [redirectA]: () => Promise.resolve(new Response(null, { status: 404 })),
+      [redirectB]: () => Promise.reject(new Error('network down')),
+    };
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        const respond = responses[url];
+
+        if (!respond) {
+          throw new Error(`Unexpected request: ${url}.`);
+        }
+
+        return respond();
+      }),
+    );
+
+    const { resolved, resolutions } = await traceGroundingRedirects([
+      gotoBare,
+      redirectA,
+      redirectB,
+    ]);
+
+    expect(resolutions).toEqual([
+      { url: gotoBare, target: 'https://rival.example/blog', hops: 2 },
+      {
+        url: redirectA,
+        target: null,
+        hops: 1,
+        failure: 'HTTP 404 without a redirect',
+      },
+      { url: redirectB, target: null, hops: 0, failure: 'network down' },
+    ]);
+    expect([...resolved]).toEqual([[gotoBare, 'https://rival.example/blog']]);
   });
 });
 

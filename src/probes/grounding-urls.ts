@@ -58,22 +58,35 @@ export const extractGroundingRedirectUrls = (text: string): string[] => {
   return matches.map(stripTrailingPunctuation);
 };
 
+/** What resolving one wrapper URL found: its target, or why there is none,
+ * after how many requests. Recorded in the probe's journal operation. */
+export type RedirectResolution = {
+  url: string;
+  target: string | null;
+  hops: number;
+  failure?: string;
+};
+
 /**
- * Resolves every unique grounding-redirect URL in `urls` to its real target.
- * Returns a map of redirect URL → resolved URL; failures are simply absent
- * (callers keep the original URL), so a flaky redirect never fails a run.
- * Runs a sliding-window worker pool so one slow URL only delays its own
- * slot, not a whole batch.
+ * Resolves every unique grounding-redirect URL in `urls` to its real target
+ * and reports each attempt. `resolved` maps redirect URL → resolved URL;
+ * failures are absent from it (callers keep the original URL), so a flaky
+ * redirect never fails a run. Runs a sliding-window worker pool so one slow
+ * URL only delays its own slot, not a whole batch.
  */
-export const resolveGroundingRedirects = async (
+export const traceGroundingRedirects = async (
   urls: Iterable<string>,
   logContext: Record<string, unknown> = {},
-): Promise<Map<string, string>> => {
+): Promise<{
+  resolved: Map<string, string>;
+  resolutions: RedirectResolution[];
+}> => {
   const unique = [...new Set([...urls].filter(isGroundingRedirectUrl))];
   const resolved = new Map<string, string>();
+  const resolutions: RedirectResolution[] = [];
 
   if (unique.length === 0) {
-    return resolved;
+    return { resolved, resolutions };
   }
 
   let nextIndex = 0;
@@ -88,10 +101,12 @@ export const resolveGroundingRedirects = async (
           continue;
         }
 
-        const target = await resolveOne(url);
+        const resolution = await resolveOne(url);
 
-        if (target) {
-          resolved.set(url, target);
+        resolutions.push(resolution);
+
+        if (resolution.target) {
+          resolved.set(url, resolution.target);
         }
       }
     },
@@ -105,19 +120,36 @@ export const resolveGroundingRedirects = async (
     resolved: resolved.size,
   });
 
+  // In the order the URLs were found, whatever order the pool finished in.
+  resolutions.sort((a, b) => unique.indexOf(a.url) - unique.indexOf(b.url));
+
+  return { resolved, resolutions };
+};
+
+/** resolveGroundingRedirects is traceGroundingRedirects' map alone. */
+export const resolveGroundingRedirects = async (
+  urls: Iterable<string>,
+  logContext: Record<string, unknown> = {},
+): Promise<Map<string, string>> => {
+  const { resolved } = await traceGroundingRedirects(urls, logContext);
+
   return resolved;
 };
 
-const resolveOne = async (url: string): Promise<string | null> => {
+const resolveOne = async (url: string): Promise<RedirectResolution> => {
+  let hops = 0;
+
   try {
     let current = url;
 
-    for (let hop = 0; hop < maxRedirectHops; hop += 1) {
+    while (hops < maxRedirectHops) {
       const response = await fetch(current, {
         method: 'GET',
         redirect: 'manual',
         signal: AbortSignal.timeout(resolveTimeoutMs),
       });
+
+      hops += 1;
 
       const location = response.headers.get('location');
 
@@ -125,33 +157,50 @@ const resolveOne = async (url: string): Promise<string | null> => {
         // A non-redirect answer carries a body nobody reads; release it.
         await response.body?.cancel().catch(() => undefined);
 
-        return null;
+        return {
+          url,
+          target: null,
+          hops,
+          failure: `HTTP ${response.status} without a redirect`,
+        };
       }
 
       await response.body?.cancel().catch(() => undefined);
       const target = new URL(location, current);
 
       if (target.protocol !== 'http:' && target.protocol !== 'https:') {
-        return null;
+        return {
+          url,
+          target: null,
+          hops,
+          failure: `redirect to a ${target.protocol} URL`,
+        };
       }
 
       // Off the allow-list means we reached the real page: record it.
       if (!isGroundingRedirectUrl(target.href)) {
-        return target.href;
+        return { url, target: target.href, hops };
       }
 
       current = target.href;
     }
 
     // Still on a wrapper after the hop budget — treat as unresolved.
-    return null;
+    return {
+      url,
+      target: null,
+      hops,
+      failure: `still a redirect wrapper after ${maxRedirectHops} hops`,
+    };
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+
     log.warn('Failed to resolve grounding redirect', {
       url: url.slice(0, 120),
-      error: error instanceof Error ? error.message : String(error),
+      error: message,
     });
 
-    return null;
+    return { url, target: null, hops, failure: message.slice(0, 300) };
   }
 };
 

@@ -193,6 +193,44 @@ describe('recorder - recordingAccounting()', () => {
     ).toHaveLength(1);
   });
 
+  it('should keep the first hundred redirect resolutions of an answer and count the rest', async () => {
+    const recorder = await openRecorder(root, {
+      origin: 'local',
+      runId: 'r1',
+      ...syntheticDigests,
+    });
+    const attempt = await probeTraceOf(recorder, 'probe').start({
+      surface: 'gemini',
+      promptId: 'p1',
+      promptText: 'Which database?',
+      runIndex: 1,
+      attempt: 1,
+      requestedModel: 'google/gemini-3-flash',
+    });
+
+    await attempt.end({
+      outcome: 'succeeded',
+      text: 'An answer.',
+      retrieval: null,
+      requestedModel: 'google/gemini-3-flash',
+      redirects: Array.from({ length: 101 }, (_, index) => ({
+        url: `https://google.com/goto?url=https://source-${index}.test/`,
+        target: null,
+        hops: 1,
+        failure: 'HTTP 404 without a redirect',
+      })),
+    });
+
+    const finished = (await readEvents(root)).find(
+      (event) => event.type === 'operation_finished',
+    );
+    const details = finished?.payload.details as Record<string, unknown>;
+
+    expect(details.redirects).toHaveLength(100);
+    expect(details.redirectsOmitted).toBe(1);
+    expect(details.costUsd).toBeNull();
+  });
+
   it('should end a released call as cancelled, with no response and no cost', async () => {
     const recorder = await openRecorder(root, {
       origin: 'local',
@@ -405,7 +443,11 @@ describe('export - exportRun() with a run journal', () => {
 describe('export - exportRun() with every operation recorded', () => {
   // A journal whose writer observes every kind, with a succeeded probe
   // operation that returned each captured answer, as a local run records.
-  const fullyRecordedRun = async ({ skipProbes = 0 } = {}) => {
+  const fullyRecordedRun = async ({
+    skipProbes = 0,
+    // The details a probe operation gained in probe adapters phase 3.
+    withAdapterDetails = false,
+  } = {}) => {
     const run = await createSyntheticRun(path.join(root, 'run'));
     const recorder = await openRecorder(run.dir, {
       origin: 'local',
@@ -425,6 +467,13 @@ describe('export - exportRun() with every operation recorded', () => {
         runIndex: record.runIndex,
         attempt: 1,
         requestedModel: 'openai/gpt-5.4-mini',
+        ...(withAdapterDetails && {
+          adapter: 'gateway.openai@1',
+          request: {
+            prompt: `Search the web. ${record.promptText}`,
+            parameters: { model: 'openai/gpt-5.4-mini' },
+          },
+        }),
       });
 
       await attempt.end({
@@ -432,6 +481,16 @@ describe('export - exportRun() with every operation recorded', () => {
         text: record.probe.text,
         retrieval: null,
         requestedModel: 'openai/gpt-5.4-mini',
+        ...(withAdapterDetails && {
+          costUsd: 0.01,
+          redirects: [
+            {
+              url: 'https://google.com/goto?url=https://rivalstack.test/',
+              target: 'https://rivalstack.test/',
+              hops: 2,
+            },
+          ],
+        }),
       });
     }
 
@@ -455,6 +514,16 @@ describe('export - exportRun() with every operation recorded', () => {
 
     const { result, check } = await traceCoverageOf(run.dir);
 
+    expect(result.manifest.trace.coverage).toBe('declared');
+    expect(check?.outcome).toBe('pass');
+  });
+
+  it('should still declare coverage, at trace schema 1, when probes record their adapter, request, cost and redirects', async () => {
+    const run = await fullyRecordedRun({ withAdapterDetails: true });
+
+    const { result, check } = await traceCoverageOf(run.dir);
+
+    expect(result.manifest.traceSchemaVersion).toBe(1);
     expect(result.manifest.trace.coverage).toBe('declared');
     expect(check?.outcome).toBe('pass');
   });

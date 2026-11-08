@@ -192,6 +192,8 @@ export const runProbeAttempts = async (
           attempt,
           ...(retryOf === undefined ? {} : { retryOf }),
           requestedModel: requestedModelOf(adapter),
+          adapter: adapter.id,
+          request: adapter.request(unit.promptText),
         });
 
         return adapter.probe(unit.promptText, { signal });
@@ -386,6 +388,7 @@ export const runProbeUnit = async <P>(
     ...(answer.reportedCostUsd === undefined
       ? {}
       : { costUsd: answer.reportedCostUsd }),
+    ...(final.redirects.length > 0 ? { redirects: final.redirects } : {}),
   });
 
   if (unrecorded !== null) {

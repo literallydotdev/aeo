@@ -108,7 +108,23 @@
           "promptText": "Which managed file stores suit a small engineering team?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": "openai/gpt-5.4-mini"
+          "requestedModel": "openai/gpt-5.4-mini",
+          "adapter": "gateway.openai@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "openai/gpt-5.4-mini",
+              "maxOutputTokens": 2000,
+              "toolChoice": "required",
+              "tools": [
+                {
+                  "name": "web_search",
+                  "id": "openai.web_search",
+                  "args": {}
+                }
+              ]
+            }
+          }
         }
       },
       {
@@ -166,7 +182,8 @@
           "role": "chatgpt",
           "attempt": 1,
           "inputs": {
-            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
           },
           "details": {
             "sectionKey": null,
@@ -174,11 +191,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": "openai/gpt-5.4-mini"
+            "requestedModel": "openai/gpt-5.4-mini",
+            "adapter": "gateway.openai@1"
           }
         },
         "objects": [
-          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
         ]
       },
       {
@@ -193,7 +212,8 @@
           "details": {
             "requestedModel": "openai/gpt-5.4-mini",
             "reportedModel": "openai/gpt-5.4-mini-2026-03-17",
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": 0.0123
           }
         },
         "objects": [
@@ -295,7 +315,23 @@
           "promptText": "Which managed file stores suit a small engineering team?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": "google/gemini-3-flash"
+          "requestedModel": "google/gemini-3-flash",
+          "adapter": "gateway.google@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "google/gemini-3-flash",
+              "maxOutputTokens": 2000,
+              "toolChoice": "required",
+              "tools": [
+                {
+                  "name": "google_search",
+                  "id": "google.google_search",
+                  "args": {}
+                }
+              ]
+            }
+          }
         }
       },
       {
@@ -323,7 +359,40 @@
             ]
           },
           "requestedModel": "google/gemini-3-flash",
-          "costUsd": 0.004
+          "costUsd": 0.004,
+          "redirects": [
+            {
+              "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEqiJTC3juKpThQiJ5w0fEN8uOJTA04ot92oBPPOtMe0wfoRUP3YzC810T0kvYoFzz7D-taWdtrQpI_Qm-kpAp95dpIW7Xa8xNNki4AA5bM1g_cFlh6e9izRl2-i91jb6KbcuCV12XzDmrC-4gUVL3fI77DanLesP7Us3asc77YyLzd7CD1IseCz1Q6FSZsvw==",
+              "target": "https://source-1.example/page",
+              "hops": 1
+            },
+            {
+              "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGDpSi8Oxi0s-PtdeDdbq8JS7o5nthApYnKPv450MRndoC5Veq2vN9Ntr51dX08fgTgU5Ihipcf3StgoR82RmOE1_3MjDXyOVC16fz4N4S9UPh7bXAbJlbBMNh9NCCXrZo=",
+              "target": "https://source-2.example/page",
+              "hops": 1
+            },
+            {
+              "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFNL-PvvbvF6d-FDICQm5QKCcxjOvVcWutYXm6JNAOcpQVUTK3cbQtZBUq2QrN6usJ5dirS2wMt55DvfgkQQcbWH48xBt7SGTItWc86IC-DeNVr06Q91h6wx8BvFRy4z9Jw9_x-einl58BUknzpZYS30fXgCjziEAmYZJTv0FRNDLVb4XkeZNGM",
+              "target": "https://source-3.example/page",
+              "hops": 1
+            },
+            {
+              "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHZPD4vwN3r8_9yJEWhtLURdz69v95nVh30YzNrfkcurFzYiym5lToGx3kShGq0Gz6uFIVCIiP9aZsJ2f4e2qATdG7UwgZhp_lhF8QGhgECmIWvoM4YT7jm_01Ah76U39xu0ttU7j61fDZje1pLajiCAi9Ogvk=",
+              "target": "https://source-4.example/page",
+              "hops": 1
+            },
+            {
+              "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE6Lkr6K-fhvMLdyOTT3ghD4Kt5rJZ1GZmJVaZaarZ3yjBFO-qTsptda_GwAKpENv000iWV8aPjrnEfsq--Of8O_MW8Q1UQRWBKOXf0wQzsUADs_tx5xCe3heGFMqoKk1HSH-71DlbWL7NxaXRFU4eLx_DRTdR5dTQINDO2Gg3fdpU=",
+              "target": "https://source-5.example/page",
+              "hops": 1
+            },
+            {
+              "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHFWdchrpk-Ll8jeEIaMPFYZFtqRhhVBtdUhw0OgNmlxM2HFpsO6yPHnbw1nQDsdVMp35LNAWjALqwpk9lQ6uA0eTRKkwuK0IPhfhF4K69Czr_cdE2ni_24gSAcn0E_yxg7lplQA3NpbzUxwKfbCk6KjZlHVLrFtMctHr64xwMz3io=",
+              "target": null,
+              "hops": 1,
+              "failure": "HTTP 404 without a redirect"
+            }
+          ]
         }
       }
     ],
@@ -336,7 +405,8 @@
           "role": "gemini",
           "attempt": 1,
           "inputs": {
-            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "718fac0157de0685130edef4b43e196ced1c5c5fb6160bee59046d5cd65e39b4"
           },
           "details": {
             "sectionKey": null,
@@ -344,11 +414,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": "google/gemini-3-flash"
+            "requestedModel": "google/gemini-3-flash",
+            "adapter": "gateway.google@1"
           }
         },
         "objects": [
-          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "718fac0157de0685130edef4b43e196ced1c5c5fb6160bee59046d5cd65e39b4"
         ]
       },
       {
@@ -363,7 +435,41 @@
           "details": {
             "requestedModel": "google/gemini-3-flash",
             "reportedModel": null,
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": 0.004,
+            "redirects": [
+              {
+                "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEqiJTC3juKpThQiJ5w0fEN8uOJTA04ot92oBPPOtMe0wfoRUP3YzC810T0kvYoFzz7D-taWdtrQpI_Qm-kpAp95dpIW7Xa8xNNki4AA5bM1g_cFlh6e9izRl2-i91jb6KbcuCV12XzDmrC-4gUVL3fI77DanLesP7Us3asc77YyLzd7CD1IseCz1Q6FSZsvw==",
+                "target": "https://source-1.example/page",
+                "hops": 1
+              },
+              {
+                "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGDpSi8Oxi0s-PtdeDdbq8JS7o5nthApYnKPv450MRndoC5Veq2vN9Ntr51dX08fgTgU5Ihipcf3StgoR82RmOE1_3MjDXyOVC16fz4N4S9UPh7bXAbJlbBMNh9NCCXrZo=",
+                "target": "https://source-2.example/page",
+                "hops": 1
+              },
+              {
+                "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFNL-PvvbvF6d-FDICQm5QKCcxjOvVcWutYXm6JNAOcpQVUTK3cbQtZBUq2QrN6usJ5dirS2wMt55DvfgkQQcbWH48xBt7SGTItWc86IC-DeNVr06Q91h6wx8BvFRy4z9Jw9_x-einl58BUknzpZYS30fXgCjziEAmYZJTv0FRNDLVb4XkeZNGM",
+                "target": "https://source-3.example/page",
+                "hops": 1
+              },
+              {
+                "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHZPD4vwN3r8_9yJEWhtLURdz69v95nVh30YzNrfkcurFzYiym5lToGx3kShGq0Gz6uFIVCIiP9aZsJ2f4e2qATdG7UwgZhp_lhF8QGhgECmIWvoM4YT7jm_01Ah76U39xu0ttU7j61fDZje1pLajiCAi9Ogvk=",
+                "target": "https://source-4.example/page",
+                "hops": 1
+              },
+              {
+                "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE6Lkr6K-fhvMLdyOTT3ghD4Kt5rJZ1GZmJVaZaarZ3yjBFO-qTsptda_GwAKpENv000iWV8aPjrnEfsq--Of8O_MW8Q1UQRWBKOXf0wQzsUADs_tx5xCe3heGFMqoKk1HSH-71DlbWL7NxaXRFU4eLx_DRTdR5dTQINDO2Gg3fdpU=",
+                "target": "https://source-5.example/page",
+                "hops": 1
+              },
+              {
+                "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHFWdchrpk-Ll8jeEIaMPFYZFtqRhhVBtdUhw0OgNmlxM2HFpsO6yPHnbw1nQDsdVMp35LNAWjALqwpk9lQ6uA0eTRKkwuK0IPhfhF4K69Czr_cdE2ni_24gSAcn0E_yxg7lplQA3NpbzUxwKfbCk6KjZlHVLrFtMctHr64xwMz3io=",
+                "target": null,
+                "hops": 1,
+                "failure": "HTTP 404 without a redirect"
+              }
+            ]
           }
         },
         "objects": [
@@ -496,7 +602,25 @@
           "promptText": "Which managed file stores suit a small engineering team?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": "anthropic/claude-sonnet-4.5"
+          "requestedModel": "anthropic/claude-sonnet-4.5",
+          "adapter": "gateway.anthropic@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "anthropic/claude-sonnet-4.5",
+              "maxOutputTokens": 2000,
+              "toolChoice": "required",
+              "tools": [
+                {
+                  "name": "web_search",
+                  "id": "anthropic.web_search_20250305",
+                  "args": {
+                    "maxUses": 5
+                  }
+                }
+              ]
+            }
+          }
         }
       },
       {
@@ -540,7 +664,8 @@
           "role": "claude",
           "attempt": 1,
           "inputs": {
-            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "6ed7931542bbeb379206fd9b32e8874205f890d2742703a763666a223fbf3a06"
           },
           "details": {
             "sectionKey": null,
@@ -548,11 +673,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": "anthropic/claude-sonnet-4.5"
+            "requestedModel": "anthropic/claude-sonnet-4.5",
+            "adapter": "gateway.anthropic@1"
           }
         },
         "objects": [
-          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "6ed7931542bbeb379206fd9b32e8874205f890d2742703a763666a223fbf3a06"
         ]
       },
       {
@@ -567,7 +694,8 @@
           "details": {
             "requestedModel": "anthropic/claude-sonnet-4.5",
             "reportedModel": null,
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": 0.066988
           }
         },
         "objects": [
@@ -641,7 +769,15 @@
           "promptText": "Which managed file stores suit a small engineering team?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": "perplexity/sonar-pro"
+          "requestedModel": "perplexity/sonar-pro",
+          "adapter": "gateway.perplexity@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "perplexity/sonar-pro",
+              "maxOutputTokens": 2000
+            }
+          }
         }
       },
       {
@@ -667,7 +803,8 @@
           "role": "perplexity",
           "attempt": 1,
           "inputs": {
-            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "0d14d33e657bf0ead149e06219ad817f2b187409521bb6c3aeae0616c8c5560d"
           },
           "details": {
             "sectionKey": null,
@@ -675,11 +812,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": "perplexity/sonar-pro"
+            "requestedModel": "perplexity/sonar-pro",
+            "adapter": "gateway.perplexity@1"
           }
         },
         "objects": [
-          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "0d14d33e657bf0ead149e06219ad817f2b187409521bb6c3aeae0616c8c5560d"
         ]
       },
       {
@@ -694,7 +833,8 @@
           "details": {
             "requestedModel": "perplexity/sonar-pro",
             "reportedModel": null,
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": 0.005
           }
         },
         "objects": [
@@ -735,7 +875,15 @@
           "promptText": "Which managed file stores suit a small engineering team?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": "perplexity/sonar-pro"
+          "requestedModel": "perplexity/sonar-pro",
+          "adapter": "gateway.perplexity@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "perplexity/sonar-pro",
+              "maxOutputTokens": 2000
+            }
+          }
         }
       },
       {
@@ -755,7 +903,15 @@
           "runIndex": 1,
           "attempt": 2,
           "retryOf": "op-1",
-          "requestedModel": "perplexity/sonar-pro"
+          "requestedModel": "perplexity/sonar-pro",
+          "adapter": "gateway.perplexity@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "perplexity/sonar-pro",
+              "maxOutputTokens": 2000
+            }
+          }
         }
       },
       {
@@ -776,7 +932,8 @@
           "role": "perplexity",
           "attempt": 1,
           "inputs": {
-            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "0d14d33e657bf0ead149e06219ad817f2b187409521bb6c3aeae0616c8c5560d"
           },
           "details": {
             "sectionKey": null,
@@ -784,11 +941,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": "perplexity/sonar-pro"
+            "requestedModel": "perplexity/sonar-pro",
+            "adapter": "gateway.perplexity@1"
           }
         },
         "objects": [
-          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "0d14d33e657bf0ead149e06219ad817f2b187409521bb6c3aeae0616c8c5560d"
         ]
       },
       {
@@ -812,7 +971,8 @@
           "role": "perplexity",
           "attempt": 2,
           "inputs": {
-            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "0d14d33e657bf0ead149e06219ad817f2b187409521bb6c3aeae0616c8c5560d"
           },
           "details": {
             "sectionKey": null,
@@ -820,11 +980,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": "op-1",
-            "requestedModel": "perplexity/sonar-pro"
+            "requestedModel": "perplexity/sonar-pro",
+            "adapter": "gateway.perplexity@1"
           }
         },
         "objects": [
-          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "0d14d33e657bf0ead149e06219ad817f2b187409521bb6c3aeae0616c8c5560d"
         ]
       },
       {
@@ -964,7 +1126,23 @@
           "promptText": "Which managed file stores suit a small engineering team?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": "openai/gpt-5.4-mini"
+          "requestedModel": "openai/gpt-5.4-mini",
+          "adapter": "gateway.openai@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "openai/gpt-5.4-mini",
+              "maxOutputTokens": 2000,
+              "toolChoice": "required",
+              "tools": [
+                {
+                  "name": "web_search",
+                  "id": "openai.web_search",
+                  "args": {}
+                }
+              ]
+            }
+          }
         }
       },
       {
@@ -1021,7 +1199,8 @@
           "role": "chatgpt",
           "attempt": 1,
           "inputs": {
-            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
           },
           "details": {
             "sectionKey": null,
@@ -1029,11 +1208,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": "openai/gpt-5.4-mini"
+            "requestedModel": "openai/gpt-5.4-mini",
+            "adapter": "gateway.openai@1"
           }
         },
         "objects": [
-          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
         ]
       },
       {
@@ -1048,7 +1229,8 @@
           "details": {
             "requestedModel": "openai/gpt-5.4-mini",
             "reportedModel": null,
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": 0.012
           }
         },
         "objects": [
@@ -1139,7 +1321,23 @@
           "promptText": "Which managed file stores suit a small engineering team?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": "openai/gpt-5.4-mini"
+          "requestedModel": "openai/gpt-5.4-mini",
+          "adapter": "gateway.openai@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "openai/gpt-5.4-mini",
+              "maxOutputTokens": 2000,
+              "toolChoice": "required",
+              "tools": [
+                {
+                  "name": "web_search",
+                  "id": "openai.web_search",
+                  "args": {}
+                }
+              ]
+            }
+          }
         }
       },
       {
@@ -1161,7 +1359,8 @@
           "role": "chatgpt",
           "attempt": 1,
           "inputs": {
-            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
           },
           "details": {
             "sectionKey": null,
@@ -1169,11 +1368,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": "openai/gpt-5.4-mini"
+            "requestedModel": "openai/gpt-5.4-mini",
+            "adapter": "gateway.openai@1"
           }
         },
         "objects": [
-          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
         ]
       },
       {
@@ -1187,7 +1388,8 @@
           "details": {
             "requestedModel": "openai/gpt-5.4-mini",
             "reportedModel": null,
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": null
           }
         },
         "objects": [
@@ -1258,7 +1460,25 @@
           "promptText": "Which managed file stores suit a small engineering team?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": "anthropic/claude-sonnet-4.5"
+          "requestedModel": "anthropic/claude-sonnet-4.5",
+          "adapter": "gateway.anthropic@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "anthropic/claude-sonnet-4.5",
+              "maxOutputTokens": 2000,
+              "toolChoice": "required",
+              "tools": [
+                {
+                  "name": "web_search",
+                  "id": "anthropic.web_search_20250305",
+                  "args": {
+                    "maxUses": 5
+                  }
+                }
+              ]
+            }
+          }
         }
       },
       {
@@ -1278,7 +1498,25 @@
           "runIndex": 1,
           "attempt": 2,
           "retryOf": "op-1",
-          "requestedModel": "anthropic/claude-sonnet-4.5"
+          "requestedModel": "anthropic/claude-sonnet-4.5",
+          "adapter": "gateway.anthropic@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "anthropic/claude-sonnet-4.5",
+              "maxOutputTokens": 2000,
+              "toolChoice": "required",
+              "tools": [
+                {
+                  "name": "web_search",
+                  "id": "anthropic.web_search_20250305",
+                  "args": {
+                    "maxUses": 5
+                  }
+                }
+              ]
+            }
+          }
         }
       },
       {
@@ -1299,7 +1537,8 @@
           "role": "claude",
           "attempt": 1,
           "inputs": {
-            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "6ed7931542bbeb379206fd9b32e8874205f890d2742703a763666a223fbf3a06"
           },
           "details": {
             "sectionKey": null,
@@ -1307,11 +1546,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": "anthropic/claude-sonnet-4.5"
+            "requestedModel": "anthropic/claude-sonnet-4.5",
+            "adapter": "gateway.anthropic@1"
           }
         },
         "objects": [
-          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "6ed7931542bbeb379206fd9b32e8874205f890d2742703a763666a223fbf3a06"
         ]
       },
       {
@@ -1335,7 +1576,8 @@
           "role": "claude",
           "attempt": 2,
           "inputs": {
-            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "6ed7931542bbeb379206fd9b32e8874205f890d2742703a763666a223fbf3a06"
           },
           "details": {
             "sectionKey": null,
@@ -1343,11 +1585,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": "op-1",
-            "requestedModel": "anthropic/claude-sonnet-4.5"
+            "requestedModel": "anthropic/claude-sonnet-4.5",
+            "adapter": "gateway.anthropic@1"
           }
         },
         "objects": [
-          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "6ed7931542bbeb379206fd9b32e8874205f890d2742703a763666a223fbf3a06"
         ]
       },
       {
@@ -1495,7 +1739,17 @@
           "promptText": "Which managed file stores suit a small engineering team?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": null
+          "requestedModel": null,
+          "adapter": "dataforseo.ai_overview@1",
+          "request": {
+            "prompt": "Which managed file stores suit a small engineering team?",
+            "parameters": {
+              "endpoint": "/serp/google/organic/live/advanced",
+              "language_code": "en",
+              "location_code": 2840,
+              "load_async_ai_overview": true
+            }
+          }
         }
       },
       {
@@ -1520,7 +1774,8 @@
           "role": "google_ai_overview",
           "attempt": 1,
           "inputs": {
-            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "602d79b162745dd1147818f9d4af5ff5e87a3f78ee0e524ce6b24ca7532ccd45"
           },
           "details": {
             "sectionKey": null,
@@ -1528,11 +1783,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": null
+            "requestedModel": null,
+            "adapter": "dataforseo.ai_overview@1"
           }
         },
         "objects": [
-          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "602d79b162745dd1147818f9d4af5ff5e87a3f78ee0e524ce6b24ca7532ccd45"
         ]
       },
       {
@@ -1547,7 +1804,8 @@
           "details": {
             "requestedModel": null,
             "reportedModel": null,
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": null
           }
         },
         "objects": [
@@ -1616,7 +1874,17 @@
           "promptText": "Which managed file stores suit a small engineering team?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": null
+          "requestedModel": null,
+          "adapter": "dataforseo.ai_overview@1",
+          "request": {
+            "prompt": "Which managed file stores suit a small engineering team?",
+            "parameters": {
+              "endpoint": "/serp/google/organic/live/advanced",
+              "language_code": "en",
+              "location_code": 2840,
+              "load_async_ai_overview": true
+            }
+          }
         }
       },
       {
@@ -1628,7 +1896,20 @@
             "exposure": "none",
             "calls": []
           },
-          "requestedModel": null
+          "requestedModel": null,
+          "redirects": [
+            {
+              "url": "https://google.com/goto?url=https://rival.example/blog",
+              "target": "https://rival.example/blog",
+              "hops": 2
+            },
+            {
+              "url": "https://google.com/goto?url=https://gone.example/",
+              "target": null,
+              "hops": 1,
+              "failure": "HTTP 404 without a redirect"
+            }
+          ]
         }
       }
     ],
@@ -1641,7 +1922,8 @@
           "role": "google_ai_overview",
           "attempt": 1,
           "inputs": {
-            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "602d79b162745dd1147818f9d4af5ff5e87a3f78ee0e524ce6b24ca7532ccd45"
           },
           "details": {
             "sectionKey": null,
@@ -1649,11 +1931,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": null
+            "requestedModel": null,
+            "adapter": "dataforseo.ai_overview@1"
           }
         },
         "objects": [
-          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "602d79b162745dd1147818f9d4af5ff5e87a3f78ee0e524ce6b24ca7532ccd45"
         ]
       },
       {
@@ -1668,7 +1952,21 @@
           "details": {
             "requestedModel": null,
             "reportedModel": null,
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": null,
+            "redirects": [
+              {
+                "url": "https://google.com/goto?url=https://rival.example/blog",
+                "target": "https://rival.example/blog",
+                "hops": 2
+              },
+              {
+                "url": "https://google.com/goto?url=https://gone.example/",
+                "target": null,
+                "hops": 1,
+                "failure": "HTTP 404 without a redirect"
+              }
+            ]
           }
         },
         "objects": [
@@ -1749,7 +2047,17 @@
           "promptText": "Which managed file stores suit a small engineering team?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": null
+          "requestedModel": null,
+          "adapter": "dataforseo.ai_overview@1",
+          "request": {
+            "prompt": "Which managed file stores suit a small engineering team?",
+            "parameters": {
+              "endpoint": "/serp/google/organic/live/advanced",
+              "language_code": "en",
+              "location_code": 2840,
+              "load_async_ai_overview": true
+            }
+          }
         }
       },
       {
@@ -1774,7 +2082,8 @@
           "role": "google_ai_overview",
           "attempt": 1,
           "inputs": {
-            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "602d79b162745dd1147818f9d4af5ff5e87a3f78ee0e524ce6b24ca7532ccd45"
           },
           "details": {
             "sectionKey": null,
@@ -1782,11 +2091,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": null
+            "requestedModel": null,
+            "adapter": "dataforseo.ai_overview@1"
           }
         },
         "objects": [
-          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "602d79b162745dd1147818f9d4af5ff5e87a3f78ee0e524ce6b24ca7532ccd45"
         ]
       },
       {
@@ -1801,7 +2112,8 @@
           "details": {
             "requestedModel": null,
             "reportedModel": null,
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": null
           }
         },
         "objects": [
@@ -1872,7 +2184,17 @@
           "promptText": "Which managed file stores suit a small engineering team?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": null
+          "requestedModel": null,
+          "adapter": "dataforseo.ai_overview@1",
+          "request": {
+            "prompt": "Which managed file stores suit a small engineering team?",
+            "parameters": {
+              "endpoint": "/serp/google/organic/live/advanced",
+              "language_code": "en",
+              "location_code": 2840,
+              "load_async_ai_overview": true
+            }
+          }
         }
       },
       {
@@ -1898,7 +2220,8 @@
           "role": "google_ai_overview",
           "attempt": 1,
           "inputs": {
-            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "602d79b162745dd1147818f9d4af5ff5e87a3f78ee0e524ce6b24ca7532ccd45"
           },
           "details": {
             "sectionKey": null,
@@ -1906,11 +2229,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": null
+            "requestedModel": null,
+            "adapter": "dataforseo.ai_overview@1"
           }
         },
         "objects": [
-          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "602d79b162745dd1147818f9d4af5ff5e87a3f78ee0e524ce6b24ca7532ccd45"
         ]
       },
       {
@@ -1925,7 +2250,8 @@
           "details": {
             "requestedModel": null,
             "reportedModel": null,
-            "noOverview": true
+            "noOverview": true,
+            "costUsd": null
           }
         },
         "objects": [
@@ -2056,7 +2382,23 @@
           "promptText": "Which managed file stores suit a small engineering team?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": "openai/gpt-5.4-mini"
+          "requestedModel": "openai/gpt-5.4-mini",
+          "adapter": "gateway.openai@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "openai/gpt-5.4-mini",
+              "maxOutputTokens": 2000,
+              "toolChoice": "required",
+              "tools": [
+                {
+                  "name": "web_search",
+                  "id": "openai.web_search",
+                  "args": {}
+                }
+              ]
+            }
+          }
         }
       },
       {
@@ -2076,7 +2418,23 @@
           "runIndex": 1,
           "attempt": 2,
           "retryOf": "op-1",
-          "requestedModel": "openai/gpt-5.4-mini"
+          "requestedModel": "openai/gpt-5.4-mini",
+          "adapter": "gateway.openai@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "openai/gpt-5.4-mini",
+              "maxOutputTokens": 2000,
+              "toolChoice": "required",
+              "tools": [
+                {
+                  "name": "web_search",
+                  "id": "openai.web_search",
+                  "args": {}
+                }
+              ]
+            }
+          }
         }
       },
       {
@@ -2133,7 +2491,8 @@
           "role": "chatgpt",
           "attempt": 1,
           "inputs": {
-            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
           },
           "details": {
             "sectionKey": null,
@@ -2141,11 +2500,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": "openai/gpt-5.4-mini"
+            "requestedModel": "openai/gpt-5.4-mini",
+            "adapter": "gateway.openai@1"
           }
         },
         "objects": [
-          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
         ]
       },
       {
@@ -2169,7 +2530,8 @@
           "role": "chatgpt",
           "attempt": 2,
           "inputs": {
-            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
           },
           "details": {
             "sectionKey": null,
@@ -2177,11 +2539,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": "op-1",
-            "requestedModel": "openai/gpt-5.4-mini"
+            "requestedModel": "openai/gpt-5.4-mini",
+            "adapter": "gateway.openai@1"
           }
         },
         "objects": [
-          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
         ]
       },
       {
@@ -2196,7 +2560,8 @@
           "details": {
             "requestedModel": "openai/gpt-5.4-mini",
             "reportedModel": null,
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": 0.01461745
           }
         },
         "objects": [
@@ -2259,7 +2624,15 @@
           "promptText": "Which managed file stores suit a small engineering team?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": "perplexity/sonar-pro"
+          "requestedModel": "perplexity/sonar-pro",
+          "adapter": "gateway.perplexity@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "perplexity/sonar-pro",
+              "maxOutputTokens": 2000
+            }
+          }
         }
       },
       {
@@ -2284,7 +2657,8 @@
           "role": "perplexity",
           "attempt": 1,
           "inputs": {
-            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "0d14d33e657bf0ead149e06219ad817f2b187409521bb6c3aeae0616c8c5560d"
           },
           "details": {
             "sectionKey": null,
@@ -2292,11 +2666,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": "perplexity/sonar-pro"
+            "requestedModel": "perplexity/sonar-pro",
+            "adapter": "gateway.perplexity@1"
           }
         },
         "objects": [
-          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa"
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "0d14d33e657bf0ead149e06219ad817f2b187409521bb6c3aeae0616c8c5560d"
         ]
       },
       {
@@ -2311,7 +2687,8 @@
           "details": {
             "requestedModel": "perplexity/sonar-pro",
             "reportedModel": null,
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": null
           }
         },
         "objects": [

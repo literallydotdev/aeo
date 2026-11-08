@@ -5,7 +5,12 @@ import {
   type ProbeAdapter,
   type ProbeAdapterProfile,
 } from '../adapter';
-import type { DataForSeoLocale, DataForSeoProbeClient } from '../dataforseo';
+import {
+  aiOverviewEndpoint,
+  aiOverviewTask,
+  type DataForSeoLocale,
+  type DataForSeoProbeClient,
+} from '../dataforseo';
 import { ProbeFailure } from '../failure';
 import { classifyGatewayFailure } from './gateway-chat';
 
@@ -52,6 +57,14 @@ export const createDataForSeoAiOverviewAdapter = ({
   const adapter: ProbeAdapter = {
     ...dataForSeoAiOverviewProfile,
     surface,
+    request: (promptText) => {
+      const { keyword, ...parameters } = aiOverviewTask(promptText, locale);
+
+      return {
+        prompt: keyword,
+        parameters: { endpoint: aiOverviewEndpoint, ...parameters },
+      };
+    },
     probe: async (promptText) => {
       if (!client) {
         throw new ProbeFailure('auth', 'DataForSEO credentials not configured');

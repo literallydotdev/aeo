@@ -55,6 +55,23 @@ const codexProbeModel = (env: NodeJS.ProcessEnv): string | null => {
   return model === '' ? null : model;
 };
 
+// Read-only unless the runtime opts out: the probe asks a question, it must
+// not touch the machine.
+const codexSandboxOf = (env: NodeJS.ProcessEnv): string => {
+  return env.AEO_CODEX_SANDBOX === 'danger-full-access'
+    ? 'danger-full-access'
+    : 'read-only';
+};
+
+/** The parameters a Codex probe runs with, as its request records them. */
+export const codexRequestParameters = (env: NodeJS.ProcessEnv) => {
+  return {
+    cli: 'codex',
+    model: codexProbeModel(env),
+    sandbox: codexSandboxOf(env),
+  };
+};
+
 export const runCodexProbe: AgentProbeFn = async (
   promptText,
   runtime,
@@ -69,9 +86,7 @@ export const runCodexProbe: AgentProbeFn = async (
         '--json',
         ...(requestedModel ? ['--model', requestedModel] : []),
         '--sandbox',
-        runtime.env.AEO_CODEX_SANDBOX === 'danger-full-access'
-          ? 'danger-full-access'
-          : 'read-only',
+        codexSandboxOf(runtime.env),
         '--skip-git-repo-check',
         '--ignore-user-config',
         '--ephemeral',

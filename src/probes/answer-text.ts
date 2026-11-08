@@ -5,8 +5,9 @@ import { retrievalResultUrls, rewriteRetrievalUrls } from './chat-retrieval';
 import {
   extractGroundingRedirectUrls,
   isGroundingRedirectUrl,
-  resolveGroundingRedirects,
   rewriteTextUrls,
+  traceGroundingRedirects,
+  type RedirectResolution,
 } from './grounding-urls';
 
 // ============================================================================
@@ -109,7 +110,13 @@ export const renderAnswer = (answer: ProbeAnswer): string => {
   }
 };
 
-export type FinalAnswer = { text: string; retrieval: RetrievalLog | null };
+export type FinalAnswer = {
+  text: string;
+  retrieval: RetrievalLog | null;
+  /** Every redirect resolution attempted, for the journal; empty when the
+   * answer named no wrapper or the adapter keeps them. */
+  redirects: RedirectResolution[];
+};
 
 /** finalizeAnswer renders, strips U+0000 and resolves redirects, in that
  * order. */
@@ -123,10 +130,10 @@ export const finalizeAnswer = async (
   const text = renderAnswer(answer).replaceAll('\u0000', '');
 
   if (!resolvesRedirects) {
-    return { text, retrieval: answer.retrieval };
+    return { text, retrieval: answer.retrieval, redirects: [] };
   }
 
-  const resolved = await resolveGroundingRedirects(
+  const { resolved, resolutions } = await traceGroundingRedirects(
     [
       ...extractGroundingRedirectUrls(text),
       ...(answer.retrieval ? retrievalResultUrls(answer.retrieval) : []),
@@ -139,6 +146,7 @@ export const finalizeAnswer = async (
     retrieval: answer.retrieval
       ? rewriteRetrievalUrls(answer.retrieval, resolved)
       : null,
+    redirects: resolutions,
   };
 
   return finalAnswer;

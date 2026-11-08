@@ -51,6 +51,22 @@
         "runIndex": 1,
         "attempt": 1,
         "requestedModel": "openai/gpt-5.4-mini",
+        "adapter": "gateway.openai@1",
+        "request": {
+          "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file store suits a small engineering team?",
+          "parameters": {
+            "model": "openai/gpt-5.4-mini",
+            "maxOutputTokens": 2000,
+            "toolChoice": "required",
+            "tools": [
+              {
+                "name": "web_search",
+                "id": "openai.web_search",
+                "args": {}
+              }
+            ]
+          }
+        },
         "sectionKey": "file_stores"
       },
       {
@@ -60,6 +76,22 @@
         "runIndex": 1,
         "attempt": 1,
         "requestedModel": "google/gemini-3-flash",
+        "adapter": "gateway.google@1",
+        "request": {
+          "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file store suits a small engineering team?",
+          "parameters": {
+            "model": "google/gemini-3-flash",
+            "maxOutputTokens": 2000,
+            "toolChoice": "required",
+            "tools": [
+              {
+                "name": "google_search",
+                "id": "google.google_search",
+                "args": {}
+              }
+            ]
+          }
+        },
         "sectionKey": "file_stores"
       },
       {
@@ -69,6 +101,24 @@
         "runIndex": 1,
         "attempt": 1,
         "requestedModel": "anthropic/claude-sonnet-4.5",
+        "adapter": "gateway.anthropic@1",
+        "request": {
+          "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file store suits a small engineering team?",
+          "parameters": {
+            "model": "anthropic/claude-sonnet-4.5",
+            "maxOutputTokens": 2000,
+            "toolChoice": "required",
+            "tools": [
+              {
+                "name": "web_search",
+                "id": "anthropic.web_search_20250305",
+                "args": {
+                  "maxUses": 5
+                }
+              }
+            ]
+          }
+        },
         "sectionKey": "file_stores"
       },
       {
@@ -78,6 +128,14 @@
         "runIndex": 1,
         "attempt": 1,
         "requestedModel": "perplexity/sonar-pro",
+        "adapter": "gateway.perplexity@1",
+        "request": {
+          "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file store suits a small engineering team?",
+          "parameters": {
+            "model": "perplexity/sonar-pro",
+            "maxOutputTokens": 2000
+          }
+        },
         "sectionKey": "file_stores"
       },
       {
@@ -87,6 +145,16 @@
         "runIndex": 1,
         "attempt": 1,
         "requestedModel": null,
+        "adapter": "dataforseo.ai_overview@1",
+        "request": {
+          "prompt": "Which managed file store suits a small engineering team?",
+          "parameters": {
+            "endpoint": "/serp/google/organic/live/advanced",
+            "language_code": "en",
+            "location_code": 2840,
+            "load_async_ai_overview": true
+          }
+        },
         "sectionKey": "file_stores"
       },
       {
@@ -96,6 +164,13 @@
         "runIndex": 1,
         "attempt": 1,
         "requestedModel": null,
+        "adapter": "cli.claude_code@1",
+        "request": {
+          "prompt": "Which managed file store suits a small engineering team?",
+          "parameters": {
+            "cli": "claude"
+          }
+        },
         "sectionKey": "file_stores"
       },
       {
@@ -105,6 +180,15 @@
         "runIndex": 1,
         "attempt": 1,
         "requestedModel": null,
+        "adapter": "cli.codex@1",
+        "request": {
+          "prompt": "Which managed file store suits a small engineering team?",
+          "parameters": {
+            "cli": "codex",
+            "model": "gpt-5.6-sol",
+            "sandbox": "read-only"
+          }
+        },
         "sectionKey": "file_stores"
       },
       {
@@ -114,6 +198,13 @@
         "runIndex": 1,
         "attempt": 1,
         "requestedModel": null,
+        "adapter": "cli.cursor@1",
+        "request": {
+          "prompt": "Which managed file store suits a small engineering team?",
+          "parameters": {
+            "cli": "cursor-agent"
+          }
+        },
         "sectionKey": "file_stores"
       }
     ],

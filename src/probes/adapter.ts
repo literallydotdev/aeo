@@ -87,6 +87,14 @@ export type ProbeAnswer = {
 
 export type ProbeContext = { signal?: AbortSignal };
 
+/** A request as the adapter dispatches it: the prompt it sends, with any
+ * prefix, and the parameters that shape the answer. Recorded when an
+ * attempt starts (spec §4.9). */
+export type ProbeRequest = {
+  prompt: string;
+  parameters: Readonly<Record<string, unknown>>;
+};
+
 /** The models a chat adapter asks through, by model ID: the run's Vercel AI
  * Gateway provider, created with the run's own key. */
 export type ChatModelProvider = (modelId: string) => LanguageModel;
@@ -98,6 +106,9 @@ export type ProbeAdapter = ProbeAdapterProfile & {
   surface: AeoSurface;
   /** The model the binding pins, for an adapter that calls a model API. */
   model?: string;
+  /** The request `probe` dispatches for `promptText`, built from the same
+   * values the dispatch uses. */
+  request: (promptText: string) => ProbeRequest;
   probe: (promptText: string, ctx: ProbeContext) => Promise<ProbeAnswer>;
   /** The message is journaled, so it never carries the prompt. */
   classifyError: (error: unknown) => ProbeFailureClass;

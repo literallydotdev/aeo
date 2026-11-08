@@ -51,6 +51,10 @@ export const createGatewayPerplexityAdapter = ({
     ...gatewayPerplexityProfile,
     surface,
     model,
+    request: (promptText) => ({
+      prompt: `${searchPromptPrefix}${promptText}`,
+      parameters: { model, maxOutputTokens: probeMaxOutputTokens },
+    }),
     probe: async (promptText) => {
       let streamFailure: unknown;
       const stream = streamText({

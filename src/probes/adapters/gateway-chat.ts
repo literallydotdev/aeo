@@ -3,6 +3,7 @@ import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
 import { anthropic } from '@ai-sdk/anthropic';
 import { createLog } from '../../lib/log';
+import { isRecord } from '../../lib/type-guards';
 import { gatewayCostUsd } from '../../models/gateway-cost';
 import { probeUsd } from '../../models/cost-coefficients';
 import type { RetrievalLog } from '../../schema';
@@ -14,6 +15,7 @@ import {
   type ProbeAdapterProfile,
   type ProbeAnswer,
   type ProbeFailureClass,
+  type ProbeRequest,
 } from '../adapter';
 import {
   extractAnthropicRetrieval,
@@ -74,11 +76,37 @@ type SearchProbeResult = {
   providerMetadata: unknown;
 };
 
+/** describeTools names each provider tool a request carries, with its
+ * arguments: the tool is part of the method. */
+export const describeTools = (tools: Record<string, unknown>) => {
+  return Object.entries(tools).map(([name, tool]) => ({
+    name,
+    id: isRecord(tool) ? tool.id : undefined,
+    args: isRecord(tool) ? tool.args : undefined,
+  }));
+};
+
 type GatewayChatMethod = {
   profile: ProbeAdapterProfile;
   /** Built per call, as the request carries it. */
   tools: () => Record<string, unknown>;
   extractRetrieval: (result: SearchProbeResult) => RetrievalLog;
+};
+
+const searchRequest = (
+  model: string,
+  promptText: string,
+  tools: Record<string, unknown>,
+): ProbeRequest => {
+  return {
+    prompt: `${searchPromptPrefix}${promptText}`,
+    parameters: {
+      model,
+      maxOutputTokens: probeMaxOutputTokens,
+      toolChoice: 'required',
+      tools: describeTools(tools),
+    },
+  };
 };
 
 const searchProbe = async ({
@@ -94,7 +122,8 @@ const searchProbe = async ({
   promptText: string;
   method: GatewayChatMethod;
 }): Promise<ProbeAnswer> => {
-  const prompt = `${searchPromptPrefix}${promptText}`;
+  const tools = method.tools();
+  const { prompt } = searchRequest(model, promptText, tools);
   // Streamed like every other non-trivial response: the gateway abandons a
   // non-streaming request at 340 seconds whatever the caller's own timeout.
   // Without an `onError` the SDK prints a provider failure with
@@ -108,7 +137,7 @@ const searchProbe = async ({
     model: gateway(model),
     prompt,
     maxOutputTokens: probeMaxOutputTokens,
-    tools: toProviderToolSet(method.tools()),
+    tools: toProviderToolSet(tools),
     toolChoice: 'required',
     maxRetries: 0,
     abortSignal: AbortSignal.timeout(chatProbeTimeoutMs),
@@ -313,6 +342,7 @@ export const createGatewayChatAdapter = (
     ...method.profile,
     surface,
     model,
+    request: (promptText) => searchRequest(model, promptText, method.tools()),
     probe: (promptText) =>
       searchProbe({ surface, gateway, model, promptText, method }),
     classifyError: classifyGatewayFailure,

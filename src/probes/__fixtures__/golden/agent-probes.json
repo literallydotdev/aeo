@@ -111,7 +111,14 @@
           "promptText": "Which managed file store should a small team adopt?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": null
+          "requestedModel": null,
+          "adapter": "cli.claude_code@1",
+          "request": {
+            "prompt": "Which managed file store should a small team adopt?",
+            "parameters": {
+              "cli": "claude"
+            }
+          }
         }
       },
       {
@@ -164,7 +171,8 @@
           "role": "claude_code",
           "attempt": 1,
           "inputs": {
-            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c"
+            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+            "request": "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
           },
           "details": {
             "sectionKey": null,
@@ -172,11 +180,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": null
+            "requestedModel": null,
+            "adapter": "cli.claude_code@1"
           }
         },
         "objects": [
-          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c"
+          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+          "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
         ]
       },
       {
@@ -191,7 +201,8 @@
           "details": {
             "requestedModel": null,
             "reportedModel": "claude-opus-5",
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": null
           }
         },
         "objects": [
@@ -259,7 +270,14 @@
           "promptText": "Which managed file store should a small team adopt?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": null
+          "requestedModel": null,
+          "adapter": "cli.claude_code@1",
+          "request": {
+            "prompt": "Which managed file store should a small team adopt?",
+            "parameters": {
+              "cli": "claude"
+            }
+          }
         }
       },
       {
@@ -285,7 +303,8 @@
           "role": "claude_code",
           "attempt": 1,
           "inputs": {
-            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c"
+            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+            "request": "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
           },
           "details": {
             "sectionKey": null,
@@ -293,11 +312,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": null
+            "requestedModel": null,
+            "adapter": "cli.claude_code@1"
           }
         },
         "objects": [
-          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c"
+          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+          "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
         ]
       },
       {
@@ -312,7 +333,8 @@
           "details": {
             "requestedModel": null,
             "reportedModel": "claude-opus-5",
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": null
           }
         },
         "objects": [
@@ -378,7 +400,14 @@
           "promptText": "Which managed file store should a small team adopt?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": null
+          "requestedModel": null,
+          "adapter": "cli.claude_code@1",
+          "request": {
+            "prompt": "Which managed file store should a small team adopt?",
+            "parameters": {
+              "cli": "claude"
+            }
+          }
         }
       },
       {
@@ -403,7 +432,8 @@
           "role": "claude_code",
           "attempt": 1,
           "inputs": {
-            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c"
+            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+            "request": "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
           },
           "details": {
             "sectionKey": null,
@@ -411,11 +441,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": null
+            "requestedModel": null,
+            "adapter": "cli.claude_code@1"
           }
         },
         "objects": [
-          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c"
+          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+          "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
         ]
       },
       {
@@ -430,7 +462,8 @@
           "details": {
             "requestedModel": null,
             "reportedModel": null,
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": null
           }
         },
         "objects": [
@@ -512,7 +545,16 @@
           "promptText": "Which managed file store should a small team adopt?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": null
+          "requestedModel": null,
+          "adapter": "cli.codex@1",
+          "request": {
+            "prompt": "Which managed file store should a small team adopt?",
+            "parameters": {
+              "cli": "codex",
+              "model": "gpt-5.6-sol",
+              "sandbox": "read-only"
+            }
+          }
         }
       },
       {
@@ -545,7 +587,8 @@
           "role": "codex",
           "attempt": 1,
           "inputs": {
-            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c"
+            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+            "request": "ef8595216dc8b622ddcd2d7db40dbc7cf0d8910df4fc19250eea7f13d4f3cd2d"
           },
           "details": {
             "sectionKey": null,
@@ -553,11 +596,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": null
+            "requestedModel": null,
+            "adapter": "cli.codex@1"
           }
         },
         "objects": [
-          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c"
+          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+          "ef8595216dc8b622ddcd2d7db40dbc7cf0d8910df4fc19250eea7f13d4f3cd2d"
         ]
       },
       {
@@ -572,7 +617,8 @@
           "details": {
             "requestedModel": "gpt-5.6-sol",
             "reportedModel": null,
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": null
           }
         },
         "objects": [
@@ -638,7 +684,16 @@
           "promptText": "Which managed file store should a small team adopt?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": null
+          "requestedModel": null,
+          "adapter": "cli.codex@1",
+          "request": {
+            "prompt": "Which managed file store should a small team adopt?",
+            "parameters": {
+              "cli": "codex",
+              "model": null,
+              "sandbox": "read-only"
+            }
+          }
         }
       },
       {
@@ -663,7 +718,8 @@
           "role": "codex",
           "attempt": 1,
           "inputs": {
-            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c"
+            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+            "request": "15950093b39b2035e1f66788cb49b5cbb74ae93948f24fab7cd30a317f898e39"
           },
           "details": {
             "sectionKey": null,
@@ -671,11 +727,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": null
+            "requestedModel": null,
+            "adapter": "cli.codex@1"
           }
         },
         "objects": [
-          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c"
+          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+          "15950093b39b2035e1f66788cb49b5cbb74ae93948f24fab7cd30a317f898e39"
         ]
       },
       {
@@ -690,7 +748,8 @@
           "details": {
             "requestedModel": null,
             "reportedModel": null,
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": null
           }
         },
         "objects": [
@@ -802,7 +861,14 @@
           "promptText": "Which managed file store should a small team adopt?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": null
+          "requestedModel": null,
+          "adapter": "cli.cursor@1",
+          "request": {
+            "prompt": "Which managed file store should a small team adopt?",
+            "parameters": {
+              "cli": "cursor-agent"
+            }
+          }
         }
       },
       {
@@ -850,7 +916,8 @@
           "role": "cursor",
           "attempt": 1,
           "inputs": {
-            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c"
+            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+            "request": "699348446cc2ae987e05db234053137abaa83d3317a0a968e5918d11aa6df429"
           },
           "details": {
             "sectionKey": null,
@@ -858,11 +925,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": null
+            "requestedModel": null,
+            "adapter": "cli.cursor@1"
           }
         },
         "objects": [
-          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c"
+          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+          "699348446cc2ae987e05db234053137abaa83d3317a0a968e5918d11aa6df429"
         ]
       },
       {
@@ -877,7 +946,8 @@
           "details": {
             "requestedModel": null,
             "reportedModel": null,
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": null
           }
         },
         "objects": [
@@ -914,7 +984,14 @@
           "promptText": "Which managed file store should a small team adopt?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": null
+          "requestedModel": null,
+          "adapter": "cli.claude_code@1",
+          "request": {
+            "prompt": "Which managed file store should a small team adopt?",
+            "parameters": {
+              "cli": "claude"
+            }
+          }
         }
       },
       {
@@ -934,7 +1011,14 @@
           "runIndex": 1,
           "attempt": 2,
           "retryOf": "op-1",
-          "requestedModel": null
+          "requestedModel": null,
+          "adapter": "cli.claude_code@1",
+          "request": {
+            "prompt": "Which managed file store should a small team adopt?",
+            "parameters": {
+              "cli": "claude"
+            }
+          }
         }
       },
       {
@@ -955,7 +1039,8 @@
           "role": "claude_code",
           "attempt": 1,
           "inputs": {
-            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c"
+            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+            "request": "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
           },
           "details": {
             "sectionKey": null,
@@ -963,11 +1048,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": null
+            "requestedModel": null,
+            "adapter": "cli.claude_code@1"
           }
         },
         "objects": [
-          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c"
+          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+          "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
         ]
       },
       {
@@ -991,7 +1078,8 @@
           "role": "claude_code",
           "attempt": 2,
           "inputs": {
-            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c"
+            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+            "request": "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
           },
           "details": {
             "sectionKey": null,
@@ -999,11 +1087,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": "op-1",
-            "requestedModel": null
+            "requestedModel": null,
+            "adapter": "cli.claude_code@1"
           }
         },
         "objects": [
-          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c"
+          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+          "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
         ]
       },
       {
@@ -1048,7 +1138,14 @@
           "promptText": "Which managed file store should a small team adopt?",
           "runIndex": 1,
           "attempt": 1,
-          "requestedModel": null
+          "requestedModel": null,
+          "adapter": "cli.claude_code@1",
+          "request": {
+            "prompt": "Which managed file store should a small team adopt?",
+            "parameters": {
+              "cli": "claude"
+            }
+          }
         }
       },
       {
@@ -1073,7 +1170,8 @@
           "role": "claude_code",
           "attempt": 1,
           "inputs": {
-            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c"
+            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+            "request": "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
           },
           "details": {
             "sectionKey": null,
@@ -1081,11 +1179,13 @@
             "promptId": "p1",
             "runIndex": 1,
             "retryOf": null,
-            "requestedModel": null
+            "requestedModel": null,
+            "adapter": "cli.claude_code@1"
           }
         },
         "objects": [
-          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c"
+          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+          "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
         ]
       },
       {
@@ -1100,7 +1200,8 @@
           "details": {
             "requestedModel": null,
             "reportedModel": null,
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": null
           }
         },
         "objects": [
@@ -1181,7 +1282,14 @@
           "promptText": "Reply with the single word OK and nothing else. Do not search the web.",
           "runIndex": 0,
           "attempt": 1,
-          "requestedModel": null
+          "requestedModel": null,
+          "adapter": "cli.claude_code@1",
+          "request": {
+            "prompt": "Reply with the single word OK and nothing else. Do not search the web.",
+            "parameters": {
+              "cli": "claude"
+            }
+          }
         }
       },
       {
@@ -1204,7 +1312,16 @@
           "promptText": "Reply with the single word OK and nothing else. Do not search the web.",
           "runIndex": 0,
           "attempt": 1,
-          "requestedModel": null
+          "requestedModel": null,
+          "adapter": "cli.codex@1",
+          "request": {
+            "prompt": "Reply with the single word OK and nothing else. Do not search the web.",
+            "parameters": {
+              "cli": "codex",
+              "model": null,
+              "sandbox": "read-only"
+            }
+          }
         }
       },
       {
@@ -1227,7 +1344,14 @@
           "promptText": "Reply with the single word OK and nothing else. Do not search the web.",
           "runIndex": 0,
           "attempt": 1,
-          "requestedModel": null
+          "requestedModel": null,
+          "adapter": "cli.cursor@1",
+          "request": {
+            "prompt": "Reply with the single word OK and nothing else. Do not search the web.",
+            "parameters": {
+              "cli": "cursor-agent"
+            }
+          }
         }
       },
       {
@@ -1252,7 +1376,8 @@
           "role": "claude_code",
           "attempt": 1,
           "inputs": {
-            "prompt": "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe"
+            "prompt": "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe",
+            "request": "feeea1bdd36221fb143da6b289f745231a87b219e06b6a75084f633fef2ae80c"
           },
           "details": {
             "sectionKey": null,
@@ -1260,11 +1385,13 @@
             "promptId": "canary",
             "runIndex": 0,
             "retryOf": null,
-            "requestedModel": null
+            "requestedModel": null,
+            "adapter": "cli.claude_code@1"
           }
         },
         "objects": [
-          "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe"
+          "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe",
+          "feeea1bdd36221fb143da6b289f745231a87b219e06b6a75084f633fef2ae80c"
         ]
       },
       {
@@ -1279,7 +1406,8 @@
           "details": {
             "requestedModel": null,
             "reportedModel": null,
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": null
           }
         },
         "objects": [
@@ -1295,7 +1423,8 @@
           "role": "codex",
           "attempt": 1,
           "inputs": {
-            "prompt": "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe"
+            "prompt": "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe",
+            "request": "900e4c65622286bb4ae5c188ad73245d6f4db3d3f36e1bcecb3a8072810dfcf6"
           },
           "details": {
             "sectionKey": null,
@@ -1303,11 +1432,13 @@
             "promptId": "canary",
             "runIndex": 0,
             "retryOf": null,
-            "requestedModel": null
+            "requestedModel": null,
+            "adapter": "cli.codex@1"
           }
         },
         "objects": [
-          "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe"
+          "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe",
+          "900e4c65622286bb4ae5c188ad73245d6f4db3d3f36e1bcecb3a8072810dfcf6"
         ]
       },
       {
@@ -1322,7 +1453,8 @@
           "details": {
             "requestedModel": null,
             "reportedModel": null,
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": null
           }
         },
         "objects": [
@@ -1338,7 +1470,8 @@
           "role": "cursor",
           "attempt": 1,
           "inputs": {
-            "prompt": "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe"
+            "prompt": "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe",
+            "request": "6d9ec46aa85f0e0882f9c817a10dd635d75c3461d4024c59962e396f926d546d"
           },
           "details": {
             "sectionKey": null,
@@ -1346,11 +1479,13 @@
             "promptId": "canary",
             "runIndex": 0,
             "retryOf": null,
-            "requestedModel": null
+            "requestedModel": null,
+            "adapter": "cli.cursor@1"
           }
         },
         "objects": [
-          "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe"
+          "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe",
+          "6d9ec46aa85f0e0882f9c817a10dd635d75c3461d4024c59962e396f926d546d"
         ]
       },
       {
@@ -1365,7 +1500,8 @@
           "details": {
             "requestedModel": null,
             "reportedModel": null,
-            "noOverview": false
+            "noOverview": false,
+            "costUsd": null
           }
         },
         "objects": [
@@ -1394,7 +1530,14 @@
           "promptText": "Reply with the single word OK and nothing else. Do not search the web.",
           "runIndex": 0,
           "attempt": 1,
-          "requestedModel": null
+          "requestedModel": null,
+          "adapter": "cli.claude_code@1",
+          "request": {
+            "prompt": "Reply with the single word OK and nothing else. Do not search the web.",
+            "parameters": {
+              "cli": "claude"
+            }
+          }
         }
       },
       {
@@ -1415,7 +1558,8 @@
           "role": "claude_code",
           "attempt": 1,
           "inputs": {
-            "prompt": "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe"
+            "prompt": "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe",
+            "request": "feeea1bdd36221fb143da6b289f745231a87b219e06b6a75084f633fef2ae80c"
           },
           "details": {
             "sectionKey": null,
@@ -1423,11 +1567,13 @@
             "promptId": "canary",
             "runIndex": 0,
             "retryOf": null,
-            "requestedModel": null
+            "requestedModel": null,
+            "adapter": "cli.claude_code@1"
           }
         },
         "objects": [
-          "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe"
+          "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe",
+          "feeea1bdd36221fb143da6b289f745231a87b219e06b6a75084f633fef2ae80c"
         ]
       },
       {

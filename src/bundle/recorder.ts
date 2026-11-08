@@ -7,6 +7,7 @@ import type {
   ModelCallReservation,
   ModelCallUsage,
 } from '../models/accounting';
+import type { RedirectResolution } from '../probes/grounding-urls';
 import type { ProbeAttemptEnd, ProbeTrace } from '../probes/probe-trace';
 import { hasErrorCode } from '../stores/fs-errors';
 import {
@@ -458,6 +459,25 @@ export const recorded = async <T>({
   return value;
 };
 
+// An answer can name any number of wrappers; the journal keeps the first
+// hundred resolutions and says how many it left out.
+const maxRecordedRedirects = 100;
+
+const redirectDetails = (
+  redirects: readonly RedirectResolution[] | undefined,
+): Record<string, unknown> => {
+  if (!redirects || redirects.length === 0) {
+    return {};
+  }
+
+  return {
+    redirects: redirects.slice(0, maxRecordedRedirects),
+    ...(redirects.length > maxRecordedRedirects && {
+      redirectsOmitted: redirects.length - maxRecordedRedirects,
+    }),
+  };
+};
+
 /**
  * probeTraceOf records probe attempts (or canaries) as operations: the
  * prompt as input; the answer and its retrieval log as outputs; the
@@ -472,7 +492,11 @@ export const probeTraceOf = (
       kind,
       role: attempt.surface,
       attempt: attempt.attempt,
-      inputs: { prompt: attempt.promptText },
+      inputs: {
+        prompt: attempt.promptText,
+        // The request as dispatched, prefix and parameters included.
+        ...(attempt.request && { request: JSON.stringify(attempt.request) }),
+      },
       details: {
         sectionKey: attempt.sectionKey ?? null,
         surface: attempt.surface,
@@ -480,6 +504,7 @@ export const probeTraceOf = (
         runIndex: attempt.runIndex,
         retryOf: attempt.retryOf ?? null,
         requestedModel: attempt.requestedModel,
+        ...(attempt.adapter !== undefined && { adapter: attempt.adapter }),
       },
     });
 
@@ -508,6 +533,10 @@ export const probeTraceOf = (
           // neither named one, never the requested model (§7.1).
           reportedModel: result.reportedModel ?? null,
           noOverview: result.noOverview === true,
+          // What the provider reported the attempt cost; null when it did
+          // not say, never the estimate.
+          costUsd: result.costUsd ?? null,
+          ...redirectDetails(result.redirects),
         },
       });
     };
