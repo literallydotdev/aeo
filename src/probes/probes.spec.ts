@@ -7,6 +7,7 @@ import type {
   ProbeTrace,
 } from './probe-trace';
 import { runProbesForPrompts } from './probes';
+import { defaultProbeBindings } from './bindings';
 
 // A search-required probe is two streams: the search call, then a synthesis
 // follow-up when the first returns no prose. Each stream reports a provider
@@ -89,7 +90,10 @@ describe('probes - runProbesForPrompts()', () => {
       prompts: [{ id: 'p1', promptText: 'Which agency?', category: 'x' }],
       surfaces: ['chatgpt'],
       chatProbes: undefined,
-      dependencies: { gateway: provider.gateway },
+      dependencies: {
+        bindings: defaultProbeBindings,
+        gateway: provider.gateway,
+      },
       // One unit: the surface plans two runs per prompt.
       filter: (unit) => unit.runIndex === 1,
     });
@@ -127,7 +131,10 @@ describe('probes - runProbesForPrompts()', () => {
       prompts: [{ id: 'p1', promptText: 'Which agency?', category: 'x' }],
       surfaces: ['chatgpt'],
       chatProbes: undefined,
-      dependencies: { gateway: provider.gateway },
+      dependencies: {
+        bindings: defaultProbeBindings,
+        gateway: provider.gateway,
+      },
       // One unit: the surface plans two runs per prompt.
       filter: (unit) => unit.runIndex === 1,
     });
@@ -172,7 +179,10 @@ describe('probes - runProbesForPrompts()', () => {
         prompts: [{ id: 'p1', promptText: 'Which agency?', category: 'x' }],
         surfaces: ['perplexity'],
         chatProbes: undefined,
-        dependencies: { gateway: provider.gateway },
+        dependencies: {
+          bindings: defaultProbeBindings,
+          gateway: provider.gateway,
+        },
         filter: (unit) => unit.runIndex === 1,
         trace,
       });

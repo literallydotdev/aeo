@@ -32,6 +32,7 @@ import {
 import type { ProbeTrace } from './probe-trace';
 import { createDataForSeoProbeClient } from './dataforseo';
 import { runProbesForPrompts, type ProbeResult } from './probes';
+import { defaultProbeBindings } from './bindings';
 
 // ============================================================================
 // Golden pins of every chat probe path (probe adapters spec §7, phase 1):
@@ -183,6 +184,7 @@ const runCase = async ({ surface, stream, network, onResult }: ChatCase) => {
       filter: (unit) => unit.runIndex === 1,
       trace: spy.trace,
       dependencies: {
+        bindings: defaultProbeBindings,
         gateway: fakeGateway,
         dataForSeo: createDataForSeoProbeClient({
           login: 'golden-login',
@@ -589,7 +591,7 @@ describe('probes - runProbesForPrompts() golden pins', () => {
         chatProbes: undefined,
         filter: (u) => u.runIndex === 1,
         trace,
-        dependencies: { gateway: fakeGateway },
+        dependencies: { bindings: defaultProbeBindings, gateway: fakeGateway },
       });
     };
 

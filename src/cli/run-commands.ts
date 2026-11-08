@@ -32,6 +32,7 @@ import {
   runSettingNames,
 } from '../engine/preflight';
 import { prepareRejudgment } from '../engine/rejudge';
+import { RunBindingsError } from '../probes/bindings';
 import {
   readAuthorEvidence,
   readBrief,
@@ -724,7 +725,8 @@ const executeRun = async ({
     if (
       err instanceof PreflightFailedError ||
       err instanceof WriterLockHeldError ||
-      err instanceof BudgetCapMissingError
+      err instanceof BudgetCapMissingError ||
+      err instanceof RunBindingsError
     ) {
       writeErr(err.message);
 

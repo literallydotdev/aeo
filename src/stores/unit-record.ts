@@ -72,6 +72,7 @@ const captureMetadataSchema = z
     requestedModel: z.string().nullable(),
     reportedModel: z.string().nullable(),
     parameters: z.record(z.string(), z.unknown()),
+    adapter: z.string().min(1).max(200).optional(),
   })
   .strict();
 

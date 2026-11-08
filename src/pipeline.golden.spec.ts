@@ -26,6 +26,7 @@ import type { ProbeAttemptStart } from './probes/probe-trace';
 import { aeoAuditConfigSchema, type AeoSurface } from './schema';
 import { MemoryProbeStore } from './stores/memory';
 import type { CapturedUnitRecord } from './stores/ports';
+import { defaultProbeBindings } from './probes/bindings';
 
 // ============================================================================
 // Golden pins of what a capture records per surface (probe adapters spec
@@ -181,6 +182,7 @@ describe('pipeline - captureSectionProbes() golden pins', () => {
       runId: 'golden-run',
       probeStore: store,
       probeDependencies: {
+        bindings: defaultProbeBindings,
         gateway: fakeGateway,
         dataForSeo: createDataForSeoProbeClient({
           login: 'golden-login',

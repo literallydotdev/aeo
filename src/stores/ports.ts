@@ -56,6 +56,9 @@ export type CapturedUnitRecord = {
     requestedModel: string | null;
     reportedModel: string | null;
     parameters: Record<string, unknown>;
+    // The adapter that captured the answer, recorded only when it is not the
+    // surface's legacy adapter: absent means the legacy adapter.
+    adapter?: string;
   };
 } & UnitRecordBase;
 

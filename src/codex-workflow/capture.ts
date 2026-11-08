@@ -15,7 +15,11 @@ import type { CapturedUnitRecord, ProbeStore, Stores } from '../stores/ports';
 import { parseUnitRecord } from '../stores/unit-record';
 import { isAgentSurface, type AeoAgentSurface } from '../surfaces';
 import type { ProbeTrace } from '../probes/probe-trace';
-import type { ProbeDependencies } from '../probes/bindings';
+import {
+  bankBindingMismatches,
+  RunBindingsError,
+  type ProbeDependencies,
+} from '../probes/bindings';
 
 // ============================================================================
 // The paid half of a run: every planned probe unit captured or reused from
@@ -122,8 +126,35 @@ export const captureForRun = async (
   // Every banked row is validated before the first section dispatches: the
   // sections settle independently, so a row refused inside one would let
   // the others spend while it fails (phase 3 item 6).
-  for (const record of await deps.stores.probeStore.list()) {
+  const banked = await deps.stores.probeStore.list();
+
+  for (const record of banked) {
     parseUnitRecord(record, unitRecordKey(record));
+  }
+
+  // A banked answer is reused only under the binding that captured it; a
+  // mismatch stops the run before dispatch, never re-probed silently.
+  const plannedKeys = new Set(plan.units.map(unitRecordKey));
+  const mismatched = bankBindingMismatches(
+    banked.filter(
+      (record): record is CapturedUnitRecord =>
+        record.status === 'captured' && plannedKeys.has(unitRecordKey(record)),
+    ),
+    deps.probeDependencies.bindings,
+  );
+
+  if (mismatched.length > 0) {
+    const surfaces = [...new Set(mismatched.map((record) => record.surface))];
+    const bound = surfaces
+      .map(
+        (surface) =>
+          `${surface} (${deps.probeDependencies.bindings[surface].adapter})`,
+      )
+      .join(', ');
+
+    throw new RunBindingsError(
+      `${mismatched.length} banked answers were captured with another adapter than this run's binding of ${bound}. A banked answer is never probed again under another binding: start a fresh run (a new run directory, or mode fresh) to measure them this way.`,
+    );
   }
 
   const startedAt = now().toISOString();

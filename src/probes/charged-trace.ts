@@ -4,7 +4,7 @@ import {
   type ModelCallAccounting,
 } from '../models/accounting';
 import { createLog } from '../lib/log';
-import { defaultProfileOf } from './bindings';
+import { profileOf, type RunBindings } from './bindings';
 import type { ProbeTrace } from './probe-trace';
 
 // ============================================================================
@@ -27,12 +27,13 @@ export type ChargedTrace = {
 export const chargedProbeTrace = (
   trace: ProbeTrace,
   ledger: ModelCallAccounting,
+  bindings: RunBindings,
 ): ChargedTrace => {
   let refused: ModelBudgetError | undefined;
 
   const charged: ProbeTrace = {
     start: async (attempt) => {
-      const profile = defaultProfileOf(attempt.surface);
+      const profile = profileOf(bindings[attempt.surface]);
       const estimateUsd = profile.estimateUsd.high;
       const callId = `probe:${attempt.surface}:${attempt.promptId}:${attempt.runIndex}:${attempt.attempt}:${randomUUID()}`;
       // The coding-agent surfaces run on the operator's own plan.

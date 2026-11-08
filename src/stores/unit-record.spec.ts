@@ -6,6 +6,7 @@ import { captureForRun } from '../codex-workflow/capture';
 import { unlimited } from '../probes/limits';
 import { planRun } from '../runner';
 import { aeoAuditConfigSchema, runRequestSchema } from '../schema';
+import { defaultProbeBindings } from '../probes/bindings';
 import { FileProbeStore } from './files';
 import { memoryStores } from './memory';
 import type { ProbeStore, UnitRecord } from './ports';
@@ -190,7 +191,10 @@ describe('capture - captureForRun()', () => {
       stores: { ...memoryStores(), probeStore },
       agentCliVersions: { claudeCode: null, codex: null, cursor: null },
       limiter: unlimited(),
-      probeDependencies: { gateway: () => 'unused' },
+      probeDependencies: {
+        bindings: defaultProbeBindings,
+        gateway: () => 'unused',
+      },
       logContext: {},
       captureSection,
     });

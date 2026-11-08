@@ -13,6 +13,7 @@ import {
 } from './schema';
 import { FileProbeStore } from './stores/files';
 import type { CapturedUnitRecord } from './stores/ports';
+import { defaultProbeBindings } from './probes/bindings';
 
 // ============================================================================
 // The golden replay (src/__fixtures__/replay/README.md): the probe bank of
@@ -100,6 +101,7 @@ describe('pipeline - captureSectionProbes() golden replay', () => {
           runId: 'replay',
           probeStore,
           probeDependencies: {
+            bindings: defaultProbeBindings,
             gateway: () => {
               throw new Error('The replay must not call a model.');
             },

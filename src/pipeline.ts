@@ -24,10 +24,7 @@ import type { ProbeFailureKind } from './probes/failure';
 import type { ProbeLimiter } from './probes/limits';
 import { withSection, type ProbeTrace } from './probes/probe-trace';
 import { requestedModelOf } from './probes/attempt';
-import {
-  defaultProbeBindings,
-  type ProbeDependencies,
-} from './probes/bindings';
+import type { ProbeDependencies, RunBindings } from './probes/bindings';
 import {
   plannedProbeUnitsForSection,
   probeUnitKey,
@@ -213,9 +210,12 @@ export type SectionCaptureSummary = Omit<SectionCapture, 'probes'> & {
 
 // The model a capture asked for, by the binding that captured it: the bound
 // model of a model API, else the one an agent's answer names, else none.
-const capturedRequestedModel = (probe: CheckpointProbe): string | null => {
+const capturedRequestedModel = (
+  probe: CheckpointProbe,
+  bindings: RunBindings,
+): string | null => {
   return requestedModelOf(
-    defaultProbeBindings[probe.modelName],
+    bindings[probe.modelName],
     'requestedModel' in probe ? probe.requestedModel : undefined,
   );
 };
@@ -327,7 +327,10 @@ export const captureSectionProbes = async (
         runId: args.runId,
         capturedAt: new Date().toISOString(),
         captureMetadata: {
-          requestedModel: capturedRequestedModel(probe),
+          requestedModel: capturedRequestedModel(
+            probe,
+            args.probeDependencies.bindings,
+          ),
           reportedModel: probe.reportedModel ?? null,
           // Progress comparisons hash these into each answer's collection
           // method, so they stay as earlier releases recorded them. Chat

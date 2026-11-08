@@ -11,6 +11,7 @@ import {
   type SectionCaptureSummary,
   type SectionRunArgs,
 } from './pipeline';
+import { defaultProbeBindings } from './probes/bindings';
 
 // ============================================================================
 // Pipeline behavior over mocked probe runners (hardening spec §6.3): coverage
@@ -159,7 +160,10 @@ const baseArgs = (overrides: Partial<SectionRunArgs> = {}): SectionRunArgs => {
     surfaces: ['perplexity', 'google_ai_overview'],
     agentProbes: { runsPerPrompt: 2 },
     // The probe runners are mocked; nothing asks a model.
-    probeDependencies: { gateway: () => 'unused' },
+    probeDependencies: {
+      bindings: defaultProbeBindings,
+      gateway: () => 'unused',
+    },
     chatProbes: undefined,
     agentCliVersions: { claudeCode: null, codex: null, cursor: null },
     runId: 'RUN1',

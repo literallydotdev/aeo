@@ -35,7 +35,7 @@ import {
 } from '../models/accounting';
 import { resolveSupportedModel } from '../models/supported-models';
 import { chargedProbeTrace } from '../probes/charged-trace';
-import type { ProbeDependencies } from '../probes/bindings';
+import type { ProbeDependencies, RunBindings } from '../probes/bindings';
 import { createDataForSeoProbeClient } from '../probes/dataforseo';
 import type { InternalModelContext } from '../models/context';
 import { ProbeLimiter } from '../probes/limits';
@@ -46,7 +46,9 @@ import { openFileStores } from '../stores/files';
 import type { CapturedUnitRecord } from '../stores/ports';
 import { getEnvironment } from '../lib/env';
 import { toAuditConfig, toRunRequest, type AuditFile } from './audit-file';
+import { resolveRunBindings } from './run-bindings';
 import {
+  readFrozenBudget,
   resolveRunBudget,
   type BudgetAmendment,
   type RunBudget,
@@ -131,11 +133,15 @@ export const runDirectoryState = async (
 /** probeDependenciesOf creates the run's probe clients from its settings;
  * a client whose credentials are not set is absent, and preflight has
  * already required them for every surface in scope. */
-const probeDependenciesOf = (env: NodeJS.ProcessEnv): ProbeDependencies => {
+const probeDependenciesOf = (
+  env: NodeJS.ProcessEnv,
+  bindings: RunBindings,
+): ProbeDependencies => {
   const login = env.DATAFORSEO_LOGIN;
   const password = env.DATAFORSEO_PASSWORD;
 
   const dependencies: ProbeDependencies = {
+    bindings,
     gateway: createGateway({ apiKey: env.AI_GATEWAY_API_KEY }),
     ...(login && password
       ? { dataForSeo: createDataForSeoProbeClient({ login, password }) }
@@ -248,6 +254,9 @@ const openLockedLocalRun = async (
   },
 ): Promise<LocalRun> => {
   const { recorder } = held;
+  // Read before the budget freezes: a directory that already holds one
+  // started before its bindings were frozen.
+  const startedBefore = (await readFrozenBudget(dir)) !== undefined;
   const budget = await resolveRunBudget(dir, file.runPolicy.budget, {
     model: resolveSupportedModel(file.model).id,
     ...(maxUsd !== undefined && { maxUsd }),
@@ -260,6 +269,8 @@ const openLockedLocalRun = async (
   };
   const plan = planRun(config, request);
   const bank = path.join(dir, bankDir);
+  // Frozen before the first canary, and kept on every resume.
+  const bindings = await resolveRunBindings(bank, { startedBefore });
   const stores = await openFileStores(config.reportKey, {
     checkpointDir: bank,
     contentDir: path.join(bank, 'report'),
@@ -317,9 +328,13 @@ const openLockedLocalRun = async (
     );
   }
 
-  const probes = chargedProbeTrace(probeTraceOf(recorder, 'probe'), ledger);
+  const probes = chargedProbeTrace(
+    probeTraceOf(recorder, 'probe'),
+    ledger,
+    bindings,
+  );
   const capture = await captureForRun({
-    probeDependencies: probeDependenciesOf(getEnvironment()),
+    probeDependencies: probeDependenciesOf(getEnvironment(), bindings),
     config,
     request,
     plan,

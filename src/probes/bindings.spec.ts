@@ -8,8 +8,8 @@ import { allSurfaces } from '../surfaces';
 import { agentAuthEnv } from './agent-clis';
 import {
   defaultProbeBindings,
-  defaultProfileOf,
   probeAdapterProfiles,
+  profileOf,
 } from './bindings';
 import { legacyProbeBindings } from './legacy-bindings';
 
@@ -31,7 +31,7 @@ describe('bindings - defaultProbeBindings', () => {
     const declared = Object.fromEntries(
       allSurfaces.map((surface) => [
         surface,
-        defaultProfileOf(surface).observes.retrieval,
+        profileOf(defaultProbeBindings[surface]).observes.retrieval,
       ]),
     );
 
