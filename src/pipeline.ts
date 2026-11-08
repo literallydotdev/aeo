@@ -24,7 +24,10 @@ import type { ProbeFailureKind } from './probes/failure';
 import type { ProbeLimiter } from './probes/limits';
 import { withSection, type ProbeTrace } from './probes/probe-trace';
 import { requestedModelOf } from './probes/attempt';
-import { defaultProbeBindings } from './probes/bindings';
+import {
+  defaultProbeBindings,
+  type ProbeDependencies,
+} from './probes/bindings';
 import {
   plannedProbeUnitsForSection,
   probeUnitKey,
@@ -146,6 +149,8 @@ export type SectionRunArgs = {
   // The run journal: every probe attempt becomes an operation.
   trace?: ProbeTrace;
   signal?: AbortSignal;
+  // What the probe adapters are created with (credentials, clients).
+  probeDependencies?: ProbeDependencies;
   logContext: Record<string, unknown>;
 };
 
@@ -369,6 +374,7 @@ export const captureSectionProbes = async (
             trace,
             limiter: args.limiter,
             signal: args.signal,
+            dependencies: args.probeDependencies,
           },
           { logContext: args.logContext },
         )

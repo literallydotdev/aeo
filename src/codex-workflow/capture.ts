@@ -15,6 +15,7 @@ import type { CapturedUnitRecord, ProbeStore, Stores } from '../stores/ports';
 import { parseUnitRecord } from '../stores/unit-record';
 import { isAgentSurface, type AeoAgentSurface } from '../surfaces';
 import type { ProbeTrace } from '../probes/probe-trace';
+import type { ProbeDependencies } from '../probes/bindings';
 
 // ============================================================================
 // The paid half of a run: every planned probe unit captured or reused from
@@ -36,6 +37,8 @@ export type CaptureDeps = {
   /** The run journal, when the capture is recorded (a local run). */
   trace?: ProbeTrace;
   signal?: AbortSignal;
+  /** What the probe adapters are created with (credentials, clients). */
+  probeDependencies?: ProbeDependencies;
   logContext: Record<string, unknown>;
   now?: () => Date;
   /** The section capture service; tests inject one. */
@@ -93,6 +96,7 @@ const sectionArgs = (
     agentRuntime: deps.agentRuntime,
     trace: deps.trace,
     signal: deps.signal,
+    probeDependencies: deps.probeDependencies,
     internalModels: deps.internalModels,
     logContext: { ...deps.logContext, sectionKey: section.key },
   };

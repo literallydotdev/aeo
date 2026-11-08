@@ -3,7 +3,7 @@ import { chatRunsPerPrompt, chatSurfaces } from '../schema';
 import type { AeoSurface } from '../surfaces';
 import { createLog } from '../lib/log';
 import { attemptRules, runProbeUnit } from './attempt';
-import { createChatAdapter } from './bindings';
+import { createChatAdapter, type ProbeDependencies } from './bindings';
 import { unlimited, type ProbeLimiter } from './limits';
 import type { ProbeOutcome } from './outcomes';
 import type { ProbeTrace } from './probe-trace';
@@ -81,6 +81,8 @@ export type ProbeJob = {
   limiter?: ProbeLimiter;
   // Aborting stops dispatch; units already running finish their attempt.
   signal?: AbortSignal;
+  // What the adapters are created with (credentials, clients).
+  dependencies?: ProbeDependencies;
 };
 
 /**
@@ -106,6 +108,7 @@ export const runProbesForPrompts = async (
       adapter: createChatAdapter(surface, {
         geography: job.geography,
         language: job.language,
+        dependencies: job.dependencies ?? {},
       }),
     }));
   const limiter = job.limiter ?? unlimited();

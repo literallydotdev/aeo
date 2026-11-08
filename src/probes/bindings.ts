@@ -17,6 +17,8 @@ import {
   createGatewayPerplexityAdapter,
   gatewayPerplexityProfile,
 } from './adapters/gateway-perplexity';
+import type { DataForSeoProbeClient } from './dataforseo';
+import { resolveDataForSeoLocale } from './dataforseo-locale';
 import { legacyProbeBindings, type ProbeBinding } from './legacy-bindings';
 
 // ============================================================================
@@ -27,6 +29,17 @@ import { legacyProbeBindings, type ProbeBinding } from './legacy-bindings';
 // ============================================================================
 
 export type { ProbeBinding };
+
+/**
+ * What a run hands its adapters (probe adapters spec §3.1): everything an
+ * adapter needs is passed in when it is created, never read from the
+ * environment or a module global.
+ */
+export type ProbeDependencies = {
+  /** The run's DataForSEO client; absent when the run has no credentials,
+   * which fails each AI Overview probe as an auth failure. */
+  dataForSeo?: DataForSeoProbeClient;
+};
 
 export const defaultProbeBindings: Readonly<Record<AeoSurface, ProbeBinding>> =
   legacyProbeBindings;
@@ -57,7 +70,11 @@ export const defaultProfileOf = (surface: AeoSurface): ProbeAdapterProfile => {
  * in the run's market. */
 export const createChatAdapter = (
   surface: AeoChatSurface,
-  { geography, language }: { geography: string; language: string },
+  {
+    geography,
+    language,
+    dependencies,
+  }: { geography: string; language: string; dependencies: ProbeDependencies },
 ): ProbeAdapter => {
   const binding = defaultProbeBindings[surface];
 
@@ -76,12 +93,22 @@ export const createChatAdapter = (
         model: requireModel(binding, surface),
       });
 
-    case ProbeAdapterId.DATAFORSEO_AI_OVERVIEW:
+    case ProbeAdapterId.DATAFORSEO_AI_OVERVIEW: {
+      const locale = resolveDataForSeoLocale(geography, language);
+
+      // planRun refuses an unmapped market before anything runs.
+      if (!locale) {
+        throw new Error(
+          `No DataForSEO market for geography ${geography} and language ${language}; the plan should have refused this run.`,
+        );
+      }
+
       return createDataForSeoAiOverviewAdapter({
         surface,
-        geography,
-        language,
+        client: dependencies.dataForSeo,
+        locale,
       });
+    }
 
     case ProbeAdapterId.CLI_CLAUDE_CODE:
     case ProbeAdapterId.CLI_CODEX:

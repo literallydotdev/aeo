@@ -5,7 +5,7 @@ import {
   type ProbeAdapter,
   type ProbeAdapterProfile,
 } from '../adapter';
-import { getGoogleAIOverview } from '../dataforseo';
+import type { DataForSeoLocale, DataForSeoProbeClient } from '../dataforseo';
 import { ProbeFailure } from '../failure';
 import { classifyGatewayFailure } from './gateway-chat';
 
@@ -30,15 +30,17 @@ export const dataForSeoAiOverviewProfile: ProbeAdapterProfile = {
   resolvesRedirects: true,
 };
 
-/** createDataForSeoAiOverviewAdapter asks in the run's market. */
+/** createDataForSeoAiOverviewAdapter asks through the run's client, in the
+ * run's market. Without a client (no credentials) every probe fails as
+ * an auth failure, as an unauthenticated request would. */
 export const createDataForSeoAiOverviewAdapter = ({
   surface,
-  geography,
-  language,
+  client,
+  locale,
 }: {
   surface: AeoChatSurface;
-  geography: string;
-  language: string;
+  client: DataForSeoProbeClient | undefined;
+  locale: DataForSeoLocale;
 }): ProbeAdapter => {
   const retrieval = () => {
     return {
@@ -51,7 +53,11 @@ export const createDataForSeoAiOverviewAdapter = ({
     ...dataForSeoAiOverviewProfile,
     surface,
     probe: async (promptText) => {
-      const result = await getGoogleAIOverview(promptText, geography, language);
+      if (!client) {
+        throw new ProbeFailure('auth', 'DataForSEO credentials not configured');
+      }
+
+      const result = await client.getGoogleAIOverview(promptText, locale);
 
       if (result.status === 'no_overview') {
         return {

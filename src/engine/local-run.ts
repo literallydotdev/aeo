@@ -34,6 +34,8 @@ import {
 } from '../models/accounting';
 import { resolveSupportedModel } from '../models/supported-models';
 import { chargedProbeTrace } from '../probes/charged-trace';
+import type { ProbeDependencies } from '../probes/bindings';
+import { createDataForSeoProbeClient } from '../probes/dataforseo';
 import type { InternalModelContext } from '../models/context';
 import { ProbeLimiter } from '../probes/limits';
 import { planRun, type RunPlan } from '../runner';
@@ -123,6 +125,22 @@ export const runDirectoryState = async (
   }
 
   return (await exists(runInputsFile)) ? 'resumable' : 'new';
+};
+
+/** probeDependenciesOf creates the run's probe clients from its settings;
+ * a client whose credentials are not set is absent, and preflight has
+ * already required them for every surface in scope. */
+const probeDependenciesOf = (env: NodeJS.ProcessEnv): ProbeDependencies => {
+  const login = env.DATAFORSEO_LOGIN;
+  const password = env.DATAFORSEO_PASSWORD;
+
+  const dependencies: ProbeDependencies = {
+    ...(login && password
+      ? { dataForSeo: createDataForSeoProbeClient({ login, password }) }
+      : {}),
+  };
+
+  return dependencies;
 };
 
 /** Thrown before any paid work when an agent surface cannot be probed. */
@@ -299,6 +317,7 @@ const openLockedLocalRun = async (
 
   const probes = chargedProbeTrace(probeTraceOf(recorder, 'probe'), ledger);
   const capture = await captureForRun({
+    probeDependencies: probeDependenciesOf(getEnvironment()),
     config,
     request,
     plan,

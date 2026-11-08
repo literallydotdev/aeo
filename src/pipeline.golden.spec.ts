@@ -12,6 +12,7 @@ import {
 } from 'vitest';
 import { buildCaptureManifest } from './capture-manifest';
 import { captureSectionProbes } from './pipeline';
+import { createDataForSeoProbeClient } from './probes/dataforseo';
 import {
   answeredStream,
   createFakeCliHost,
@@ -117,8 +118,6 @@ afterAll(async () => {
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date('2026-11-08T12:00:00.000Z'));
-  vi.stubEnv('DATAFORSEO_LOGIN', 'golden-login');
-  vi.stubEnv('DATAFORSEO_PASSWORD', 'golden-password');
 });
 
 afterEach(() => {
@@ -186,6 +185,12 @@ describe('pipeline - captureSectionProbes() golden pins', () => {
       },
       runId: 'golden-run',
       probeStore: store,
+      probeDependencies: {
+        dataForSeo: createDataForSeoProbeClient({
+          login: 'golden-login',
+          password: 'golden-password',
+        }),
+      },
       analysisStore: null,
       agentRuntime: await host.runtime({
         modes: {

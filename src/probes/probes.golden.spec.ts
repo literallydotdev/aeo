@@ -30,6 +30,7 @@ import {
   type FakeNetwork,
 } from './__fixtures__/golden-harness';
 import type { ProbeTrace } from './probe-trace';
+import { createDataForSeoProbeClient } from './dataforseo';
 import { runProbesForPrompts, type ProbeResult } from './probes';
 
 // ============================================================================
@@ -145,8 +146,6 @@ beforeAll(async () => {
 beforeEach(async () => {
   root = await mkdtemp(path.join(tmpdir(), 'aeo-golden-chat-'));
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-  vi.stubEnv('DATAFORSEO_LOGIN', 'golden-login');
-  vi.stubEnv('DATAFORSEO_PASSWORD', 'golden-password');
 });
 
 afterEach(async () => {
@@ -188,6 +187,12 @@ const runCase = async ({ surface, stream, network, onResult }: ChatCase) => {
       chatProbes: undefined,
       filter: (unit) => unit.runIndex === 1,
       trace: spy.trace,
+      dependencies: {
+        dataForSeo: createDataForSeoProbeClient({
+          login: 'golden-login',
+          password: 'golden-password',
+        }),
+      },
       onResult:
         onResult ??
         ((result) => {

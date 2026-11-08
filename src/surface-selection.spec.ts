@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { syntheticExample } from './author/examples';
-import { planRun } from './runner';
+import { planRun, RunRequestError } from './runner';
 import {
   agentSurfaces,
   allSurfaces,
@@ -106,5 +106,30 @@ describe('runner - planRun()', () => {
     const plan = planRun(skip, request(['codex']));
     expect(plan.surfaces).toEqual(['codex']);
     expect(plan.agentSurfaces).toEqual(['codex']);
+  });
+
+  it('should refuse to plan AI Overviews in a market DataForSEO cannot place, naming the market', () => {
+    const unmapped = aeoAuditConfigSchema.parse({
+      ...base,
+      geography: 'global',
+      language: 'en',
+    });
+
+    expect(() => planRun(unmapped, request())).toThrow(RunRequestError);
+    expect(() => planRun(unmapped, request())).toThrow(
+      /geography "global" and language "en"/,
+    );
+  });
+
+  it('should plan an unmapped market when the run leaves AI Overviews out', () => {
+    const unmapped = aeoAuditConfigSchema.parse({
+      ...base,
+      geography: 'global',
+      language: 'en',
+    });
+
+    expect(planRun(unmapped, request(['chatgpt'])).surfaces).toEqual([
+      'chatgpt',
+    ]);
   });
 });
