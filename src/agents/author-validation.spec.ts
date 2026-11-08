@@ -117,6 +117,35 @@ describe('author-validation - validateAuthorOutput()', () => {
     expect(result.notes?.proposedFacts).toEqual([fact]);
   });
 
+  it('should send an unsafe money page or too many money pages back for repair, and a page on another site to brief_mismatch', async () => {
+    const withPages = (moneyPages: string[]) => {
+      return validateAuthorOutput({
+        ...input,
+        output: { ...output, moneyPages },
+      });
+    };
+
+    const unsafe = await withPages([
+      'http://example.com/pricing',
+      'https://docs.example.com:8443/',
+    ]);
+    const tooMany = await withPages(
+      Array.from({ length: 21 }, (_, index) => `https://example.com/${index}`),
+    );
+    const offSite = await withPages(['https://example.org/pricing']);
+
+    expect(unsafe.fatal).toBeUndefined();
+    expect(unsafe.errors).toEqual([
+      expect.stringMatching(/^moneyPages\.0: Use a public https URL/),
+      expect.stringMatching(/^moneyPages\.1: Use a public https URL/),
+    ]);
+    expect(tooMany.fatal).toBeUndefined();
+    expect(tooMany.errors).toEqual([
+      expect.stringMatching(/^moneyPages: Keep the 20 pages/),
+    ]);
+    expect(offSite.fatal).toBe('brief_mismatch');
+  });
+
   it('should fail mismatched identity and protected clients before any repairable check', async () => {
     const reachability = vi.fn(input.reachability);
     const thirdParty = {
