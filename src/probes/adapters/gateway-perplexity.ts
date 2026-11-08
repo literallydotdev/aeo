@@ -1,10 +1,10 @@
 import { streamText } from 'ai';
-import { gateway } from '@ai-sdk/gateway';
 import { gatewayCostUsd } from '../../models/gateway-cost';
 import { probeUsd } from '../../models/cost-coefficients';
 import type { AeoChatSurface } from '../../surfaces';
 import {
   ProbeAdapterId,
+  type ChatModelProvider,
   type ProbeAdapter,
   type ProbeAdapterProfile,
 } from '../adapter';
@@ -36,12 +36,15 @@ export const gatewayPerplexityProfile: ProbeAdapterProfile = {
   resolvesRedirects: true,
 };
 
-/** createGatewayPerplexityAdapter asks `model` on `surface`. */
+/** createGatewayPerplexityAdapter asks `model` on `surface` through the
+ * run's `gateway`. */
 export const createGatewayPerplexityAdapter = ({
   surface,
+  gateway,
   model,
 }: {
   surface: AeoChatSurface;
+  gateway: ChatModelProvider;
   model: string;
 }): ProbeAdapter => {
   const adapter: ProbeAdapter = {

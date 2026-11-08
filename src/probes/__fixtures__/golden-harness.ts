@@ -41,6 +41,13 @@ export const expectGolden = (actual: unknown, expected: unknown): void => {
   expect(JSON.stringify(actual)).toBe(JSON.stringify(expected));
 };
 
+/** fakeGateway stands in for the run's gateway provider: the model it
+ * returns is the string `gateway:<model id>`, which the mocked `streamText`
+ * receives and the pins record. */
+export const fakeGateway = (modelId: string): string => {
+  return `gateway:${modelId}`;
+};
+
 /** A settled stream: every member resolves from one answer. */
 export const answeredStream = (fields: Record<string, unknown>): unknown => {
   return new Proxy(
@@ -162,8 +169,7 @@ export type FakeCliHost = {
  * createFakeCliHost puts the fake CLI on a PATH under one temporary root as
  * `claude`, `codex` and `cursor-agent`. The child gets only the allowlisted
  * environment, so each runtime's mode travels in files under its own HOME.
- * Codex is resolved through AEO_CODEX_BIN, which the spec stubs to
- * `<binDir>/codex`.
+ * Codex is resolved through the runtime's AEO_CODEX_BIN, `<binDir>/codex`.
  */
 export const createFakeCliHost = async (): Promise<FakeCliHost> => {
   const root = await mkdtemp(path.join(tmpdir(), 'aeo-golden-cli-'));
@@ -198,6 +204,9 @@ export const createFakeCliHost = async (): Promise<FakeCliHost> => {
       env: {
         PATH: `${binDir}:${readEnv('PATH') ?? ''}`,
         HOME: home,
+        // Codex is the package's own dependency unless the runtime names
+        // another binary.
+        AEO_CODEX_BIN: path.join(binDir, 'codex'),
         ...env,
       },
       claudeConfigDir: null,
@@ -211,13 +220,12 @@ export const createFakeCliHost = async (): Promise<FakeCliHost> => {
 };
 
 /**
- * stubAgentEnvironment fixes every process setting the agent probe path
- * reads, so a maintainer's own environment never changes what the pins
- * see: Codex from the fake CLI, the read-only sandbox, no isolated worker.
+ * stubAgentEnvironment fixes the one process setting a CLI launch still
+ * reads, the isolated container's guard in runChild, so a maintainer's own
+ * environment never changes what the pins see. The adapters read their
+ * settings from the runtime.
  */
-export const stubAgentEnvironment = (host: FakeCliHost): void => {
-  vi.stubEnv('AEO_CODEX_BIN', path.join(host.binDir, 'codex'));
-  vi.stubEnv('AEO_CODEX_SANDBOX', '');
+export const stubAgentEnvironment = (): void => {
   vi.stubEnv('AEO_ISOLATED_ADAPTER', '');
 };
 

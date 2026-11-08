@@ -81,8 +81,8 @@ export type ProbeJob = {
   limiter?: ProbeLimiter;
   // Aborting stops dispatch; units already running finish their attempt.
   signal?: AbortSignal;
-  // What the adapters are created with (credentials, clients).
-  dependencies?: ProbeDependencies;
+  // What the adapters are created with: the gateway, credentials, clients.
+  dependencies: ProbeDependencies;
 };
 
 /**
@@ -108,7 +108,7 @@ export const runProbesForPrompts = async (
       adapter: createChatAdapter(surface, {
         geography: job.geography,
         language: job.language,
-        dependencies: job.dependencies ?? {},
+        dependencies: job.dependencies,
       }),
     }));
   const limiter = job.limiter ?? unlimited();

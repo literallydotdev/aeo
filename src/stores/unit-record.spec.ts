@@ -190,6 +190,7 @@ describe('capture - captureForRun()', () => {
       stores: { ...memoryStores(), probeStore },
       agentCliVersions: { claudeCode: null, codex: null, cursor: null },
       limiter: unlimited(),
+      probeDependencies: { gateway: () => 'unused' },
       logContext: {},
       captureSection,
     });

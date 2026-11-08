@@ -1,5 +1,6 @@
 import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { createGateway } from '@ai-sdk/gateway';
 import { measurementDigest, RunOrigin } from '../bundle/contracts';
 import {
   openRecorder,
@@ -135,6 +136,7 @@ const probeDependenciesOf = (env: NodeJS.ProcessEnv): ProbeDependencies => {
   const password = env.DATAFORSEO_PASSWORD;
 
   const dependencies: ProbeDependencies = {
+    gateway: createGateway({ apiKey: env.AI_GATEWAY_API_KEY }),
     ...(login && password
       ? { dataForSeo: createDataForSeoProbeClient({ login, password }) }
       : {}),

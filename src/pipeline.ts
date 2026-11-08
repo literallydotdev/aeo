@@ -149,8 +149,9 @@ export type SectionRunArgs = {
   // The run journal: every probe attempt becomes an operation.
   trace?: ProbeTrace;
   signal?: AbortSignal;
-  // What the probe adapters are created with (credentials, clients).
-  probeDependencies?: ProbeDependencies;
+  // What the probe adapters are created with: the gateway, credentials,
+  // clients.
+  probeDependencies: ProbeDependencies;
   logContext: Record<string, unknown>;
 };
 

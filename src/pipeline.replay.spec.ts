@@ -99,6 +99,11 @@ describe('pipeline - captureSectionProbes() golden replay', () => {
           agentCliVersions: { ...agentClis, cursor: agentClis.cursor ?? null },
           runId: 'replay',
           probeStore,
+          probeDependencies: {
+            gateway: () => {
+              throw new Error('The replay must not call a model.');
+            },
+          },
           analysisStore: null,
           // No CLI can start: PATH is empty.
           agentRuntime: { env: { PATH: '' }, claudeConfigDir: null },

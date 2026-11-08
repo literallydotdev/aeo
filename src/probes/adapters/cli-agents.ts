@@ -1,9 +1,4 @@
 import { z } from 'zod';
-import {
-  requireWorkerTransport,
-  workerTransport,
-} from '../../container/protocol';
-import { readEnv } from '../../lib/env';
 import { retrievalLogSchema } from '../../schema';
 import type { AeoAgentSurface } from '../../surfaces';
 import type {
@@ -44,52 +39,45 @@ const agentAnswerSchema = z.object({
   reportedModel: z.string().optional(),
 });
 
-/** probeForSurface is how a CLI run happens here: through the worker
- * transport when one is installed, else on this machine. */
+const localProbes: Readonly<Record<AeoAgentSurface, AgentProbeFn>> = {
+  claude_code: runClaudeCodeProbe,
+  codex: runCodexProbe,
+  cursor: runCursorProbe,
+};
+
+/** probeForSurface is one CLI run: through the runtime's worker transport
+ * when it has one, else on this machine. */
 export const probeForSurface = (surface: AeoAgentSurface): AgentProbeFn => {
-  const transport = workerTransport();
+  return async (prompt, runtime, signal) => {
+    if (!runtime.transport) {
+      return localProbes[surface](prompt, runtime, signal);
+    }
 
-  if (transport) {
-    return async (prompt, runtime, signal) => {
-      const answer = await transport.invoke(
-        surface,
-        {
-          task: 'probe',
-          prompt,
-          timeoutMs: Math.min(
-            runtime.timeoutMs ?? agentProbeTimeoutMs,
-            300_000,
-          ),
-        },
-        signal,
-      );
+    const answer = await runtime.transport.invoke(
+      surface,
+      {
+        task: 'probe',
+        prompt,
+        timeoutMs: Math.min(runtime.timeoutMs ?? agentProbeTimeoutMs, 300_000),
+      },
+      signal,
+    );
 
-      return agentAnswerSchema.parse(answer);
-    };
-  }
-
-  if (readEnv('AEO_ISOLATED_ADAPTER') === '1') {
-    requireWorkerTransport();
-  }
-
-  switch (surface) {
-    case 'claude_code':
-      return runClaudeCodeProbe;
-    case 'codex':
-      return runCodexProbe;
-    case 'cursor':
-      return runCursorProbe;
-  }
+    return agentAnswerSchema.parse(answer);
+  };
 };
 
 /**
  * createCliAdapter is the adapter of `surface`'s CLI, running each attempt
- * through `run` with `runtime`.
+ * with `runtime`: its environment, its config directory, its deadline and,
+ * hosted, its worker transport.
  */
 export const createCliAdapter = (
   surface: AeoAgentSurface,
-  { run, runtime }: { run: AgentProbeFn; runtime: AgentRuntime },
+  { runtime }: { runtime: AgentRuntime },
 ): ProbeAdapter => {
+  const run = probeForSurface(surface);
+
   const adapter: ProbeAdapter = {
     ...cliAdapterProfiles[surface],
     surface,

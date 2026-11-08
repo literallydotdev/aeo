@@ -3,12 +3,7 @@ import type * as ProtocolModule from '../container/protocol';
 import { WorkerInvocationError } from '../container/protocol';
 import { runCanaryProbes } from '../probes/agent-clis';
 
-const mocks = vi.hoisted(() => ({ invoke: vi.fn() }));
-
-vi.mock('../container/protocol', async (original) => ({
-  ...(await original<typeof ProtocolModule>()),
-  workerTransport: () => ({ invoke: mocks.invoke }),
-}));
+const mocks = { invoke: vi.fn() };
 
 describe('agent-clis - runCanaryProbes()', () => {
   beforeEach(() => {
@@ -17,7 +12,16 @@ describe('agent-clis - runCanaryProbes()', () => {
   });
 
   afterEach(() => vi.useRealTimers());
-  const runtime = { env: { NODE_ENV: 'test' as const }, claudeConfigDir: null };
+  // The hosted runtime: every CLI runs behind the worker transport.
+  const runtime = {
+    env: { NODE_ENV: 'test' as const },
+    claudeConfigDir: null,
+    transport: {
+      has: () => true,
+      invoke: mocks.invoke,
+      close: () => Promise.resolve(),
+    },
+  };
 
   it('should retain capacity after the shared 60-second and 180-second retry ladder', async () => {
     mocks.invoke.mockRejectedValue(new WorkerInvocationError('capacity'));

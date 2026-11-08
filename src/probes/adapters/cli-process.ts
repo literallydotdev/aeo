@@ -1,7 +1,10 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
-import { isWorkerInvocationError } from '../../container/protocol';
+import {
+  isWorkerInvocationError,
+  type WorkerTransport,
+} from '../../container/protocol';
 import type { AeoAgentSurface, RetrievalLog } from '../../schema';
 import type { ProbeAdapterProfile } from '../adapter';
 import { isRecord } from '../../lib/type-guards';
@@ -56,6 +59,9 @@ export type AgentRuntime = {
   // transcript directory after each probe instead (§2.8).
   claudeConfigDir: string | null;
   timeoutMs?: number;
+  // The isolated worker the CLIs run in, in the hosted platform. Absent, a
+  // CLI runs on this machine. Passed in, never read from a global slot.
+  transport?: WorkerTransport;
 };
 
 /** What one CLI run answered, as the parsers or a worker report it. */
@@ -75,17 +81,18 @@ export type AgentProbeFn = (
 
 /** What to spawn for an agent CLI on this machine. Codex is this package's
  * own pinned dependency (specs/aeo-claude-operator-spec.md §4.3), run with
- * the operator's Codex login when it is measured; the others come from
- * PATH. */
+ * the operator's Codex login when it is measured, unless the runtime's
+ * AEO_CODEX_BIN names another; the others come from PATH. */
 export const localCommand = (
   command: string,
   args: readonly string[],
+  env: NodeJS.ProcessEnv,
 ): { command: string; args: string[] } => {
   if (command !== 'codex') {
     return { command, args: [...args] };
   }
 
-  const binary = resolveCodexBinary();
+  const binary = resolveCodexBinary(env);
 
   return { command: binary.command, args: codexArgs(binary, args) };
 };
@@ -501,7 +508,7 @@ export const execCli = async (
   command: string,
   { cliArgs, cwd, runtime, env, signal }: ExecCliOptions,
 ): Promise<CliOutput> => {
-  const local = localCommand(command, cliArgs);
+  const local = localCommand(command, cliArgs, runtime.env);
   const result = await runChild(local.command, local.args, {
     cwd,
     env,

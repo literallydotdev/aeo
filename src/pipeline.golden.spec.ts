@@ -1,5 +1,4 @@
 import { rm } from 'node:fs/promises';
-import type * as GatewayModule from '@ai-sdk/gateway';
 import type * as AiModule from 'ai';
 import {
   afterAll,
@@ -18,6 +17,7 @@ import {
   createFakeCliHost,
   createFakeNetwork,
   expectGolden,
+  fakeGateway,
   readGolden,
   stubAgentEnvironment,
   type FakeCliHost,
@@ -47,11 +47,6 @@ const provider = vi.hoisted(() => ({
 vi.mock('ai', async () => ({
   ...(await vi.importActual<typeof AiModule>('ai')),
   streamText: (options: StreamOptions) => provider.streamText(options),
-}));
-
-vi.mock('@ai-sdk/gateway', async () => ({
-  ...(await vi.importActual<typeof GatewayModule>('@ai-sdk/gateway')),
-  gateway: (id: string) => `gateway:${id}`,
 }));
 
 const surfaces: AeoSurface[] = [
@@ -107,7 +102,7 @@ beforeAll(async () => {
     string,
     unknown
   >;
-  stubAgentEnvironment(host);
+  stubAgentEnvironment();
 });
 
 afterAll(async () => {
@@ -186,6 +181,7 @@ describe('pipeline - captureSectionProbes() golden pins', () => {
       runId: 'golden-run',
       probeStore: store,
       probeDependencies: {
+        gateway: fakeGateway,
         dataForSeo: createDataForSeoProbeClient({
           login: 'golden-login',
           password: 'golden-password',

@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type * as ProtocolModule from '../container/protocol';
 import { runCanaryProbe } from './agent-clis';
 import { ProbeTraceError, type ProbeTrace } from './probe-trace';
 
@@ -11,14 +10,17 @@ import { ProbeTraceError, type ProbeTrace } from './probe-trace';
 // faked.
 // ============================================================================
 
-const worker = vi.hoisted(() => ({ invoke: vi.fn() }));
+const worker = { invoke: vi.fn() };
 
-vi.mock('../container/protocol', async (original) => ({
-  ...(await original<typeof ProtocolModule>()),
-  workerTransport: () => ({ invoke: worker.invoke }),
-}));
-
-const runtime = { env: {}, claudeConfigDir: null };
+const runtime = {
+  env: {},
+  claudeConfigDir: null,
+  transport: {
+    has: () => true,
+    invoke: worker.invoke,
+    close: () => Promise.resolve(),
+  },
+};
 
 const answered = {
   text: 'OK',

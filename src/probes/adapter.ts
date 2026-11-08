@@ -1,3 +1,4 @@
+import type { LanguageModel } from 'ai';
 import type { Range } from '../models/cost-coefficients';
 import type { RetrievalExposure, RetrievalLog } from '../schema';
 import type { AeoSurface } from '../surfaces';
@@ -85,6 +86,10 @@ export type ProbeAnswer = {
 };
 
 export type ProbeContext = { signal?: AbortSignal };
+
+/** The models a chat adapter asks through, by model ID: the run's Vercel AI
+ * Gateway provider, created with the run's own key. */
+export type ChatModelProvider = (modelId: string) => LanguageModel;
 
 export type ProbeFailureClass = { kind: ProbeFailureKind; message: string };
 

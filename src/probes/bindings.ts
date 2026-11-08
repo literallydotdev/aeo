@@ -1,6 +1,7 @@
 import type { AeoChatSurface, AeoSurface } from '../surfaces';
 import {
   ProbeAdapterId,
+  type ChatModelProvider,
   type ProbeAdapter,
   type ProbeAdapterProfile,
 } from './adapter';
@@ -36,6 +37,8 @@ export type { ProbeBinding };
  * environment or a module global.
  */
 export type ProbeDependencies = {
+  /** The run's gateway provider, created with its own key. */
+  gateway: ChatModelProvider;
   /** The run's DataForSEO client; absent when the run has no credentials,
    * which fails each AI Overview probe as an auth failure. */
   dataForSeo?: DataForSeoProbeClient;
@@ -84,12 +87,14 @@ export const createChatAdapter = (
     case ProbeAdapterId.GATEWAY_ANTHROPIC:
       return createGatewayChatAdapter(binding.adapter, {
         surface,
+        gateway: dependencies.gateway,
         model: requireModel(binding, surface),
       });
 
     case ProbeAdapterId.GATEWAY_PERPLEXITY:
       return createGatewayPerplexityAdapter({
         surface,
+        gateway: dependencies.gateway,
         model: requireModel(binding, surface),
       });
 

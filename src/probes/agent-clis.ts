@@ -1,7 +1,6 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { z } from 'zod';
-import { requireWorkerTransport, workerTransport } from '../container/protocol';
 import type { AeoAgentSurface, RetrievalLog } from '../schema';
 import { agentSurfaces, surfaceRunCounts } from '../schema';
 import { createLog } from '../lib/log';
@@ -103,12 +102,15 @@ export const defaultAgentRuntime = (
   return { env, claudeConfigDir: null };
 };
 
-/** Detects which agent CLIs are installed and their versions. */
-export const detectAgentClis = async (): Promise<AgentCliVersions> => {
+/** Detects which agent CLIs the runtime can start, and their versions:
+ * through its worker transport when it has one, else on this machine. */
+export const detectAgentClis = async (
+  runtime: AgentRuntime = defaultAgentRuntime(),
+): Promise<AgentCliVersions> => {
   return {
-    claudeCode: await cliVersion('claude', ['--version']),
-    codex: await cliVersion('codex', ['--version']),
-    cursor: await cliVersion('cursor-agent', ['--version']),
+    claudeCode: await cliVersion('claude', ['--version'], runtime),
+    codex: await cliVersion('codex', ['--version'], runtime),
+    cursor: await cliVersion('cursor-agent', ['--version'], runtime),
   };
 };
 
@@ -182,14 +184,8 @@ export const agentAuthEnv: Readonly<
 
 export const assertAgentAuth = (
   surfaces: readonly AeoAgentSurface[],
-  env: NodeJS.ProcessEnv,
+  { env, transport }: AgentRuntime,
 ): void => {
-  const transport = workerTransport();
-
-  if (readEnv('AEO_ISOLATED_ADAPTER') === '1' && !transport) {
-    requireWorkerTransport();
-  }
-
   const missing = surfaces.filter((surface) =>
     transport
       ? !transport.has(surface)
@@ -241,10 +237,9 @@ const getVersionSurface = (command: string): AeoAgentSurface => {
 const cliVersion = async (
   command: string,
   args: string[],
+  { env, transport }: AgentRuntime,
 ): Promise<string | null> => {
   try {
-    const transport = workerTransport();
-
     if (transport) {
       const version = await transport.invoke(getVersionSurface(command), {
         task: 'version',
@@ -253,11 +248,7 @@ const cliVersion = async (
       return workerVersionSchema.parse(version) ?? null;
     }
 
-    if (readEnv('AEO_ISOLATED_ADAPTER') === '1') {
-      requireWorkerTransport();
-    }
-
-    const local = localCommand(command, args);
+    const local = localCommand(command, args, env);
     const { stdout } = await execFileAsync(local.command, local.args, {
       timeout: 15_000,
     });
@@ -291,10 +282,7 @@ export const runCanaryProbe = async (
   { signal, trace }: CanaryOptions = {},
 ): Promise<CanaryFailure | null> => {
   const startedAt = Date.now();
-  // Resolved on every attempt, inside it: a CLI that cannot be reached is
-  // a failure of that attempt.
   const adapter = createCliAdapter(surface, {
-    run: (prompt, rt, abort) => probeForSurface(surface)(prompt, rt, abort),
     runtime: {
       ...runtime,
       timeoutMs: Math.min(runtime.timeoutMs ?? 120_000, 120_000),
@@ -507,10 +495,7 @@ const runAgentUnit = async (
     logContext?: Record<string, unknown>;
   },
 ): Promise<AgentProbeOutcome> => {
-  const adapter = createCliAdapter(spec.surface, {
-    run: probeForSurface(spec.surface),
-    runtime: ctx.runtime,
-  });
+  const adapter = createCliAdapter(spec.surface, { runtime: ctx.runtime });
 
   return runProbeUnit(
     adapter,
@@ -560,9 +545,16 @@ export const runAgentProbeDirect = async (
     signal,
   }: { prompt: string; runtime: AgentRuntime; signal?: AbortSignal },
 ): Promise<AgentAnswer> => {
+  // The isolated adapter container's own policy, set by its bootstrap: it
+  // launches no CLI itself, whatever a caller passes.
   if (readEnv('AEO_ISOLATED_ADAPTER') === '1') {
     throw new Error('Direct CLI launch prohibited in adapter.');
   }
 
-  return probeForSurface(surface)(prompt, runtime, signal);
+  // Direct means on this machine: a transport the caller passed is not used.
+  return probeForSurface(surface)(
+    prompt,
+    { ...runtime, transport: undefined },
+    signal,
+  );
 };

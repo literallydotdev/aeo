@@ -37,8 +37,9 @@ export type CaptureDeps = {
   /** The run journal, when the capture is recorded (a local run). */
   trace?: ProbeTrace;
   signal?: AbortSignal;
-  /** What the probe adapters are created with (credentials, clients). */
-  probeDependencies?: ProbeDependencies;
+  /** What the probe adapters are created with: the gateway, credentials,
+   * clients. */
+  probeDependencies: ProbeDependencies;
   logContext: Record<string, unknown>;
   now?: () => Date;
   /** The section capture service; tests inject one. */

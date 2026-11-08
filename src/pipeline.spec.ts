@@ -158,6 +158,8 @@ const baseArgs = (overrides: Partial<SectionRunArgs> = {}): SectionRunArgs => {
     language: 'en',
     surfaces: ['perplexity', 'google_ai_overview'],
     agentProbes: { runsPerPrompt: 2 },
+    // The probe runners are mocked; nothing asks a model.
+    probeDependencies: { gateway: () => 'unused' },
     chatProbes: undefined,
     agentCliVersions: { claudeCode: null, codex: null, cursor: null },
     runId: 'RUN1',

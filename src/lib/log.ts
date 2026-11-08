@@ -30,12 +30,11 @@ const levelOrder: Record<LogLevel, number> = {
 // Console formatting
 // ---------------------------------------------------------------------------
 
-// The logger reads the environment directly because `src/lib/env.ts` loads
-// dotenv on import, and every module imports this one.
-const NO_COLOR = readEnv('NO_COLOR');
-const AEO_DEBUG = readEnv('AEO_DEBUG');
-
-const useColor = Boolean(process.stdout.isTTY) && !NO_COLOR;
+// Read when a line is emitted, never into a constant at import: every
+// module imports this one, and importing a library module reads nothing.
+const useColor = (): boolean => {
+  return Boolean(process.stdout.isTTY) && !readEnv('NO_COLOR');
+};
 
 const ansi = {
   reset: '\u001b[0m',
@@ -47,14 +46,14 @@ const ansi = {
 };
 
 const paint = (text: string, color: string): string => {
-  return useColor ? `${color}${text}${ansi.reset}` : text;
+  return useColor() ? `${color}${text}${ansi.reset}` : text;
 };
 
-const levelTags: Record<LogLevel, string> = {
-  debug: paint('DEBUG', ansi.gray),
-  info: paint('INFO ', ansi.cyan),
-  warn: paint('WARN ', ansi.yellow),
-  error: paint('ERROR', ansi.red),
+const levelTags: Record<LogLevel, { text: string; color: string }> = {
+  debug: { text: 'DEBUG', color: ansi.gray },
+  info: { text: 'INFO ', color: ansi.cyan },
+  warn: { text: 'WARN ', color: ansi.yellow },
+  error: { text: 'ERROR', color: ansi.red },
 };
 
 const formatClockTime = (date: Date): string => {
@@ -89,18 +88,21 @@ const formatFields = (fields?: LogFields): string => {
   return ` ${parts.join(' ')}`;
 };
 
-const consoleMinLevel: LogLevel = AEO_DEBUG ? 'debug' : 'info';
+const consoleMinLevel = (): LogLevel => {
+  return readEnv('AEO_DEBUG') ? 'debug' : 'info';
+};
 
 // ---------------------------------------------------------------------------
 // Emission
 // ---------------------------------------------------------------------------
 
 const emit = ({ level, component, message, fields }: LogEntry): void => {
-  if (levelOrder[level] < levelOrder[consoleMinLevel]) {
+  if (levelOrder[level] < levelOrder[consoleMinLevel()]) {
     return;
   }
 
-  const line = `${paint(formatClockTime(new Date()), ansi.dim)} ${levelTags[level]} ${paint(
+  const tag = levelTags[level];
+  const line = `${paint(formatClockTime(new Date()), ansi.dim)} ${paint(tag.text, tag.color)} ${paint(
     `[${component}]`,
     ansi.dim,
   )} ${message}${paint(formatFields(fields), ansi.dim)}`;

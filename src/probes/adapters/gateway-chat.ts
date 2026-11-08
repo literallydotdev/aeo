@@ -1,5 +1,4 @@
 import { streamText, type ToolSet } from 'ai';
-import { gateway } from '@ai-sdk/gateway';
 import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
 import { anthropic } from '@ai-sdk/anthropic';
@@ -10,6 +9,7 @@ import type { RetrievalLog } from '../../schema';
 import type { AeoChatSurface } from '../../surfaces';
 import {
   ProbeAdapterId,
+  type ChatModelProvider,
   type ProbeAdapter,
   type ProbeAdapterProfile,
   type ProbeAnswer,
@@ -83,11 +83,13 @@ type GatewayChatMethod = {
 
 const searchProbe = async ({
   surface,
+  gateway,
   model,
   promptText,
   method,
 }: {
   surface: AeoChatSurface;
+  gateway: ChatModelProvider;
   model: string;
   promptText: string;
   method: GatewayChatMethod;
@@ -296,10 +298,14 @@ export const gatewayChatProfiles = {
 } satisfies Record<GatewayChatAdapterId, ProbeAdapterProfile>;
 
 /** createGatewayChatAdapter is one search-required chat adapter, asking
- * `model` on `surface`. */
+ * `model` on `surface` through the run's `gateway`. */
 export const createGatewayChatAdapter = (
   id: GatewayChatAdapterId,
-  { surface, model }: { surface: AeoChatSurface; model: string },
+  {
+    surface,
+    gateway,
+    model,
+  }: { surface: AeoChatSurface; gateway: ChatModelProvider; model: string },
 ): ProbeAdapter => {
   const method: GatewayChatMethod = gatewayChatMethods[id];
 
@@ -307,7 +313,8 @@ export const createGatewayChatAdapter = (
     ...method.profile,
     surface,
     model,
-    probe: (promptText) => searchProbe({ surface, model, promptText, method }),
+    probe: (promptText) =>
+      searchProbe({ surface, gateway, model, promptText, method }),
     classifyError: classifyGatewayFailure,
   };
 

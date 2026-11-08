@@ -65,7 +65,7 @@ let golden: Record<string, unknown>;
 beforeAll(async () => {
   host = await createFakeCliHost();
   golden = (await readGolden('agent-probes.json')) as Record<string, unknown>;
-  stubAgentEnvironment(host);
+  stubAgentEnvironment();
 });
 
 afterAll(async () => {

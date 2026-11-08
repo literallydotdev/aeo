@@ -1,7 +1,6 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import type * as GatewayModule from '@ai-sdk/gateway';
 import type * as AiModule from 'ai';
 import { APICallError, NoOutputGeneratedError } from 'ai';
 import {
@@ -19,6 +18,7 @@ import {
   answeredStream,
   createFakeNetwork,
   failedStream,
+  fakeGateway,
   openGoldenRecorder,
   readChatFixture,
   expectGolden,
@@ -61,11 +61,6 @@ const provider = vi.hoisted(() => ({
 vi.mock('ai', async () => ({
   ...(await vi.importActual<typeof AiModule>('ai')),
   streamText: (options: StreamOptions) => provider.streamText(options),
-}));
-
-vi.mock('@ai-sdk/gateway', async () => ({
-  ...(await vi.importActual<typeof GatewayModule>('@ai-sdk/gateway')),
-  gateway: (id: string) => `gateway:${id}`,
 }));
 
 const prompt = {
@@ -188,6 +183,7 @@ const runCase = async ({ surface, stream, network, onResult }: ChatCase) => {
       filter: (unit) => unit.runIndex === 1,
       trace: spy.trace,
       dependencies: {
+        gateway: fakeGateway,
         dataForSeo: createDataForSeoProbeClient({
           login: 'golden-login',
           password: 'golden-password',
@@ -593,6 +589,7 @@ describe('probes - runProbesForPrompts() golden pins', () => {
         chatProbes: undefined,
         filter: (u) => u.runIndex === 1,
         trace,
+        dependencies: { gateway: fakeGateway },
       });
     };
 

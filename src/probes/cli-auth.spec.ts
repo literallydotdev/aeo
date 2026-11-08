@@ -33,7 +33,7 @@ let host: FakeCliHost;
 
 beforeAll(async () => {
   host = await createFakeCliHost();
-  stubAgentEnvironment(host);
+  stubAgentEnvironment();
 });
 
 afterAll(async () => {
@@ -66,4 +66,33 @@ describe('agent-clis - the CLI child environment', () => {
       expect(received).toEqual([...agentAuthEnv[surface].anyOf].sort());
     },
   );
+
+  it("should take Codex's sandbox from the runtime it was given, never the process environment", async () => {
+    const sandboxOf = async (env: Record<string, string>) => {
+      const { outcomes } = await runAgentProbesForPrompts({
+        prompts: [prompt],
+        surfaces: ['codex'],
+        versions: { claudeCode: null, codex: 'fake', cursor: null },
+        runsPerPrompt: 1,
+        runtime: await host.runtime({ mode: 'echo-args', env }),
+        limiter: unlimited(),
+      });
+      const [outcome] = outcomes;
+
+      if (outcome?.status !== 'captured') {
+        throw new Error('The codex probe was not captured.');
+      }
+
+      const args = JSON.parse(outcome.probe.text) as string[];
+
+      return args[args.indexOf('--sandbox') + 1];
+    };
+
+    vi.stubEnv('AEO_CODEX_SANDBOX', 'danger-full-access');
+
+    expect(await sandboxOf({})).toBe('read-only');
+    expect(await sandboxOf({ AEO_CODEX_SANDBOX: 'danger-full-access' })).toBe(
+      'danger-full-access',
+    );
+  });
 });

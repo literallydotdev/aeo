@@ -1,6 +1,5 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { readEnv } from '../../lib/env';
 import { probeUsd } from '../../models/cost-coefficients';
 import { ProbeAdapterId, type ProbeAdapterProfile } from '../adapter';
 import { AgentStreamError, parseCodexEvents } from '../agent-cli-parsers';
@@ -70,7 +69,7 @@ export const runCodexProbe: AgentProbeFn = async (
         '--json',
         ...(requestedModel ? ['--model', requestedModel] : []),
         '--sandbox',
-        readEnv('AEO_CODEX_SANDBOX') === 'danger-full-access'
+        runtime.env.AEO_CODEX_SANDBOX === 'danger-full-access'
           ? 'danger-full-access'
           : 'read-only',
         '--skip-git-repo-check',

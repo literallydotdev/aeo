@@ -34,6 +34,8 @@ describe('probes - probe batch plan parity', () => {
       prompts: promptInputs,
       surfaces: chatSurfaces,
       chatProbes: undefined,
+      // Nothing is dispatched: every unit is refused by the filter.
+      dependencies: { gateway: () => 'unused' },
       filter: (unit) => {
         offered.add(probeUnitKey({ sectionKey: section, ...unit }));
 
@@ -64,6 +66,8 @@ describe('probes - probe batch plan parity', () => {
       prompts: promptInputs,
       surfaces: chatSurfaces,
       chatProbes,
+      // Nothing is dispatched: every unit is refused by the filter.
+      dependencies: { gateway: () => 'unused' },
       filter: (unit) => {
         offered.add(probeUnitKey({ sectionKey: section, ...unit }));
 
