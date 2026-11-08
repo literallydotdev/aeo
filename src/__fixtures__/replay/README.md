@@ -1,41 +1,44 @@
 # Golden replay fixtures
 
-The Literally.dev self-audit (`literally-2026-q3`) is not confidential: its
-answers are already committed as evidence under
-`content/aeo-insights/literally-2026-q3/`. Its run state is therefore
-committed here so the runner can be replayed end to end without a network
-(hardening spec §6.1, test: `aeo/runner.replay.test.ts`):
+Literally.dev's own self-audit (`literally-2026-q3`), run on 2026-09-04. It
+holds no client data: the answers are assistant responses about
+Literally.dev's own market, and the snapshot is Literally.dev's own report.
 
-| File | What | Source |
-|------|------|--------|
-| `literally-2026-q3.probes.jsonl` | 285 captured probe units (every surface, both sections), the probe store of the 2026-09-04 run | `aeo/checkpoints/literally-2026-q3.jsonl` |
-| `literally-2026-q3.analysis.jsonl` | 19 search analyses (analyzer v2) + 2 perception extractions (v2), keyed as the analysis store keys them | `aeo/checkpoints/literally-2026-q3.analysis.jsonl` |
-| `literally-2026-q3.domain-labels.json` | The learned labels file (classifier v1) the relabel of 2026-09-04 produced | `content/aeo-insights/literally-2026-q3/domain-labels.json` |
+| File | What | Read by |
+|------|------|---------|
+| `literally-2026-q3/config.json` | The audit's config | `src/pipeline.replay.spec.ts`, `src/agents/*.spec.ts`, `src/analysis/competitor-owned-domains.spec.ts` |
+| `literally-2026-q3/snapshot.json` | The run's report snapshot | `src/pipeline.replay.spec.ts`, `src/agents/facts.spec.ts`, `src/agents/narrative-facts.spec.ts` |
+| `literally-2026-q3/evidence/` | The run's 19 evidence chunks (one per prompt) | `src/pipeline.replay.spec.ts` |
+| `literally-2026-q3.probes.jsonl` | The run's probe store: 285 captured units, every surface, both sections | `src/pipeline.replay.spec.ts` |
+| `literally-2026-q3.analysis.jsonl` | 19 search analyses (analyzer v2) and 2 perception extractions (v2), keyed as the analysis store of the time keyed them | No test |
+| `literally-2026-q3.domain-labels.json` | The learned domain labels (classifier v1) of the run | No test |
 
-The test loads the three files into the in-memory stores, runs
-`executeRun` with stubbed technical checks and the committed CLI versions,
-mocks the AI SDK to throw, and asserts that the assembled snapshot equals
-the committed `snapshot.json` (modulo `meta.migrations`, `meta.runId`,
-`meta.models`) and that every published evidence chunk equals its committed
-file. Any cache miss — a changed key formula, an invalid cached value, a
-host the labels file does not cover — fails the test instead of spending
-money.
+## The replay test
 
-Lines in the probes file predate unit outcomes and carry no `status`; the
-store reads them as captured records. Three Google AI Overview rows hold
-the pre-2026-09-06 sentinel text (`[Google did not generate an AI Overview
-for this query]`) and were analyzed as answers at the time; new captures
+`src/pipeline.replay.spec.ts` copies the probe store into a temporary bank,
+opens it with the file store as a resumed run would, and runs
+`captureSectionProbes` for both sections of the committed config. The AI
+SDK, `fetch`, the agent CLIs and the run journal all fail if reached. The
+test asserts that:
+
+- every planned unit is satisfied from the bank and nothing is dispatched;
+- the 285 answers agree byte for byte with the committed evidence chunks
+  (`buildCaptureManifest` refuses an answer or retrieval log that differs);
+- the capture manifest the bank produces keeps its pinned digest.
+
+Lines in the probe store predate unit outcomes and capture metadata: they
+carry no `status` and no `captureMetadata`. The file store reads them as
+captured records, and the manifest marks them `legacy_preserved_record`.
+The replay therefore also pins how legacy rows are read. Three Google AI
+Overview rows hold the pre-2026-09-06 sentinel text
+(`[Google did not generate an AI Overview for this query]`); new captures
 record `noOverview` instead.
 
-When a version constant is deliberately bumped (analyzer, perception,
-classifier), the fixture keys carry the old version and the replay misses:
-either re-run the report and refresh all three files from the new run, or
-keep the fixture on the old version and pin the new behavior in the step's
-own tests.
-## Reader migration
+## What the replay does not cover
 
-`literally-2026-q3/` holds the self-audit config, expected snapshot and
-evidence chunks used by the golden replay. The replay no longer imports
-the live config registry or reads `content/aeo-insights/`, so the eventual
-database-reader cleanup cannot remove its inputs. These fixtures contain
-Literally.dev's public self-audit, not client baselines or credentials.
+Analysis now runs in the Codex workflow stages, whose caches are keyed
+differently, so the replay stops at capture: it does not judge the answers
+or reassemble the snapshot. The analysis and domain-label files are a
+record of the run and are read by no test. An earlier version of this file
+cited `aeo/runner.replay.test.ts`, an end-to-end replay through the
+in-process analyzer; that test does not exist in this repository.
