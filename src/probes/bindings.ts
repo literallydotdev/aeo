@@ -70,7 +70,18 @@ export type ProbeDependencies = {
   /** The run's DataForSEO client; absent when the run has no credentials,
    * which fails each AI Overview probe as an auth failure. */
   dataForSeo?: DataForSeoProbeClient;
+  /** Adapters beyond the engine's own: consulted first for a chat surface,
+   * with the binding the run froze for it. A host or a test registers one
+   * here; nothing in the engine changes to add it. */
+  registry?: ChatAdapterRegistry;
 };
+
+/** An adapter for `surface` under `binding`, or undefined to leave it to
+ * the engine's own adapters. */
+export type ChatAdapterRegistry = (
+  surface: AeoChatSurface,
+  binding: ProbeBinding,
+) => ProbeAdapter | undefined;
 
 export const defaultProbeBindings: RunBindings = legacyProbeBindings;
 
@@ -251,6 +262,11 @@ export const createChatAdapter = (
   }: { geography: string; language: string; dependencies: ProbeDependencies },
 ): ProbeAdapter => {
   const binding = dependencies.bindings[surface];
+  const registered = dependencies.registry?.(surface, binding);
+
+  if (registered) {
+    return registered;
+  }
 
   switch (binding.adapter) {
     case ProbeAdapterId.GATEWAY_OPENAI:
