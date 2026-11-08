@@ -1,6 +1,7 @@
 import { aeoAuditConfigSchema, type AeoAuditConfig } from '../schema';
 import { normalizeDomain } from '../analysis/scoring';
 import banlist from '../author/banlist.json';
+import { maxMoneyPages, moneyPageProblem } from '../checks/money-pages';
 import { canonicalResearchUrl, fetchGroundingSource } from '../grounding/fetch';
 import { SourceRetrievalError } from '../grounding/guarded-request';
 import { credentialDetected } from './credentials';
@@ -277,7 +278,9 @@ export const validateAuthorOutput = async (args: {
 
   if (
     !underHost(normalizeDomain(config.brand.domain), host) ||
-    config.moneyPages.some((url) => !underHost(normalizeDomain(url), host)) ||
+    config.moneyPages.some(
+      (url) => moneyPageProblem(url, { domain: host })?.kind === 'off_site',
+    ) ||
     competitors.some((competitor) =>
       args.protectedClientHosts.some((client) =>
         underHost(normalizeDomain(competitor.domain), normalizeDomain(client)),
@@ -291,6 +294,24 @@ export const validateAuthorOutput = async (args: {
       ],
       fatal: 'brief_mismatch',
     };
+  }
+
+  // The site checks fetch and render every money page: a page the guard
+  // would refuse, or more than it may fetch, is the author's to repair.
+  config.moneyPages.forEach((url, index) => {
+    const problem = moneyPageProblem(url, { domain: host });
+
+    if (problem?.kind === 'unsafe_url') {
+      errors.push(
+        `moneyPages.${index}: Use a public https URL with no port or credentials (${problem.message})`,
+      );
+    }
+  });
+
+  if (config.moneyPages.length > maxMoneyPages) {
+    errors.push(
+      `moneyPages: Keep the ${maxMoneyPages} pages that matter most; the site checks fetch at most ${maxMoneyPages}.`,
+    );
   }
 
   // Repairable only once the submission is the right company's: a wrong

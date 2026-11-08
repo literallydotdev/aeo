@@ -1,6 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
 import {
+  maxMoneyPages,
+  moneyPageProblem,
+  type MoneyPageProblem,
+} from '../checks/money-pages';
+import {
   SourceRetrievalError,
   validateResearchUrl,
 } from '../grounding/guarded-request';
@@ -9,7 +14,6 @@ import { localModelProfile } from '../models/local-profile';
 import { resolveSupportedModel } from '../models/supported-models';
 import { resolveDataForSeoLocale } from '../probes/dataforseo-locale';
 import { probeLimitsSchema } from '../probes/limits';
-import { urlIsOnDomain } from '../report/core/domain-match';
 import {
   aeoAuditConfigSchema,
   aeoSurfaceSchema,
@@ -114,35 +118,18 @@ const checkHostProblem = (host: string): string | undefined => {
   return `Use a bare public host name such as docs.acme.example, not ${JSON.stringify(host)}.`;
 };
 
-/**
- * Why a money page is refused. The site checks fetch and render it, so it
- * must be public https on the brand's site or its subdomains, or on a host
- * the operator named in runPolicy.checkHosts.
- */
-const moneyPageProblem = (
+/** A refused money page in audit.json's terms: checkHosts is the remedy
+ * for a page on another site. */
+const describeMoneyPageProblem = (
   page: string,
-  file: {
-    brand: { domain: string };
-    runPolicy: { checkHosts: readonly string[] };
-  },
-): string | undefined => {
-  try {
-    validateResearchUrl(page);
-  } catch (err) {
-    if (err instanceof SourceRetrievalError) {
-      return `A money page must be a public https URL with no port or credentials: ${err.message}`;
-    }
-
-    throw err;
+  domain: string,
+  problem: MoneyPageProblem,
+): string => {
+  if (problem.kind === 'unsafe_url') {
+    return `A money page must be a public https URL with no port or credentials: ${problem.message}`;
   }
 
-  const hosts = [file.brand.domain, ...file.runPolicy.checkHosts];
-
-  if (hosts.some((host) => urlIsOnDomain(page, host))) {
-    return undefined;
-  }
-
-  return `${page} is not on ${file.brand.domain} or its subdomains. Name its host in runPolicy.checkHosts to let the site checks fetch it.`;
+  return `${page} is not on ${domain} or its subdomains. Name its host in runPolicy.checkHosts to let the site checks fetch it.`;
 };
 
 export const auditFileSchema = z
@@ -167,7 +154,7 @@ export const auditFileSchema = z
     chatProbes: chatProbeConfigSchema.optional(),
     geography: z.string().default('us'),
     language: z.string().default('en'),
-    moneyPages: z.array(z.url()).max(20).default([]),
+    moneyPages: z.array(z.url()).max(maxMoneyPages).default([]),
     productBrief: z.string().trim().min(1),
     // `full` researches and adjudicates the claims answers make about the
     // product; `extraction_only` keeps the claim inventory and skips both.
@@ -201,12 +188,15 @@ export const auditFileSchema = z
     }
 
     for (const [index, page] of file.moneyPages.entries()) {
-      const problem = moneyPageProblem(page, file);
+      const problem = moneyPageProblem(page, {
+        domain: file.brand.domain,
+        checkHosts: file.runPolicy.checkHosts,
+      });
 
       if (problem !== undefined) {
         context.addIssue({
           code: 'custom',
-          message: problem,
+          message: describeMoneyPageProblem(page, file.brand.domain, problem),
           path: ['moneyPages', index],
         });
       }
