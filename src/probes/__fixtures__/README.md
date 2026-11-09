@@ -46,3 +46,30 @@ in `../chat-retrieval.ts` are tested against these objects.
 | `openai.json` | `openai/gpt-5.4-mini` | `tool-result` part, `output.action.type: 'search'` with `query` + `queries[]`, `sources[]` of `type: 'url'` |
 | `anthropic.json` | `anthropic/claude-sonnet-4.5` | `tool-call` with `input.query`, matching `tool-result` with `output: web_search_result[]` |
 | `gemini.json` | `google/gemini-3-flash` (routed to Vertex) | `providerMetadata.vertex.groundingMetadata.webSearchQueries[]` |
+
+## Fake CLI (`fake-cli/`)
+
+`fake-cli.mjs` stands in for `claude`, `codex` and `cursor-agent` on PATH.
+Its mode comes from `.fake-cli-mode.<cli>` under the runtime's HOME (the
+name it was started as), else `.fake-cli-mode`. `replay <file>` prints one
+of the captured streams above as the real CLI printed it; `result-only` is
+a Claude Code result with no turn events (`usedWebSearch: null`); the other
+modes exercise the child-process runner and the failure taxonomy.
+
+## Golden pins (`golden/`, probe adapters spec §7, phase 1)
+
+What 0.2.2 banks, journals and records for every probe path, read by
+`../probes.golden.spec.ts`, `../agent-clis.golden.spec.ts` and
+`../../pipeline.golden.spec.ts` through `golden-harness.ts`:
+
+| File | Pins |
+|------|------|
+| `chat-probes.json` | Each chat path: the outcome, the banked probe, the journal port calls, the run journal, the provider request and the network requests |
+| `agent-probes.json` | Each coding agent from a captured stream, a retried failure, a banking failure, the CLI arguments and the canaries |
+| `capture-records.json` | Every surface's capture metadata, its manifest probe profile and the manifest itself |
+
+The values were recorded from the code, reviewed, and are never
+regenerated to make a test pass: a refactor that preserves behaviour
+passes them unchanged, and a failing pin is a behaviour change to find. A
+deliberate change (a method change with its version bump) edits the
+affected value by hand, in the same change, and says why.

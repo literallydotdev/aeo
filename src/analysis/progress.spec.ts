@@ -69,6 +69,7 @@ const fixture = (
           requestedModel: string | null;
           reportedModel: string | null;
           parameters: Record<string, unknown>;
+          adapter?: string;
         };
   } = {},
 ): Omit<ProgressMeasurementInput, 'captureManifest'> & {
@@ -414,6 +415,59 @@ describe('progress - projectProgressMeasurement()', () => {
 
     expect(projected.state).toBe('independent');
     expect(projected.slots).toHaveLength(1);
+  });
+
+  it('should keep a capture without an adapter on the profile and digest earlier releases gave it', () => {
+    const collection = {
+      requestedModel: 'provider/model',
+      reportedModel: null,
+      parameters: { geography: 'us', language: 'en' },
+    };
+    const source = fixture({ collection });
+    const capture = getFirst(getManifest(source).captures);
+    const slot = getFirst(projectProgressMeasurement(source).slots);
+
+    // Byte-identical to the profile before adapters were recorded.
+    expect(JSON.stringify(capture.probeProfile)).toBe(
+      JSON.stringify({
+        requestedModel: 'provider/model',
+        reportedModel: null,
+        cliVersion: null,
+        parameters: { geography: 'us', language: 'en' },
+      }),
+    );
+    expect(slot.collectionMethodDigest).toBe(
+      contentHash({
+        requestedModel: 'provider/model',
+        reportedModel: null,
+        cliVersion: null,
+        parameters: { geography: 'us', language: 'en' },
+      }),
+    );
+  });
+
+  it('should report a changed collection method when only the adapter differs', () => {
+    const collection = {
+      requestedModel: 'provider/model',
+      reportedModel: null,
+      parameters: { geography: 'us', language: 'en' },
+    };
+
+    const result = compare(
+      fixture({ collection }),
+      fixture({
+        runId: 'current',
+        collection: { ...collection, adapter: 'gateway.openai@2' },
+      }),
+    );
+
+    expect(result.reasons).toContain('collection_method_changed');
+    expect(
+      getFirst(
+        getManifest(fixture({ collection: { ...collection, adapter: 'x@1' } }))
+          .captures,
+      ).probeProfile.adapter,
+    ).toBe('x@1');
   });
 
   it.each(['reportedModel', 'parameters'] as const)(

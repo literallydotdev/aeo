@@ -17,6 +17,7 @@ import {
 import { createLog } from './lib/log';
 import type { AgentCliVersions } from './probes/agent-clis';
 import type { ProbeLimiter } from './probes/limits';
+import { resolveDataForSeoLocale } from './probes/dataforseo-locale';
 import type { PartialFailure } from './probes/web-tool-guard';
 import type { SectionRunResult } from './pipeline';
 import {
@@ -130,6 +131,18 @@ export const planRun = (
       chatProbes: config.chatProbes,
     }),
   );
+
+  // Google AI Overviews are placed in a market by DataForSEO's location
+  // and language codes. A market the table cannot place is refused here,
+  // before anything is reserved, never measured as the United States.
+  if (
+    surfaces.includes('google_ai_overview') &&
+    !resolveDataForSeoLocale(config.geography, config.language)
+  ) {
+    throw new RunRequestError(
+      `No search market for geography ${JSON.stringify(config.geography)} and language ${JSON.stringify(config.language)}: AI Overviews cannot be placed there. Please fix the config's geography and language (supported codes include us and en), or leave google_ai_overview out of the run.`,
+    );
+  }
 
   if (units.length > request.maxPlannedUnits) {
     throw new RunRequestError(

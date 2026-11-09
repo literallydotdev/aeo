@@ -12,8 +12,15 @@ import type { RunPlan } from '../runner';
 import type { AeoAuditConfig, RunRequest } from '../schema';
 import { contentHash } from '../stores/content-hash';
 import type { CapturedUnitRecord, ProbeStore, Stores } from '../stores/ports';
+import { parseUnitRecord } from '../stores/unit-record';
 import { isAgentSurface, type AeoAgentSurface } from '../surfaces';
 import type { ProbeTrace } from '../probes/probe-trace';
+import {
+  bankBindingMismatches,
+  RunBindingsError,
+  type ProbeDependencies,
+  type RunBindings,
+} from '../probes/bindings';
 
 // ============================================================================
 // The paid half of a run: every planned probe unit captured or reused from
@@ -35,6 +42,9 @@ export type CaptureDeps = {
   /** The run journal, when the capture is recorded (a local run). */
   trace?: ProbeTrace;
   signal?: AbortSignal;
+  /** What the probe adapters are created with: the gateway, credentials,
+   * clients. */
+  probeDependencies: ProbeDependencies;
   logContext: Record<string, unknown>;
   now?: () => Date;
   /** The section capture service; tests inject one. */
@@ -92,9 +102,52 @@ const sectionArgs = (
     agentRuntime: deps.agentRuntime,
     trace: deps.trace,
     signal: deps.signal,
+    probeDependencies: deps.probeDependencies,
     internalModels: deps.internalModels,
     logContext: { ...deps.logContext, sectionKey: section.key },
   };
+};
+
+/**
+ * assertBankUsable refuses a bank the run cannot build on, before anything
+ * is dispatched: a row no release wrote (phase 3 item 6), or a banked
+ * answer the plan reuses that another binding captured. captureForRun runs
+ * it before its first section, where the sections would otherwise settle
+ * independently and spend while one fails; a host runs it before its agent
+ * canaries too.
+ */
+export const assertBankUsable = async (
+  probeStore: Pick<ProbeStore, 'list'>,
+  plan: RunPlan,
+  bindings: RunBindings,
+): Promise<void> => {
+  const banked = await probeStore.list();
+
+  for (const record of banked) {
+    parseUnitRecord(record, unitRecordKey(record));
+  }
+
+  // A banked answer is reused only under the binding that captured it; a
+  // mismatch stops the run, never re-probed silently.
+  const plannedKeys = new Set(plan.units.map(unitRecordKey));
+  const mismatched = bankBindingMismatches(
+    banked.filter(
+      (record): record is CapturedUnitRecord =>
+        record.status === 'captured' && plannedKeys.has(unitRecordKey(record)),
+    ),
+    bindings,
+  );
+
+  if (mismatched.length > 0) {
+    const surfaces = [...new Set(mismatched.map((record) => record.surface))];
+    const bound = surfaces
+      .map((surface) => `${surface} (${bindings[surface].adapter})`)
+      .join(', ');
+
+    throw new RunBindingsError(
+      `${mismatched.length} banked answers were captured with another adapter than this run's binding of ${bound}. A banked answer is never probed again under another binding: start a fresh run (a new run directory, or mode fresh) to measure them this way.`,
+    );
+  }
 };
 
 /** Orders by UTF-16 code units, independent of the host's locale. */
@@ -112,6 +165,13 @@ export const captureForRun = async (
   const { config, plan } = deps;
   const now = deps.now ?? (() => new Date());
   const captureSection = deps.captureSection ?? captureSectionProbes;
+
+  await assertBankUsable(
+    deps.stores.probeStore,
+    plan,
+    deps.probeDependencies.bindings,
+  );
+
   const startedAt = now().toISOString();
   const settled = await Promise.allSettled(
     plan.sections.map((section) => captureSection(sectionArgs(deps, section))),

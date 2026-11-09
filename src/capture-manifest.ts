@@ -43,6 +43,9 @@ const captureSchema = unitSchema
       reportedModel: z.string().nullable(),
       cliVersion: z.string().nullable(),
       parameters: z.record(z.string(), z.unknown()).nullable(),
+      // Present only when the capture was not taken with its surface's
+      // legacy adapter (probe adapters spec §4.6).
+      adapter: z.string().optional(),
     }),
     metadataProvenance: z.enum(['captured_record', 'legacy_preserved_record']),
     digest,
@@ -277,6 +280,9 @@ export const buildCaptureManifest = (args: {
             ? record.probe.agentCliVersion
             : null,
         parameters: record.captureMetadata?.parameters ?? null,
+        ...(record.captureMetadata?.adapter === undefined
+          ? {}
+          : { adapter: record.captureMetadata.adapter }),
       },
       metadataProvenance: record.captureMetadata
         ? ('captured_record' as const)

@@ -20,6 +20,7 @@ import {
   type RunCostEstimate,
 } from '../engine/cost-estimate';
 import {
+  bankDir,
   openLocalRun,
   planLocalRun,
   PreflightFailedError,
@@ -32,6 +33,12 @@ import {
   runSettingNames,
 } from '../engine/preflight';
 import { prepareRejudgment } from '../engine/rejudge';
+import {
+  defaultProbeBindings,
+  profileOf,
+  RunBindingsError,
+} from '../probes/bindings';
+import { estimateBindingsOf } from '../engine/run-bindings';
 import {
   readAuthorEvidence,
   readBrief,
@@ -175,6 +182,7 @@ export const runDoctor = async (flags: Flags) => {
     model: file.model,
     groundingSearch: usesGroundingSearch(request),
     rendersPages: file.moneyPages.length > 0,
+    bindings: await estimateBindingsOf(path.join(runDirOf(flags), bankDir)),
   });
   const ok = checks.every((check) => check.ok);
 
@@ -206,10 +214,30 @@ export const runPlan = async (flags: Flags) => {
   const state = await runDirectoryState(dir);
   const bySurface = Object.fromEntries(plan.probesBySurface);
   const model = resolveSupportedModel(file.model);
+  const bindings = await estimateBindingsOf(path.join(dir, bankDir));
   const estimate = estimateRunCost({
     plan,
     model,
     grounding: request.grounding,
+    bindings,
+  });
+  // A coding agent bills its own plan, or, on an API key, that provider
+  // account per use: either way outside the cap, which the plan says.
+  const agentBilling = plan.agentSurfaces.flatMap((surface) => {
+    const accounts = profileOf(bindings[surface]).settings.flatMap((setting) =>
+      setting.billsAccount === undefined
+        ? []
+        : [`on ${setting.name}, that ${setting.billsAccount} account`],
+    );
+
+    return accounts.length === 0
+      ? []
+      : [
+          formatLine(
+            `${surface} billing`,
+            `on its own login, your plan; ${accounts.join('; ')}, outside this run's cap`,
+          ),
+        ];
   });
   const summary = {
     brand: config.brand.name,
@@ -246,6 +274,7 @@ export const runPlan = async (flags: Flags) => {
         formatLine(`Section ${section.key}`, `${section.questions} questions`),
       ),
       formatLine('Surfaces', summary.surfaces.join(', ')),
+      ...agentBilling,
       ...Object.entries(bySurface).map(([surface, count]) =>
         formatLine(`  ${surface}`, `${count} answers`),
       ),
@@ -295,6 +324,7 @@ export const runRun = async (flags: Flags) => {
       plan,
       model: resolveSupportedModel(file.model),
       grounding: request.grounding,
+      bindings: await estimateBindingsOf(path.join(dir, bankDir)),
     }),
   });
 
@@ -309,6 +339,7 @@ export const runRun = async (flags: Flags) => {
     model: file.model,
     groundingSearch: usesGroundingSearch(request),
     rendersPages: file.moneyPages.length > 0,
+    bindings: await estimateBindingsOf(path.join(dir, bankDir)),
   });
   const failing = checks.filter((check) => !check.ok);
 
@@ -416,6 +447,7 @@ export const runAuthor = async (flags: Flags, usage: string) => {
     settings,
     dir,
     groundingSearch: true,
+    bindings: defaultProbeBindings,
   });
   const failing = checks.filter((check) => !check.ok);
 
@@ -540,6 +572,7 @@ export const runRejudge = async (flags: Flags, usage: string) => {
       plan: { units: plan.units, probesBySurface: new Map() },
       model: resolveSupportedModel(file.model),
       grounding: request.grounding,
+      bindings: defaultProbeBindings,
     }),
   });
 
@@ -560,6 +593,8 @@ export const runRejudge = async (flags: Flags, usage: string) => {
     dir,
     model: file.model,
     groundingSearch: usesGroundingSearch(request),
+    // Nothing is probed again; the settings checked are the same.
+    bindings: defaultProbeBindings,
   });
   const failing = checks.filter((check) => !check.ok);
 
@@ -724,7 +759,8 @@ const executeRun = async ({
     if (
       err instanceof PreflightFailedError ||
       err instanceof WriterLockHeldError ||
-      err instanceof BudgetCapMissingError
+      err instanceof BudgetCapMissingError ||
+      err instanceof RunBindingsError
     ) {
       writeErr(err.message);
 

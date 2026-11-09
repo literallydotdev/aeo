@@ -1,21 +1,28 @@
 #!/usr/bin/env node
-// A stand-in for the agent CLIs on PATH (hardening spec §6.2). The mode
-// comes from FAKE_CLI_MODE; the prompt is the last argument, as for the
-// real CLIs, and is echoed nowhere unless the mode asks for it.
+// A stand-in for the agent CLIs on PATH (hardening spec §6.2). The prompt
+// is the last argument, as for the real CLIs, and is echoed nowhere unless
+// the mode asks for it.
 // The runner hands the child an allowlisted environment (PATH, HOME, the
-// CLI's auth variable), so the mode travels through a file under HOME.
+// CLI's auth variable), so the mode travels through a file under HOME:
+// `.fake-cli-mode.<cli>` for one CLI (the name it was started as, such as
+// `codex`), else `.fake-cli-mode` for all of them.
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-let mode = 'ok';
-try {
-  mode = readFileSync(
-    join(process.env.HOME ?? '', '.fake-cli-mode'),
-    'utf8',
-  ).trim();
-} catch {
-  // No mode file: answer normally.
-}
+const readMode = (file) => {
+  try {
+    return readFileSync(join(process.env.HOME ?? '', file), 'utf8').trim();
+  } catch {
+    return undefined;
+  }
+};
+
+// No mode file: answer normally.
+const mode =
+  readMode(`.fake-cli-mode.${basename(process.argv[1] ?? '')}`) ??
+  readMode('.fake-cli-mode') ??
+  'ok';
 const args = process.argv.slice(2);
 
 // Like Claude Code, leave a session transcript under the config dir for
@@ -59,6 +66,16 @@ function assistantEvent(blocks) {
   });
 }
 
+// `replay <file>`: print a captured CLI stream from the fixtures directory
+// (../<file>) as the real CLI printed it, so a probe parses real output.
+if (mode.startsWith('replay ')) {
+  const fixture = basename(mode.slice('replay '.length));
+  const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+  process.stdout.write(readFileSync(join(fixturesDir, fixture), 'utf8'));
+  process.exit(0);
+}
+
 switch (mode) {
   case 'ok': {
     out(JSON.stringify({ type: 'system', subtype: 'init' }));
@@ -71,6 +88,12 @@ switch (mode) {
       }),
     );
     out(resultEvent('OK'));
+    break;
+  }
+  case 'result-only': {
+    // Claude Code shape with no turn events: whether a web tool ran is
+    // unknown, so the parser reports usedWebSearch null.
+    out(resultEvent('An answer whose stream carried no turn events.'));
     break;
   }
   case 'searched': {
@@ -154,6 +177,13 @@ switch (mode) {
     break;
   }
   case 'env-dump': {
+    // Codex shape first: the existing test reads the result line last.
+    out(
+      JSON.stringify({
+        type: 'item.completed',
+        item: { type: 'agent_message', text: JSON.stringify(process.env) },
+      }),
+    );
     out(resultEvent(JSON.stringify(process.env)));
     break;
   }

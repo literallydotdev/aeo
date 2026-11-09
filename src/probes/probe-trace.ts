@@ -1,5 +1,7 @@
 import type { RetrievalLog } from '../schema';
 import type { AeoSurface } from '../surfaces';
+import type { ProbeRequest } from './adapter';
+import type { RedirectResolution } from './grounding-urls';
 
 // ============================================================================
 // The probes' view of the run journal (specs/aeo-open-source-cli-spec.md
@@ -19,6 +21,11 @@ export type ProbeAttemptStart = {
   retryOf?: string;
   /** What the probe asks for, when it is known before dispatch. */
   requestedModel: string | null;
+  /** The adapter dispatching the attempt (spec §4.9). */
+  adapter?: string;
+  /** The request as dispatched: the prompt with any prefix, and the
+   * parameters that shape the answer. */
+  request?: ProbeRequest;
 };
 
 export type ProbeAttemptEnd =
@@ -31,6 +38,9 @@ export type ProbeAttemptEnd =
       noOverview?: true;
       /** What the provider reported the attempt cost, when it did. */
       costUsd?: number;
+      /** The redirect resolutions finalising the answer made: the network
+       * requests after the provider answered. */
+      redirects?: readonly RedirectResolution[];
     }
   | {
       outcome: 'failed' | 'cancelled';

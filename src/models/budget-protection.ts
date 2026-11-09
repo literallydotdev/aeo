@@ -35,6 +35,7 @@ export const withModelBudgetProtection = (
     observe: (callId, evidence) =>
       accounting.observe?.(callId, evidence) ?? Promise.resolve(),
     settle: (callId, usage) => accounting.settle(callId, usage),
+    release: (callId) => accounting.release(callId),
     reserve: (call) => {
       let usd = copy.usd + verifier.usd;
       let tokens = copy.tokens + verifier.tokens;

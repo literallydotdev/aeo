@@ -3,6 +3,7 @@ import { plannedProbeUnitsForSection, probeUnitKey } from '../lib/checkpoint';
 import { agentSurfaces, chatSurfaces, type AeoPrompt } from '../schema';
 import { runAgentProbesForPrompts } from './agent-clis';
 import { runProbesForPrompts } from './probes';
+import { defaultProbeBindings } from './bindings';
 
 // ============================================================================
 // Planner ↔ executor parity: the checkpoint's planned-units list mirrors the
@@ -34,6 +35,8 @@ describe('probes - probe batch plan parity', () => {
       prompts: promptInputs,
       surfaces: chatSurfaces,
       chatProbes: undefined,
+      // Nothing is dispatched: every unit is refused by the filter.
+      dependencies: { bindings: defaultProbeBindings, gateway: () => 'unused' },
       filter: (unit) => {
         offered.add(probeUnitKey({ sectionKey: section, ...unit }));
 
@@ -64,6 +67,8 @@ describe('probes - probe batch plan parity', () => {
       prompts: promptInputs,
       surfaces: chatSurfaces,
       chatProbes,
+      // Nothing is dispatched: every unit is refused by the filter.
+      dependencies: { bindings: defaultProbeBindings, gateway: () => 'unused' },
       filter: (unit) => {
         offered.add(probeUnitKey({ sectionKey: section, ...unit }));
 

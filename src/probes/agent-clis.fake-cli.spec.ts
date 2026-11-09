@@ -37,9 +37,6 @@ beforeAll(async () => {
   for (const name of ['claude', 'codex', 'cursor-agent']) {
     await symlink(fakeCliPath, path.join(binDir, name));
   }
-
-  // Codex runs from the package's own dependency unless overridden.
-  vi.stubEnv('AEO_CODEX_BIN', path.join(binDir, 'codex'));
 });
 
 afterAll(async () => {
@@ -64,6 +61,8 @@ const fakeEnv = async (
   const env: Record<string, string> = {
     PATH: `${binDir}:${process.env.PATH ?? ''}`,
     HOME: home,
+    // Codex is the package's own dependency unless the runtime names another.
+    AEO_CODEX_BIN: path.join(binDir, 'codex'),
     ...extra,
   };
 

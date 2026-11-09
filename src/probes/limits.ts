@@ -70,11 +70,16 @@ class Semaphore {
 
 type RunOptions = {
   signal?: AbortSignal;
+  /** A pause of its own the work also waits out, beside its pool's: one
+   * adapter's capacity pause, so a 429 on one surface never holds back
+   * another surface sharing the pool. */
+  pauseKey?: string;
 };
 
 export class ProbeLimiter {
   readonly #pools: Record<ProbeProvider, Semaphore>;
-  readonly #resumeAtMs: Partial<Record<ProbeProvider, number>> = {};
+  // When each paused pool or adapter may resume, by its key.
+  readonly #resumeAtMs = new Map<string, number>();
 
   constructor(limits: ProbeLimits) {
     this.#pools = {
@@ -88,26 +93,29 @@ export class ProbeLimiter {
   }
 
   /**
-   * Holds new work on the provider's pool for `delayMs`, extending any pause
-   * already running. A rate-limited provider then sees one retry per window
-   * instead of every queued unit spending an attempt on the same 429.
+   * Holds new work under `key` (a provider pool, or the pause key of one
+   * adapter) for `delayMs`, extending any pause already running. A
+   * rate-limited provider then sees one retry per window instead of every
+   * queued unit spending an attempt on the same 429.
    */
-  pause(provider: ProbeProvider, delayMs: number): void {
+  pause(key: string, delayMs: number): void {
     const resumeAtMs = Date.now() + delayMs;
 
-    this.#resumeAtMs[provider] = Math.max(
-      this.#resumeAtMs[provider] ?? 0,
-      resumeAtMs,
+    this.#resumeAtMs.set(
+      key,
+      Math.max(this.#resumeAtMs.get(key) ?? 0, resumeAtMs),
     );
   }
 
-  /** Runs `fn` once the provider is not paused and a slot on its pool is free. */
+  /** Runs `fn` once neither the provider nor the work's own pause key is
+   * paused and a slot on the provider's pool is free. */
   async run<T>(
     provider: ProbeProvider,
     fn: () => Promise<T>,
-    { signal }: RunOptions = {},
+    { signal, pauseKey }: RunOptions = {},
   ): Promise<T> {
-    const release = await this.#acquire(provider, signal);
+    const keys = pauseKey === undefined ? [provider] : [provider, pauseKey];
+    const release = await this.#acquire(provider, keys, signal);
 
     try {
       return await fn();
@@ -118,15 +126,16 @@ export class ProbeLimiter {
 
   async #acquire(
     provider: ProbeProvider,
+    keys: readonly string[],
     signal: AbortSignal | undefined,
   ): Promise<() => void> {
     for (;;) {
-      await this.#waitForResume(provider, signal);
+      await this.#waitForResume(keys, signal);
 
       const release = await this.#pools[provider].acquire();
 
       // A pause may have started while this caller queued for the slot.
-      if (this.#getPauseMs(provider) <= 0 || signal?.aborted) {
+      if (this.#getPauseMs(keys) <= 0 || signal?.aborted) {
         return release;
       }
 
@@ -135,16 +144,20 @@ export class ProbeLimiter {
   }
 
   async #waitForResume(
-    provider: ProbeProvider,
+    keys: readonly string[],
     signal: AbortSignal | undefined,
   ): Promise<void> {
-    while (this.#getPauseMs(provider) > 0 && !signal?.aborted) {
-      await sleep(this.#getPauseMs(provider), signal);
+    while (this.#getPauseMs(keys) > 0 && !signal?.aborted) {
+      await sleep(this.#getPauseMs(keys), signal);
     }
   }
 
-  #getPauseMs(provider: ProbeProvider): number {
-    return (this.#resumeAtMs[provider] ?? 0) - Date.now();
+  #getPauseMs(keys: readonly string[]): number {
+    const now = Date.now();
+
+    return Math.max(
+      ...keys.map((key) => (this.#resumeAtMs.get(key) ?? 0) - now),
+    );
   }
 }
 

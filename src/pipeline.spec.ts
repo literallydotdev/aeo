@@ -11,6 +11,7 @@ import {
   type SectionCaptureSummary,
   type SectionRunArgs,
 } from './pipeline';
+import { defaultProbeBindings } from './probes/bindings';
 
 // ============================================================================
 // Pipeline behavior over mocked probe runners (hardening spec §6.3): coverage
@@ -158,6 +159,11 @@ const baseArgs = (overrides: Partial<SectionRunArgs> = {}): SectionRunArgs => {
     language: 'en',
     surfaces: ['perplexity', 'google_ai_overview'],
     agentProbes: { runsPerPrompt: 2 },
+    // The probe runners are mocked; nothing asks a model.
+    probeDependencies: {
+      bindings: defaultProbeBindings,
+      gateway: () => 'unused',
+    },
     chatProbes: undefined,
     agentCliVersions: { claudeCode: null, codex: null, cursor: null },
     runId: 'RUN1',
@@ -223,6 +229,41 @@ describe('pipeline - captureSectionProbes()', () => {
       )?.status,
     ).toBe('failed');
   });
+
+  it.each([
+    ['the legacy adapter, recording none', defaultProbeBindings, undefined],
+    [
+      'another adapter, recording it',
+      {
+        ...defaultProbeBindings,
+        perplexity: { adapter: 'gateway.openai@1', model: 'openai/gpt-test-1' },
+      },
+      'gateway.openai@1',
+    ],
+  ] as const)(
+    'should bank a capture taken with %s',
+    async (_case, bindings, recorded) => {
+      chatOutcomes.push(chat('p1', 'perplexity', 1));
+      const probeStore = new MemoryProbeStore();
+
+      await captureSectionProbes(
+        baseArgs({
+          probeStore,
+          probeDependencies: { bindings, gateway: () => 'unused' },
+        }),
+      );
+
+      const [record] = await probeStore.list();
+      const metadata =
+        record?.status === 'captured' ? record.captureMetadata : undefined;
+
+      expect(metadata?.adapter).toBe(recorded);
+      expect(metadata !== undefined && 'adapter' in metadata).toBe(
+        recorded !== undefined,
+      );
+      expect(metadata?.requestedModel).toBe(bindings.perplexity.model);
+    },
+  );
 
   it('should reuse stored captures and only run the missing units', async () => {
     const store = new MemoryProbeStore();

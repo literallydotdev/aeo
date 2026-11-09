@@ -1,4 +1,4 @@
-import type { AeoSurface } from '../surfaces';
+import { ProbeAdapterId } from '../probes/adapter';
 import type { TokenUsage } from './pricing';
 
 // ============================================================================
@@ -29,9 +29,13 @@ import type { TokenUsage } from './pricing';
 // The probe and search figures are not calibrated yet: they are rough
 // per-request assumptions (a probe's model tokens and its provider's search
 // fee), to be replaced by the costs the gateway reports.
+//
+// Version 2 (probe adapters spec §4.8) keys the probe figures by adapter
+// rather than by surface, with version 1's numbers for every default
+// adapter: a surface costs what the adapter it is bound to costs.
 // ============================================================================
 
-export const costCoefficientsVersion = 1;
+export const costCoefficientsVersion = 2;
 
 export type TokenRange = {
   input: number;
@@ -85,17 +89,17 @@ export const hostTokensPerAnswer = {
 /** Grounding search per captured answer under full grounding. */
 export const searchUsdPerAnswer = { low: 0.001, high: 0.01 } as const;
 
-/** One probe unit, by surface, in USD. The coding-agent surfaces run on
- * the operator's own login and bill nothing to the run. */
-export const probeUsd: Record<AeoSurface, Range<number>> = {
-  chatgpt: { low: 0.01, high: 0.05 },
-  gemini: { low: 0.02, high: 0.06 },
-  claude: { low: 0.02, high: 0.08 },
-  perplexity: { low: 0.01, high: 0.03 },
-  google_ai_overview: { low: 0.002, high: 0.006 },
-  claude_code: { low: 0, high: 0 },
-  codex: { low: 0, high: 0 },
-  cursor: { low: 0, high: 0 },
+/** One probe unit, by adapter, in USD. The coding-agent CLIs run on the
+ * operator's own plan and bill nothing to the run's cap. */
+export const probeUsd: Readonly<Record<ProbeAdapterId, Range<number>>> = {
+  [ProbeAdapterId.GATEWAY_OPENAI]: { low: 0.01, high: 0.05 },
+  [ProbeAdapterId.GATEWAY_GOOGLE]: { low: 0.02, high: 0.06 },
+  [ProbeAdapterId.GATEWAY_ANTHROPIC]: { low: 0.02, high: 0.08 },
+  [ProbeAdapterId.GATEWAY_PERPLEXITY]: { low: 0.01, high: 0.03 },
+  [ProbeAdapterId.DATAFORSEO_AI_OVERVIEW]: { low: 0.002, high: 0.006 },
+  [ProbeAdapterId.CLI_CLAUDE_CODE]: { low: 0, high: 0 },
+  [ProbeAdapterId.CLI_CODEX]: { low: 0, high: 0 },
+  [ProbeAdapterId.CLI_CURSOR]: { low: 0, high: 0 },
 };
 
 /** The calibrated workload a Codex session is: a batch of answer files

@@ -11,6 +11,7 @@ import {
 import { acquireWriterLock, type WriterLock } from '../bundle/writer-lock';
 import { capturePlan } from '../capture-manifest';
 import {
+  assertBankUsable,
   captureForRun,
   agentSurfacesToCapture,
 } from '../codex-workflow/capture';
@@ -34,6 +35,7 @@ import {
 } from '../models/accounting';
 import { resolveSupportedModel } from '../models/supported-models';
 import { chargedProbeTrace } from '../probes/charged-trace';
+import { probeDependenciesOf } from '../probes/bindings';
 import type { InternalModelContext } from '../models/context';
 import { ProbeLimiter } from '../probes/limits';
 import { planRun, type RunPlan } from '../runner';
@@ -43,7 +45,9 @@ import { openFileStores } from '../stores/files';
 import type { CapturedUnitRecord } from '../stores/ports';
 import { getEnvironment } from '../lib/env';
 import { toAuditConfig, toRunRequest, type AuditFile } from './audit-file';
+import { resolveRunBindings } from './run-bindings';
 import {
+  readFrozenBudget,
   resolveRunBudget,
   type BudgetAmendment,
   type RunBudget,
@@ -228,6 +232,14 @@ const openLockedLocalRun = async (
   },
 ): Promise<LocalRun> => {
   const { recorder } = held;
+  const bank = path.join(dir, bankDir);
+  // Frozen before the budget and the first canary, then kept on every
+  // resume: a directory that holds a budget but no bindings started before
+  // bindings were frozen. Frozen after the budget, an attempt stopped
+  // between the two (a refused plan, a crash) would read as one.
+  const bindings = await resolveRunBindings(bank, {
+    startedBefore: (await readFrozenBudget(dir)) !== undefined,
+  });
   const budget = await resolveRunBudget(dir, file.runPolicy.budget, {
     model: resolveSupportedModel(file.model).id,
     ...(maxUsd !== undefined && { maxUsd }),
@@ -239,7 +251,6 @@ const openLockedLocalRun = async (
     ...(derivedFromRunId !== undefined && { derivedFromRunId }),
   };
   const plan = planRun(config, request);
-  const bank = path.join(dir, bankDir);
   const stores = await openFileStores(config.reportKey, {
     checkpointDir: bank,
     contentDir: path.join(bank, 'report'),
@@ -280,6 +291,9 @@ const openLockedLocalRun = async (
       recorder,
     ),
   };
+  // Before the canaries, which dispatch: a bank the run cannot build on
+  // stops it with nothing sent.
+  await assertBankUsable(stores.probeStore, plan, bindings);
   const agents = await agentSurfacesToCapture(plan, stores.probeStore);
   const agentCliVersions = await detectAgentClis();
 
@@ -297,8 +311,13 @@ const openLockedLocalRun = async (
     );
   }
 
-  const probes = chargedProbeTrace(probeTraceOf(recorder, 'probe'), ledger);
+  const probes = chargedProbeTrace(
+    probeTraceOf(recorder, 'probe'),
+    ledger,
+    bindings,
+  );
   const capture = await captureForRun({
+    probeDependencies: probeDependenciesOf(getEnvironment(), bindings),
     config,
     request,
     plan,

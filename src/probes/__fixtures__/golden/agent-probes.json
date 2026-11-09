@@ -1,0 +1,1594 @@
+{
+  "claudeCodeSearched": {
+    "batch": {
+      "outcomes": [
+        {
+          "status": "captured",
+          "unit": {
+            "promptId": "p1",
+            "surface": "claude_code",
+            "runIndex": 1
+          },
+          "probe": {
+            "promptId": "p1",
+            "promptText": "Which managed file store should a small team adopt?",
+            "promptCategory": "product_recommendation",
+            "modelName": "claude_code",
+            "runIndex": 1,
+            "text": "The current Node.js LTS release is **v24.20.0** (the Node.js 24 \"Krypton\" LTS line), as confirmed on the official nodejs.org download page, where v26.8.1 is listed as the separate Current release.\n\nSources: [nodejs.org/en/download](https://nodejs.org/en/download), [Node.js Releases](https://nodejs.org/en/about/previous-releases), [Node.js 24.14.0 (LTS)](https://nodejs.org/en/blog/release/v24.14.0)",
+            "usedWebSearch": true,
+            "agentCliVersion": "fake-claude 1.0.0",
+            "retrieval": {
+              "exposure": "full",
+              "calls": [
+                {
+                  "kind": "search",
+                  "query": "current Node.js LTS version",
+                  "url": null,
+                  "resultUrls": [
+                    "https://nodejs.org/en/blog/release/v24.14.0",
+                    "https://nodejs.org/en/blog/release/v22.11.0",
+                    "https://blog.risingstack.com/update-node-js-latest-version/",
+                    "https://www.npmjs.com/package/node-lts-versions",
+                    "https://nodejs.org/en/about/previous-releases",
+                    "https://endoflife.date/nodejs",
+                    "https://nodejs.org/en/blog/release/v24.11.0",
+                    "https://github.com/marketplace/actions/node-lts-versions",
+                    "https://daily.dev/blog/nodejs-v20-lts-is-now-generally-available-and-its-awesome/"
+                  ],
+                  "resultsComplete": true
+                },
+                {
+                  "kind": "fetch",
+                  "query": null,
+                  "url": "https://nodejs.org/en/download",
+                  "resultUrls": [
+                    "https://nodejs.org/en/download"
+                  ],
+                  "resultsComplete": true
+                }
+              ]
+            },
+            "requestedModel": null,
+            "reportedModel": "claude-opus-5"
+          },
+          "attempts": 1
+        }
+      ],
+      "rejectedWebToolSurfaces": []
+    },
+    "banked": [
+      {
+        "promptId": "p1",
+        "promptText": "Which managed file store should a small team adopt?",
+        "promptCategory": "product_recommendation",
+        "modelName": "claude_code",
+        "runIndex": 1,
+        "text": "The current Node.js LTS release is **v24.20.0** (the Node.js 24 \"Krypton\" LTS line), as confirmed on the official nodejs.org download page, where v26.8.1 is listed as the separate Current release.\n\nSources: [nodejs.org/en/download](https://nodejs.org/en/download), [Node.js Releases](https://nodejs.org/en/about/previous-releases), [Node.js 24.14.0 (LTS)](https://nodejs.org/en/blog/release/v24.14.0)",
+        "usedWebSearch": true,
+        "agentCliVersion": "fake-claude 1.0.0",
+        "retrieval": {
+          "exposure": "full",
+          "calls": [
+            {
+              "kind": "search",
+              "query": "current Node.js LTS version",
+              "url": null,
+              "resultUrls": [
+                "https://nodejs.org/en/blog/release/v24.14.0",
+                "https://nodejs.org/en/blog/release/v22.11.0",
+                "https://blog.risingstack.com/update-node-js-latest-version/",
+                "https://www.npmjs.com/package/node-lts-versions",
+                "https://nodejs.org/en/about/previous-releases",
+                "https://endoflife.date/nodejs",
+                "https://nodejs.org/en/blog/release/v24.11.0",
+                "https://github.com/marketplace/actions/node-lts-versions",
+                "https://daily.dev/blog/nodejs-v20-lts-is-now-generally-available-and-its-awesome/"
+              ],
+              "resultsComplete": true
+            },
+            {
+              "kind": "fetch",
+              "query": null,
+              "url": "https://nodejs.org/en/download",
+              "resultUrls": [
+                "https://nodejs.org/en/download"
+              ],
+              "resultsComplete": true
+            }
+          ]
+        },
+        "requestedModel": null,
+        "reportedModel": "claude-opus-5"
+      }
+    ],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "claude_code",
+          "promptId": "p1",
+          "promptText": "Which managed file store should a small team adopt?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": null,
+          "adapter": "cli.claude_code@1",
+          "request": {
+            "prompt": "Which managed file store should a small team adopt?",
+            "parameters": {
+              "cli": "claude"
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "The current Node.js LTS release is **v24.20.0** (the Node.js 24 \"Krypton\" LTS line), as confirmed on the official nodejs.org download page, where v26.8.1 is listed as the separate Current release.\n\nSources: [nodejs.org/en/download](https://nodejs.org/en/download), [Node.js Releases](https://nodejs.org/en/about/previous-releases), [Node.js 24.14.0 (LTS)](https://nodejs.org/en/blog/release/v24.14.0)",
+          "retrieval": {
+            "exposure": "full",
+            "calls": [
+              {
+                "kind": "search",
+                "query": "current Node.js LTS version",
+                "url": null,
+                "resultUrls": [
+                  "https://nodejs.org/en/blog/release/v24.14.0",
+                  "https://nodejs.org/en/blog/release/v22.11.0",
+                  "https://blog.risingstack.com/update-node-js-latest-version/",
+                  "https://www.npmjs.com/package/node-lts-versions",
+                  "https://nodejs.org/en/about/previous-releases",
+                  "https://endoflife.date/nodejs",
+                  "https://nodejs.org/en/blog/release/v24.11.0",
+                  "https://github.com/marketplace/actions/node-lts-versions",
+                  "https://daily.dev/blog/nodejs-v20-lts-is-now-generally-available-and-its-awesome/"
+                ],
+                "resultsComplete": true
+              },
+              {
+                "kind": "fetch",
+                "query": null,
+                "url": "https://nodejs.org/en/download",
+                "resultUrls": [
+                  "https://nodejs.org/en/download"
+                ],
+                "resultsComplete": true
+              }
+            ]
+          },
+          "requestedModel": null,
+          "reportedModel": "claude-opus-5"
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "claude_code",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+            "request": "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "claude_code",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": null,
+            "adapter": "cli.claude_code@1"
+          }
+        },
+        "objects": [
+          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+          "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "defd61b208753c6a1bacd5c09bfc4fe70b2d902ba9e1edd6a6405101193cdc7f",
+            "retrieval": "059b85047cd719f293184ccdcc0593a238bc03b891ae727d839d4882c629b01c"
+          },
+          "details": {
+            "requestedModel": null,
+            "reportedModel": "claude-opus-5",
+            "noOverview": false,
+            "costUsd": null
+          }
+        },
+        "objects": [
+          "defd61b208753c6a1bacd5c09bfc4fe70b2d902ba9e1edd6a6405101193cdc7f",
+          "059b85047cd719f293184ccdcc0593a238bc03b891ae727d839d4882c629b01c"
+        ]
+      }
+    ]
+  },
+  "claudeCodeNoTools": {
+    "batch": {
+      "outcomes": [
+        {
+          "status": "captured",
+          "unit": {
+            "promptId": "p1",
+            "surface": "claude_code",
+            "runIndex": 1
+          },
+          "probe": {
+            "promptId": "p1",
+            "promptText": "Which managed file store should a small team adopt?",
+            "promptCategory": "product_recommendation",
+            "modelName": "claude_code",
+            "runIndex": 1,
+            "text": "OK",
+            "usedWebSearch": false,
+            "agentCliVersion": "fake-claude 1.0.0",
+            "retrieval": {
+              "exposure": "full",
+              "calls": []
+            },
+            "requestedModel": null,
+            "reportedModel": "claude-opus-5"
+          },
+          "attempts": 1
+        }
+      ],
+      "rejectedWebToolSurfaces": []
+    },
+    "banked": [
+      {
+        "promptId": "p1",
+        "promptText": "Which managed file store should a small team adopt?",
+        "promptCategory": "product_recommendation",
+        "modelName": "claude_code",
+        "runIndex": 1,
+        "text": "OK",
+        "usedWebSearch": false,
+        "agentCliVersion": "fake-claude 1.0.0",
+        "retrieval": {
+          "exposure": "full",
+          "calls": []
+        },
+        "requestedModel": null,
+        "reportedModel": "claude-opus-5"
+      }
+    ],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "claude_code",
+          "promptId": "p1",
+          "promptText": "Which managed file store should a small team adopt?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": null,
+          "adapter": "cli.claude_code@1",
+          "request": {
+            "prompt": "Which managed file store should a small team adopt?",
+            "parameters": {
+              "cli": "claude"
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "OK",
+          "retrieval": {
+            "exposure": "full",
+            "calls": []
+          },
+          "requestedModel": null,
+          "reportedModel": "claude-opus-5"
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "claude_code",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+            "request": "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "claude_code",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": null,
+            "adapter": "cli.claude_code@1"
+          }
+        },
+        "objects": [
+          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+          "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "565339bc4d33d72817b583024112eb7f5cdf3e5eef0252d6ec1b9c9a94e12bb3",
+            "retrieval": "751e51f7537d29d7382756e909c8be676e957a3d066e98ee64e44118a2966e7b"
+          },
+          "details": {
+            "requestedModel": null,
+            "reportedModel": "claude-opus-5",
+            "noOverview": false,
+            "costUsd": null
+          }
+        },
+        "objects": [
+          "565339bc4d33d72817b583024112eb7f5cdf3e5eef0252d6ec1b9c9a94e12bb3",
+          "751e51f7537d29d7382756e909c8be676e957a3d066e98ee64e44118a2966e7b"
+        ]
+      }
+    ]
+  },
+  "claudeCodeUnknownWebSearch": {
+    "batch": {
+      "outcomes": [
+        {
+          "status": "captured",
+          "unit": {
+            "promptId": "p1",
+            "surface": "claude_code",
+            "runIndex": 1
+          },
+          "probe": {
+            "promptId": "p1",
+            "promptText": "Which managed file store should a small team adopt?",
+            "promptCategory": "product_recommendation",
+            "modelName": "claude_code",
+            "runIndex": 1,
+            "text": "An answer whose stream carried no turn events.",
+            "usedWebSearch": null,
+            "agentCliVersion": "fake-claude 1.0.0",
+            "retrieval": {
+              "exposure": "full",
+              "calls": []
+            },
+            "requestedModel": null
+          },
+          "attempts": 1
+        }
+      ],
+      "rejectedWebToolSurfaces": []
+    },
+    "banked": [
+      {
+        "promptId": "p1",
+        "promptText": "Which managed file store should a small team adopt?",
+        "promptCategory": "product_recommendation",
+        "modelName": "claude_code",
+        "runIndex": 1,
+        "text": "An answer whose stream carried no turn events.",
+        "usedWebSearch": null,
+        "agentCliVersion": "fake-claude 1.0.0",
+        "retrieval": {
+          "exposure": "full",
+          "calls": []
+        },
+        "requestedModel": null
+      }
+    ],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "claude_code",
+          "promptId": "p1",
+          "promptText": "Which managed file store should a small team adopt?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": null,
+          "adapter": "cli.claude_code@1",
+          "request": {
+            "prompt": "Which managed file store should a small team adopt?",
+            "parameters": {
+              "cli": "claude"
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "An answer whose stream carried no turn events.",
+          "retrieval": {
+            "exposure": "full",
+            "calls": []
+          },
+          "requestedModel": null
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "claude_code",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+            "request": "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "claude_code",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": null,
+            "adapter": "cli.claude_code@1"
+          }
+        },
+        "objects": [
+          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+          "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "ba130597ee4740920eb435f6ccf65b9777ba97532d01f54fa53b7b3ca906fe7c",
+            "retrieval": "751e51f7537d29d7382756e909c8be676e957a3d066e98ee64e44118a2966e7b"
+          },
+          "details": {
+            "requestedModel": null,
+            "reportedModel": null,
+            "noOverview": false,
+            "costUsd": null
+          }
+        },
+        "objects": [
+          "ba130597ee4740920eb435f6ccf65b9777ba97532d01f54fa53b7b3ca906fe7c",
+          "751e51f7537d29d7382756e909c8be676e957a3d066e98ee64e44118a2966e7b"
+        ]
+      }
+    ]
+  },
+  "codexPinnedModel": {
+    "batch": {
+      "outcomes": [
+        {
+          "status": "captured",
+          "unit": {
+            "promptId": "p1",
+            "surface": "codex",
+            "runIndex": 1
+          },
+          "probe": {
+            "promptId": "p1",
+            "promptText": "Which managed file store should a small team adopt?",
+            "promptCategory": "product_recommendation",
+            "modelName": "codex",
+            "runIndex": 1,
+            "text": "The current Node.js LTS version is **v24.20.0**, as confirmed on the official [Node.js download page](https://nodejs.org/en/download).",
+            "usedWebSearch": true,
+            "agentCliVersion": "fake-codex 1.0.0",
+            "retrieval": {
+              "exposure": "queries_only",
+              "calls": [
+                {
+                  "kind": "search",
+                  "query": "site:nodejs.org current Node.js LTS version download",
+                  "url": null,
+                  "resultUrls": null,
+                  "resultsComplete": true
+                }
+              ]
+            },
+            "requestedModel": "gpt-5.6-sol"
+          },
+          "attempts": 1
+        }
+      ],
+      "rejectedWebToolSurfaces": []
+    },
+    "banked": [
+      {
+        "promptId": "p1",
+        "promptText": "Which managed file store should a small team adopt?",
+        "promptCategory": "product_recommendation",
+        "modelName": "codex",
+        "runIndex": 1,
+        "text": "The current Node.js LTS version is **v24.20.0**, as confirmed on the official [Node.js download page](https://nodejs.org/en/download).",
+        "usedWebSearch": true,
+        "agentCliVersion": "fake-codex 1.0.0",
+        "retrieval": {
+          "exposure": "queries_only",
+          "calls": [
+            {
+              "kind": "search",
+              "query": "site:nodejs.org current Node.js LTS version download",
+              "url": null,
+              "resultUrls": null,
+              "resultsComplete": true
+            }
+          ]
+        },
+        "requestedModel": "gpt-5.6-sol"
+      }
+    ],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "codex",
+          "promptId": "p1",
+          "promptText": "Which managed file store should a small team adopt?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": null,
+          "adapter": "cli.codex@1",
+          "request": {
+            "prompt": "Which managed file store should a small team adopt?",
+            "parameters": {
+              "cli": "codex",
+              "model": "gpt-5.6-sol",
+              "sandbox": "read-only"
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "The current Node.js LTS version is **v24.20.0**, as confirmed on the official [Node.js download page](https://nodejs.org/en/download).",
+          "retrieval": {
+            "exposure": "queries_only",
+            "calls": [
+              {
+                "kind": "search",
+                "query": "site:nodejs.org current Node.js LTS version download",
+                "url": null,
+                "resultUrls": null,
+                "resultsComplete": true
+              }
+            ]
+          },
+          "requestedModel": "gpt-5.6-sol"
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "codex",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+            "request": "ef8595216dc8b622ddcd2d7db40dbc7cf0d8910df4fc19250eea7f13d4f3cd2d"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "codex",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": null,
+            "adapter": "cli.codex@1"
+          }
+        },
+        "objects": [
+          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+          "ef8595216dc8b622ddcd2d7db40dbc7cf0d8910df4fc19250eea7f13d4f3cd2d"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "a18a97164aeae65c1d6c7d4c05dd374765236f54c12fee57ec552675de929d48",
+            "retrieval": "d4bc95a3e47b33ba585ef86d6547cd70fdafa4e14b822a5c120952b4ab70a8ae"
+          },
+          "details": {
+            "requestedModel": "gpt-5.6-sol",
+            "reportedModel": null,
+            "noOverview": false,
+            "costUsd": null
+          }
+        },
+        "objects": [
+          "a18a97164aeae65c1d6c7d4c05dd374765236f54c12fee57ec552675de929d48",
+          "d4bc95a3e47b33ba585ef86d6547cd70fdafa4e14b822a5c120952b4ab70a8ae"
+        ]
+      }
+    ]
+  },
+  "codexDefaultModel": {
+    "batch": {
+      "outcomes": [
+        {
+          "status": "captured",
+          "unit": {
+            "promptId": "p1",
+            "surface": "codex",
+            "runIndex": 1
+          },
+          "probe": {
+            "promptId": "p1",
+            "promptText": "Which managed file store should a small team adopt?",
+            "promptCategory": "product_recommendation",
+            "modelName": "codex",
+            "runIndex": 1,
+            "text": "OK",
+            "usedWebSearch": false,
+            "agentCliVersion": "fake-codex 1.0.0",
+            "retrieval": {
+              "exposure": "queries_only",
+              "calls": []
+            },
+            "requestedModel": null
+          },
+          "attempts": 1
+        }
+      ],
+      "rejectedWebToolSurfaces": []
+    },
+    "banked": [
+      {
+        "promptId": "p1",
+        "promptText": "Which managed file store should a small team adopt?",
+        "promptCategory": "product_recommendation",
+        "modelName": "codex",
+        "runIndex": 1,
+        "text": "OK",
+        "usedWebSearch": false,
+        "agentCliVersion": "fake-codex 1.0.0",
+        "retrieval": {
+          "exposure": "queries_only",
+          "calls": []
+        },
+        "requestedModel": null
+      }
+    ],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "codex",
+          "promptId": "p1",
+          "promptText": "Which managed file store should a small team adopt?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": null,
+          "adapter": "cli.codex@1",
+          "request": {
+            "prompt": "Which managed file store should a small team adopt?",
+            "parameters": {
+              "cli": "codex",
+              "model": null,
+              "sandbox": "read-only"
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "OK",
+          "retrieval": {
+            "exposure": "queries_only",
+            "calls": []
+          },
+          "requestedModel": null
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "codex",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+            "request": "15950093b39b2035e1f66788cb49b5cbb74ae93948f24fab7cd30a317f898e39"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "codex",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": null,
+            "adapter": "cli.codex@1"
+          }
+        },
+        "objects": [
+          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+          "15950093b39b2035e1f66788cb49b5cbb74ae93948f24fab7cd30a317f898e39"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "565339bc4d33d72817b583024112eb7f5cdf3e5eef0252d6ec1b9c9a94e12bb3",
+            "retrieval": "3ff386e1a1cc8d4f39f81023e4d958d96fa7ea2ea372a0866b8dae85dbd3efbd"
+          },
+          "details": {
+            "requestedModel": null,
+            "reportedModel": null,
+            "noOverview": false,
+            "costUsd": null
+          }
+        },
+        "objects": [
+          "565339bc4d33d72817b583024112eb7f5cdf3e5eef0252d6ec1b9c9a94e12bb3",
+          "3ff386e1a1cc8d4f39f81023e4d958d96fa7ea2ea372a0866b8dae85dbd3efbd"
+        ]
+      }
+    ]
+  },
+  "cursorSearched": {
+    "batch": {
+      "outcomes": [
+        {
+          "status": "captured",
+          "unit": {
+            "promptId": "p1",
+            "surface": "cursor",
+            "runIndex": 1
+          },
+          "probe": {
+            "promptId": "p1",
+            "promptText": "Which managed file store should a small team adopt?",
+            "promptCategory": "product_recommendation",
+            "modelName": "cursor",
+            "runIndex": 1,
+            "text": "I'll look up the current Node.js LTS version and confirm it on the official download page.The current Node.js LTS version is **24.20.0** (Active LTS “Krypton”), as confirmed on the official [nodejs.org download page](https://nodejs.org/en/download/).",
+            "usedWebSearch": true,
+            "agentCliVersion": "fake-cursor 1.0.0",
+            "retrieval": {
+              "exposure": "full",
+              "calls": [
+                {
+                  "kind": "fetch",
+                  "query": null,
+                  "url": "https://nodejs.org/en/download/",
+                  "resultUrls": [
+                    "https://nodejs.org/en/download/"
+                  ],
+                  "resultsComplete": true
+                },
+                {
+                  "kind": "search",
+                  "query": "current Node.js LTS version",
+                  "url": null,
+                  "resultUrls": [
+                    "https://github.com/nodejs/release?tab=readme-ov-file",
+                    "https://nodejs.org/en/blog/release/v24.20.0",
+                    "http://nodesource.com/blog/nodejs-versions-lts-eol-outdated-release-risks/",
+                    "https://github.com/nodejs/LTS/blob/master/README.md",
+                    "https://www.herodevs.com/blog-posts/node-js-end-of-life-dates-you-should-be-aware-of"
+                  ],
+                  "resultsComplete": true
+                }
+              ]
+            },
+            "requestedModel": null
+          },
+          "attempts": 1
+        }
+      ],
+      "rejectedWebToolSurfaces": []
+    },
+    "banked": [
+      {
+        "promptId": "p1",
+        "promptText": "Which managed file store should a small team adopt?",
+        "promptCategory": "product_recommendation",
+        "modelName": "cursor",
+        "runIndex": 1,
+        "text": "I'll look up the current Node.js LTS version and confirm it on the official download page.The current Node.js LTS version is **24.20.0** (Active LTS “Krypton”), as confirmed on the official [nodejs.org download page](https://nodejs.org/en/download/).",
+        "usedWebSearch": true,
+        "agentCliVersion": "fake-cursor 1.0.0",
+        "retrieval": {
+          "exposure": "full",
+          "calls": [
+            {
+              "kind": "fetch",
+              "query": null,
+              "url": "https://nodejs.org/en/download/",
+              "resultUrls": [
+                "https://nodejs.org/en/download/"
+              ],
+              "resultsComplete": true
+            },
+            {
+              "kind": "search",
+              "query": "current Node.js LTS version",
+              "url": null,
+              "resultUrls": [
+                "https://github.com/nodejs/release?tab=readme-ov-file",
+                "https://nodejs.org/en/blog/release/v24.20.0",
+                "http://nodesource.com/blog/nodejs-versions-lts-eol-outdated-release-risks/",
+                "https://github.com/nodejs/LTS/blob/master/README.md",
+                "https://www.herodevs.com/blog-posts/node-js-end-of-life-dates-you-should-be-aware-of"
+              ],
+              "resultsComplete": true
+            }
+          ]
+        },
+        "requestedModel": null
+      }
+    ],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "cursor",
+          "promptId": "p1",
+          "promptText": "Which managed file store should a small team adopt?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": null,
+          "adapter": "cli.cursor@1",
+          "request": {
+            "prompt": "Which managed file store should a small team adopt?",
+            "parameters": {
+              "cli": "cursor-agent"
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "I'll look up the current Node.js LTS version and confirm it on the official download page.The current Node.js LTS version is **24.20.0** (Active LTS “Krypton”), as confirmed on the official [nodejs.org download page](https://nodejs.org/en/download/).",
+          "retrieval": {
+            "exposure": "full",
+            "calls": [
+              {
+                "kind": "fetch",
+                "query": null,
+                "url": "https://nodejs.org/en/download/",
+                "resultUrls": [
+                  "https://nodejs.org/en/download/"
+                ],
+                "resultsComplete": true
+              },
+              {
+                "kind": "search",
+                "query": "current Node.js LTS version",
+                "url": null,
+                "resultUrls": [
+                  "https://github.com/nodejs/release?tab=readme-ov-file",
+                  "https://nodejs.org/en/blog/release/v24.20.0",
+                  "http://nodesource.com/blog/nodejs-versions-lts-eol-outdated-release-risks/",
+                  "https://github.com/nodejs/LTS/blob/master/README.md",
+                  "https://www.herodevs.com/blog-posts/node-js-end-of-life-dates-you-should-be-aware-of"
+                ],
+                "resultsComplete": true
+              }
+            ]
+          },
+          "requestedModel": null
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "cursor",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+            "request": "699348446cc2ae987e05db234053137abaa83d3317a0a968e5918d11aa6df429"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "cursor",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": null,
+            "adapter": "cli.cursor@1"
+          }
+        },
+        "objects": [
+          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+          "699348446cc2ae987e05db234053137abaa83d3317a0a968e5918d11aa6df429"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "622964b7e51e74efefc2d9123c77f4fadc0675e8b9ca5c647d6d3f9eb2a2fce3",
+            "retrieval": "6902d4be7bd93b6fe8e0d8f61d1c05e16767057559e9de6e1a1e8c54ccdbdc89"
+          },
+          "details": {
+            "requestedModel": null,
+            "reportedModel": null,
+            "noOverview": false,
+            "costUsd": null
+          }
+        },
+        "objects": [
+          "622964b7e51e74efefc2d9123c77f4fadc0675e8b9ca5c647d6d3f9eb2a2fce3",
+          "6902d4be7bd93b6fe8e0d8f61d1c05e16767057559e9de6e1a1e8c54ccdbdc89"
+        ]
+      }
+    ]
+  },
+  "retriedFailure": {
+    "batch": {
+      "outcomes": [
+        {
+          "status": "failed",
+          "unit": {
+            "promptId": "p1",
+            "surface": "claude_code",
+            "runIndex": 1
+          },
+          "kind": "cli_error",
+          "attempts": 2,
+          "lastError": "claude exited with code 1 — exit 1, stderr: something went wrong"
+        }
+      ],
+      "rejectedWebToolSurfaces": []
+    },
+    "banked": [],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "claude_code",
+          "promptId": "p1",
+          "promptText": "Which managed file store should a small team adopt?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": null,
+          "adapter": "cli.claude_code@1",
+          "request": {
+            "prompt": "Which managed file store should a small team adopt?",
+            "parameters": {
+              "cli": "claude"
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "failed",
+          "kind": "cli_error",
+          "error": "claude exited with code 1 — exit 1, stderr: something went wrong"
+        }
+      },
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "claude_code",
+          "promptId": "p1",
+          "promptText": "Which managed file store should a small team adopt?",
+          "runIndex": 1,
+          "attempt": 2,
+          "retryOf": "op-1",
+          "requestedModel": null,
+          "adapter": "cli.claude_code@1",
+          "request": {
+            "prompt": "Which managed file store should a small team adopt?",
+            "parameters": {
+              "cli": "claude"
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "failed",
+          "kind": "cli_error",
+          "error": "claude exited with code 1 — exit 1, stderr: something went wrong"
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "claude_code",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+            "request": "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "claude_code",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": null,
+            "adapter": "cli.claude_code@1"
+          }
+        },
+        "objects": [
+          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+          "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "failed",
+          "outputs": {},
+          "details": {
+            "kind": "cli_error",
+            "error": "claude exited with code 1 — exit 1, stderr: something went wrong"
+          }
+        },
+        "objects": []
+      },
+      {
+        "type": "operation_started",
+        "operation": "op-2",
+        "payload": {
+          "kind": "probe",
+          "role": "claude_code",
+          "attempt": 2,
+          "inputs": {
+            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+            "request": "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "claude_code",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": "op-1",
+            "requestedModel": null,
+            "adapter": "cli.claude_code@1"
+          }
+        },
+        "objects": [
+          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+          "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-2",
+        "payload": {
+          "outcome": "failed",
+          "outputs": {},
+          "details": {
+            "kind": "cli_error",
+            "error": "claude exited with code 1 — exit 1, stderr: something went wrong"
+          }
+        },
+        "objects": []
+      }
+    ]
+  },
+  "persistenceBankingFailed": {
+    "batch": {
+      "outcomes": [
+        {
+          "status": "failed",
+          "unit": {
+            "promptId": "p1",
+            "surface": "claude_code",
+            "runIndex": 1
+          },
+          "kind": "persistence",
+          "attempts": 1,
+          "lastError": "store down"
+        }
+      ],
+      "rejectedWebToolSurfaces": []
+    },
+    "banked": [],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "claude_code",
+          "promptId": "p1",
+          "promptText": "Which managed file store should a small team adopt?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": null,
+          "adapter": "cli.claude_code@1",
+          "request": {
+            "prompt": "Which managed file store should a small team adopt?",
+            "parameters": {
+              "cli": "claude"
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "OK",
+          "retrieval": {
+            "exposure": "full",
+            "calls": []
+          },
+          "requestedModel": null
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "claude_code",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+            "request": "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "claude_code",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": null,
+            "adapter": "cli.claude_code@1"
+          }
+        },
+        "objects": [
+          "ed1a52a214fd56e2f76ca9b09a0648e4d0209ef5f10869bec5c3917a626b6c8c",
+          "d76b8fec7e0c82fd35b2a18e25095da2562a9a270155f3cc11eee832464967fe"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "565339bc4d33d72817b583024112eb7f5cdf3e5eef0252d6ec1b9c9a94e12bb3",
+            "retrieval": "751e51f7537d29d7382756e909c8be676e957a3d066e98ee64e44118a2966e7b"
+          },
+          "details": {
+            "requestedModel": null,
+            "reportedModel": null,
+            "noOverview": false,
+            "costUsd": null
+          }
+        },
+        "objects": [
+          "565339bc4d33d72817b583024112eb7f5cdf3e5eef0252d6ec1b9c9a94e12bb3",
+          "751e51f7537d29d7382756e909c8be676e957a3d066e98ee64e44118a2966e7b"
+        ]
+      }
+    ]
+  },
+  "argv": {
+    "claudeCode": [
+      "-p",
+      "Which managed file store should a small team adopt?",
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--settings",
+      "<scratch>/probe-settings.json",
+      "--strict-mcp-config",
+      "--setting-sources",
+      "project"
+    ],
+    "codexPinned": [
+      "exec",
+      "--json",
+      "--model",
+      "gpt-5.6-sol",
+      "--sandbox",
+      "read-only",
+      "--skip-git-repo-check",
+      "--ignore-user-config",
+      "--ephemeral",
+      "--cd",
+      "<scratch>",
+      "--output-last-message",
+      "<scratch>/last-message.txt",
+      "-c",
+      "tools.web_search=true",
+      "Which managed file store should a small team adopt?"
+    ],
+    "codexDefault": [
+      "exec",
+      "--json",
+      "--sandbox",
+      "read-only",
+      "--skip-git-repo-check",
+      "--ignore-user-config",
+      "--ephemeral",
+      "--cd",
+      "<scratch>",
+      "--output-last-message",
+      "<scratch>/last-message.txt",
+      "-c",
+      "tools.web_search=true",
+      "Which managed file store should a small team adopt?"
+    ],
+    "cursor": [
+      "-p",
+      "Which managed file store should a small team adopt?",
+      "--output-format",
+      "stream-json",
+      "--trust",
+      "--force"
+    ]
+  },
+  "canaryPassed": {
+    "failures": [
+      null,
+      null,
+      null
+    ],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "claude_code",
+          "promptId": "canary",
+          "promptText": "Reply with the single word OK and nothing else. Do not search the web.",
+          "runIndex": 0,
+          "attempt": 1,
+          "requestedModel": null,
+          "adapter": "cli.claude_code@1",
+          "request": {
+            "prompt": "Reply with the single word OK and nothing else. Do not search the web.",
+            "parameters": {
+              "cli": "claude"
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "OK",
+          "retrieval": {
+            "exposure": "full",
+            "calls": []
+          },
+          "requestedModel": null
+        }
+      },
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "codex",
+          "promptId": "canary",
+          "promptText": "Reply with the single word OK and nothing else. Do not search the web.",
+          "runIndex": 0,
+          "attempt": 1,
+          "requestedModel": null,
+          "adapter": "cli.codex@1",
+          "request": {
+            "prompt": "Reply with the single word OK and nothing else. Do not search the web.",
+            "parameters": {
+              "cli": "codex",
+              "model": null,
+              "sandbox": "read-only"
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "OK",
+          "retrieval": {
+            "exposure": "queries_only",
+            "calls": []
+          },
+          "requestedModel": null
+        }
+      },
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "cursor",
+          "promptId": "canary",
+          "promptText": "Reply with the single word OK and nothing else. Do not search the web.",
+          "runIndex": 0,
+          "attempt": 1,
+          "requestedModel": null,
+          "adapter": "cli.cursor@1",
+          "request": {
+            "prompt": "Reply with the single word OK and nothing else. Do not search the web.",
+            "parameters": {
+              "cli": "cursor-agent"
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "OK",
+          "retrieval": {
+            "exposure": "full",
+            "calls": []
+          },
+          "requestedModel": null
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "canary",
+          "role": "claude_code",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe",
+            "request": "feeea1bdd36221fb143da6b289f745231a87b219e06b6a75084f633fef2ae80c"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "claude_code",
+            "promptId": "canary",
+            "runIndex": 0,
+            "retryOf": null,
+            "requestedModel": null,
+            "adapter": "cli.claude_code@1"
+          }
+        },
+        "objects": [
+          "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe",
+          "feeea1bdd36221fb143da6b289f745231a87b219e06b6a75084f633fef2ae80c"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "565339bc4d33d72817b583024112eb7f5cdf3e5eef0252d6ec1b9c9a94e12bb3",
+            "retrieval": "751e51f7537d29d7382756e909c8be676e957a3d066e98ee64e44118a2966e7b"
+          },
+          "details": {
+            "requestedModel": null,
+            "reportedModel": null,
+            "noOverview": false,
+            "costUsd": null
+          }
+        },
+        "objects": [
+          "565339bc4d33d72817b583024112eb7f5cdf3e5eef0252d6ec1b9c9a94e12bb3",
+          "751e51f7537d29d7382756e909c8be676e957a3d066e98ee64e44118a2966e7b"
+        ]
+      },
+      {
+        "type": "operation_started",
+        "operation": "op-2",
+        "payload": {
+          "kind": "canary",
+          "role": "codex",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe",
+            "request": "900e4c65622286bb4ae5c188ad73245d6f4db3d3f36e1bcecb3a8072810dfcf6"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "codex",
+            "promptId": "canary",
+            "runIndex": 0,
+            "retryOf": null,
+            "requestedModel": null,
+            "adapter": "cli.codex@1"
+          }
+        },
+        "objects": [
+          "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe",
+          "900e4c65622286bb4ae5c188ad73245d6f4db3d3f36e1bcecb3a8072810dfcf6"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-2",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "565339bc4d33d72817b583024112eb7f5cdf3e5eef0252d6ec1b9c9a94e12bb3",
+            "retrieval": "3ff386e1a1cc8d4f39f81023e4d958d96fa7ea2ea372a0866b8dae85dbd3efbd"
+          },
+          "details": {
+            "requestedModel": null,
+            "reportedModel": null,
+            "noOverview": false,
+            "costUsd": null
+          }
+        },
+        "objects": [
+          "565339bc4d33d72817b583024112eb7f5cdf3e5eef0252d6ec1b9c9a94e12bb3",
+          "3ff386e1a1cc8d4f39f81023e4d958d96fa7ea2ea372a0866b8dae85dbd3efbd"
+        ]
+      },
+      {
+        "type": "operation_started",
+        "operation": "op-3",
+        "payload": {
+          "kind": "canary",
+          "role": "cursor",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe",
+            "request": "6d9ec46aa85f0e0882f9c817a10dd635d75c3461d4024c59962e396f926d546d"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "cursor",
+            "promptId": "canary",
+            "runIndex": 0,
+            "retryOf": null,
+            "requestedModel": null,
+            "adapter": "cli.cursor@1"
+          }
+        },
+        "objects": [
+          "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe",
+          "6d9ec46aa85f0e0882f9c817a10dd635d75c3461d4024c59962e396f926d546d"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-3",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "565339bc4d33d72817b583024112eb7f5cdf3e5eef0252d6ec1b9c9a94e12bb3",
+            "retrieval": "751e51f7537d29d7382756e909c8be676e957a3d066e98ee64e44118a2966e7b"
+          },
+          "details": {
+            "requestedModel": null,
+            "reportedModel": null,
+            "noOverview": false,
+            "costUsd": null
+          }
+        },
+        "objects": [
+          "565339bc4d33d72817b583024112eb7f5cdf3e5eef0252d6ec1b9c9a94e12bb3",
+          "751e51f7537d29d7382756e909c8be676e957a3d066e98ee64e44118a2966e7b"
+        ]
+      }
+    ]
+  },
+  "canaryFailed": {
+    "failure": {
+      "kind": "auth",
+      "message": "claude exited with code 1 — exit 1, stderr: Not logged in. Please run /login",
+      "surface": "claude_code"
+    },
+    "thrown": {
+      "name": "ProbeFailure",
+      "message": "Agent canary probe failed; the CLI is installed but cannot answer (auth, network, or configuration):\n  - claude_code: auth — claude exited with code 1 — exit 1, stderr: Not logged in. Please run /login\n  - cursor: auth — cursor-agent exited with code 1 — exit 1, stderr: Not logged in. Please run /login"
+    },
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "claude_code",
+          "promptId": "canary",
+          "promptText": "Reply with the single word OK and nothing else. Do not search the web.",
+          "runIndex": 0,
+          "attempt": 1,
+          "requestedModel": null,
+          "adapter": "cli.claude_code@1",
+          "request": {
+            "prompt": "Reply with the single word OK and nothing else. Do not search the web.",
+            "parameters": {
+              "cli": "claude"
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "failed",
+          "kind": "auth",
+          "error": "claude exited with code 1 — exit 1, stderr: Not logged in. Please run /login"
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "canary",
+          "role": "claude_code",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe",
+            "request": "feeea1bdd36221fb143da6b289f745231a87b219e06b6a75084f633fef2ae80c"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "claude_code",
+            "promptId": "canary",
+            "runIndex": 0,
+            "retryOf": null,
+            "requestedModel": null,
+            "adapter": "cli.claude_code@1"
+          }
+        },
+        "objects": [
+          "c20e283a7fb66a7d40ed2b4406406edf4e01b989f374b232f4bb389df53c26fe",
+          "feeea1bdd36221fb143da6b289f745231a87b219e06b6a75084f633fef2ae80c"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "failed",
+          "outputs": {},
+          "details": {
+            "kind": "auth",
+            "error": "claude exited with code 1 — exit 1, stderr: Not logged in. Please run /login"
+          }
+        },
+        "objects": []
+      }
+    ]
+  }
+}

@@ -12,11 +12,7 @@ import type {
 } from './schema';
 import { agentProbedPrompts, isAgentSurface } from './schema';
 import { createLog } from './lib/log';
-import {
-  aiSearchProbeModels,
-  runProbesForPrompts,
-  type ProbeResult,
-} from './probes/probes';
+import { runProbesForPrompts, type ProbeResult } from './probes/probes';
 import {
   runAgentProbesForPrompts,
   type AgentCliVersions,
@@ -27,6 +23,9 @@ import type { ProbeOutcome } from './probes/outcomes';
 import type { ProbeFailureKind } from './probes/failure';
 import type { ProbeLimiter } from './probes/limits';
 import { withSection, type ProbeTrace } from './probes/probe-trace';
+import { requestedModelOf } from './probes/attempt';
+import type { ProbeDependencies, RunBindings } from './probes/bindings';
+import { legacyProbeBindings } from './probes/legacy-bindings';
 import {
   plannedProbeUnitsForSection,
   probeUnitKey,
@@ -148,6 +147,9 @@ export type SectionRunArgs = {
   // The run journal: every probe attempt becomes an operation.
   trace?: ProbeTrace;
   signal?: AbortSignal;
+  // What the probe adapters are created with: the gateway, credentials,
+  // clients.
+  probeDependencies: ProbeDependencies;
   logContext: Record<string, unknown>;
 };
 
@@ -207,20 +209,29 @@ export type SectionCaptureSummary = Omit<SectionCapture, 'probes'> & {
   probeCount: number;
 };
 
-// The model a capture asked for: the pinned chat model for an AI-search
-// surface, the pinned CLI model for an agent probe, null for a CLI default.
-const requestedModelOf = (probe: CheckpointProbe): string | null => {
-  if (isProbeModelSurface(probe.modelName)) {
-    return aiSearchProbeModels[probe.modelName];
-  }
-
-  return 'requestedModel' in probe ? (probe.requestedModel ?? null) : null;
+// The model a capture asked for, by the binding that captured it: the bound
+// model of a model API, else the one an agent's answer names, else none.
+const capturedRequestedModel = (
+  probe: CheckpointProbe,
+  bindings: RunBindings,
+): string | null => {
+  return requestedModelOf(
+    bindings[probe.modelName],
+    'requestedModel' in probe ? probe.requestedModel : undefined,
+  );
 };
 
-const isProbeModelSurface = (
+// The adapter a capture records (probe adapters spec §4.6): only one that
+// is not the surface's legacy adapter, so a capture taken with the legacy
+// adapter keeps the bytes, profile and collection digest older releases
+// gave it. Absent means the legacy adapter.
+const recordedAdapterOf = (
   surface: AeoSurface,
-): surface is keyof typeof aiSearchProbeModels => {
-  return surface in aiSearchProbeModels;
+  bindings: RunBindings,
+): { adapter?: string } => {
+  const { adapter } = bindings[surface];
+
+  return adapter === legacyProbeBindings[surface].adapter ? {} : { adapter };
 };
 
 const isAgentProbe = (probe: Probe): probe is AgentProbeResult => {
@@ -330,7 +341,10 @@ export const captureSectionProbes = async (
         runId: args.runId,
         capturedAt: new Date().toISOString(),
         captureMetadata: {
-          requestedModel: requestedModelOf(probe),
+          requestedModel: capturedRequestedModel(
+            probe,
+            args.probeDependencies.bindings,
+          ),
           reportedModel: probe.reportedModel ?? null,
           // Progress comparisons hash these into each answer's collection
           // method, so they stay as earlier releases recorded them. Chat
@@ -342,6 +356,10 @@ export const captureSectionProbes = async (
             language: args.language,
             agentProbes: args.agentProbes,
           },
+          ...recordedAdapterOf(
+            probe.modelName,
+            args.probeDependencies.bindings,
+          ),
         },
         probe,
       });
@@ -378,6 +396,7 @@ export const captureSectionProbes = async (
             trace,
             limiter: args.limiter,
             signal: args.signal,
+            dependencies: args.probeDependencies,
           },
           { logContext: args.logContext },
         )

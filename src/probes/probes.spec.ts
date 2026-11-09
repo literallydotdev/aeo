@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type * as GatewayModule from '@ai-sdk/gateway';
 import type * as AiModule from 'ai';
 import { APICallError, NoOutputGeneratedError } from 'ai';
 import type {
@@ -8,6 +7,7 @@ import type {
   ProbeTrace,
 } from './probe-trace';
 import { runProbesForPrompts } from './probes';
+import { defaultProbeBindings } from './bindings';
 
 // A search-required probe is two streams: the search call, then a synthesis
 // follow-up when the first returns no prose. Each stream reports a provider
@@ -28,11 +28,6 @@ const provider = vi.hoisted(() => ({
 vi.mock('ai', async () => ({
   ...(await vi.importActual<typeof AiModule>('ai')),
   streamText: (options: StreamOptions) => provider.streamText(options),
-}));
-
-vi.mock('@ai-sdk/gateway', async () => ({
-  ...(await vi.importActual<typeof GatewayModule>('@ai-sdk/gateway')),
-  gateway: provider.gateway,
 }));
 
 /** A settled stream: every member resolves from one answer. */
@@ -95,6 +90,10 @@ describe('probes - runProbesForPrompts()', () => {
       prompts: [{ id: 'p1', promptText: 'Which agency?', category: 'x' }],
       surfaces: ['chatgpt'],
       chatProbes: undefined,
+      dependencies: {
+        bindings: defaultProbeBindings,
+        gateway: provider.gateway,
+      },
       // One unit: the surface plans two runs per prompt.
       filter: (unit) => unit.runIndex === 1,
     });
@@ -132,6 +131,10 @@ describe('probes - runProbesForPrompts()', () => {
       prompts: [{ id: 'p1', promptText: 'Which agency?', category: 'x' }],
       surfaces: ['chatgpt'],
       chatProbes: undefined,
+      dependencies: {
+        bindings: defaultProbeBindings,
+        gateway: provider.gateway,
+      },
       // One unit: the surface plans two runs per prompt.
       filter: (unit) => unit.runIndex === 1,
     });
@@ -176,6 +179,10 @@ describe('probes - runProbesForPrompts()', () => {
         prompts: [{ id: 'p1', promptText: 'Which agency?', category: 'x' }],
         surfaces: ['perplexity'],
         chatProbes: undefined,
+        dependencies: {
+          bindings: defaultProbeBindings,
+          gateway: provider.gateway,
+        },
         filter: (unit) => unit.runIndex === 1,
         trace,
       });

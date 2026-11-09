@@ -3,17 +3,20 @@ import {
   ModelBudgetError,
   type ModelCallAccounting,
 } from '../models/accounting';
-import { probeUsd } from '../models/cost-coefficients';
+import { createLog } from '../lib/log';
+import { profileOf, type RunBindings } from './bindings';
 import type { ProbeTrace } from './probe-trace';
 
 // ============================================================================
 // Probes on the run's ledger (specs/aeo-claude-operator-spec.md §4.2): every
-// probe attempt is reserved at its surface's high estimate before it is
+// probe attempt is reserved at its adapter's high estimate before it is
 // dispatched and settled with the cost the gateway reported; one that
 // reported none keeps charging its estimate. An attempt the cap cannot afford is never
 // dispatched; the run learns of it through `exhausted` and stops resumable,
 // with every answer captured so far banked.
 // ============================================================================
+
+const log = createLog('ChargedProbeTrace');
 
 export type ChargedTrace = {
   trace: ProbeTrace;
@@ -24,15 +27,17 @@ export type ChargedTrace = {
 export const chargedProbeTrace = (
   trace: ProbeTrace,
   ledger: ModelCallAccounting,
+  bindings: RunBindings,
 ): ChargedTrace => {
   let refused: ModelBudgetError | undefined;
 
   const charged: ProbeTrace = {
     start: async (attempt) => {
-      const estimateUsd = probeUsd[attempt.surface].high;
+      const profile = profileOf(bindings[attempt.surface]);
+      const estimateUsd = profile.estimateUsd.high;
       const callId = `probe:${attempt.surface}:${attempt.promptId}:${attempt.runIndex}:${attempt.attempt}:${randomUUID()}`;
-      // The coding-agent surfaces run on the operator's own login.
-      const isPaid = estimateUsd > 0;
+      // The coding-agent surfaces run on the operator's own plan.
+      const isPaid = profile.billing === 'metered';
 
       if (isPaid) {
         try {
@@ -55,7 +60,28 @@ export const chargedProbeTrace = (
         }
       }
 
-      const handle = await trace.start(attempt);
+      let handle: Awaited<ReturnType<ProbeTrace['start']>>;
+
+      try {
+        handle = await trace.start(attempt);
+      } catch (error) {
+        // Not dispatched, so not charged. A release that fails leaves the
+        // reservation charging its estimate: an overstatement of the spend,
+        // never an understatement.
+        if (isPaid) {
+          await ledger.release(callId).catch((releaseError: unknown) => {
+            log.warn('Probe reservation could not be released', {
+              callId,
+              error:
+                releaseError instanceof Error
+                  ? releaseError.message
+                  : String(releaseError),
+            });
+          });
+        }
+
+        throw error;
+      }
 
       return {
         id: handle.id,
@@ -71,13 +97,28 @@ export const chargedProbeTrace = (
 
           // Without a reported cost the call keeps charging its estimate,
           // and the ledger records no cost the provider did not report.
-          await ledger.settle(callId, {
-            ...(attempt.requestedModel !== null && {
-              requestedModel: attempt.requestedModel,
-            }),
-            ...(reportedUsd !== undefined && { costUsd: reportedUsd }),
-            ...(result.outcome !== 'succeeded' && { valid: false }),
-          });
+          // The outcome is recorded by now, so a settlement that fails (the
+          // operator stopped the run, the ledger could not be written) must
+          // not fail the unit: its paid answer would go unbanked and be
+          // bought again on resume. The call keeps charging its estimate,
+          // an overstatement of the spend, never an understatement.
+          await ledger
+            .settle(callId, {
+              ...(attempt.requestedModel !== null && {
+                requestedModel: attempt.requestedModel,
+              }),
+              ...(reportedUsd !== undefined && { costUsd: reportedUsd }),
+              ...(result.outcome !== 'succeeded' && { valid: false }),
+            })
+            .catch((settleError: unknown) => {
+              log.warn('Probe cost could not be settled', {
+                callId,
+                error:
+                  settleError instanceof Error
+                    ? settleError.message
+                    : String(settleError),
+              });
+            });
         },
       };
     },

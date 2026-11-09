@@ -4,7 +4,6 @@ import {
   authorTokens,
   costCoefficientsVersion,
   hostTokensPerAnswer,
-  probeUsd,
   searchUsdPerAnswer,
   stageTokens,
   type Range,
@@ -12,6 +11,7 @@ import {
 } from '../models/cost-coefficients';
 import { tokenCostUsd } from '../models/pricing';
 import type { SupportedModel } from '../models/supported-models';
+import { profileOf, type RunBindings } from '../probes/bindings';
 import type { RunPlan } from '../runner';
 
 // ============================================================================
@@ -87,6 +87,9 @@ type EstimateRunOptions = {
   plan: Pick<RunPlan, 'units' | 'probesBySurface'>;
   model: SupportedModel;
   grounding: 'full' | 'extraction_only';
+  /** The bindings the run measures with: each surface's probes cost what
+   * its bound adapter costs. */
+  bindings: RunBindings;
 };
 
 /** estimateRunCost estimates a whole run as planned; a resume spends less,
@@ -95,14 +98,17 @@ export const estimateRunCost = ({
   plan,
   model,
   grounding,
+  bindings,
 }: EstimateRunOptions): RunCostEstimate => {
   const answers = plan.units.length;
   const { cachedShare } = stageTokens;
 
   const probes = sumOf(
-    [...plan.probesBySurface].map(([surface, count]) =>
-      rangeOf(probeUsd[surface].low * count, probeUsd[surface].high * count),
-    ),
+    [...plan.probesBySurface].map(([surface, count]) => {
+      const usd = profileOf(bindings[surface]).estimateUsd;
+
+      return rangeOf(usd.low * count, usd.high * count);
+    }),
   );
   // The cheap end assumes the cache serves most input; the dear end less.
   const stages = rangeOf(

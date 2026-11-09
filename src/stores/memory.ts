@@ -36,6 +36,7 @@ import {
   type UnitRecord,
 } from './ports';
 import { validateReportArtifacts } from './artifacts';
+import { parseUnitRecord } from './unit-record';
 
 // ============================================================================
 // Map-backed implementations of the storage ports — for unit tests and the
@@ -56,7 +57,9 @@ export class MemoryProbeStore implements ProbeStore {
   readonly #records = new Map<string, UnitRecord>();
 
   constructor(seed: Iterable<UnitRecord> = []) {
-    for (const record of seed) {
+    for (const [index, row] of [...seed].entries()) {
+      const record = parseUnitRecord(row, `seed ${index + 1}`);
+
       this.#records.set(unitRecordKey(record), record);
     }
   }

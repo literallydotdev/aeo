@@ -181,6 +181,7 @@ describe('structured - generateStructured()', () => {
         events.push('settle');
         await accounting.settle(id, usage);
       },
+      release: (id) => accounting.release(id),
     };
 
     const transport: StructuredTransport = (current) => {

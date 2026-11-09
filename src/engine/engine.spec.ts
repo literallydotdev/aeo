@@ -1,10 +1,18 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { canonicalDigest } from '../bundle/json';
 import { requireDefined } from '../__fixtures__/require-defined';
 import { writeEnv } from '../lib/env';
+import { defaultProbeBindings } from '../probes/bindings';
 import { readAuthorEvidence } from './author';
 import {
   auditFileSchema,
@@ -24,7 +32,7 @@ import {
   runDirectoryState,
   usesGroundingSearch,
 } from './local-run';
-import { runPreflight } from './preflight';
+import { agentAuthMode, runPreflight } from './preflight';
 import { auditCopyFile, recordRunConfiguration } from './run-configuration';
 import { exampleAuditFile } from './templates';
 
@@ -45,6 +53,16 @@ vi.mock('playwright', () => ({
           ),
   },
 }));
+
+// A stand-in for the agent CLIs (hardening spec §6.2).
+const fakeCliPath = path.join(
+  import.meta.dirname,
+  '..',
+  'probes',
+  '__fixtures__',
+  'fake-cli',
+  'fake-cli.mjs',
+);
 
 let root: string;
 
@@ -243,15 +261,145 @@ describe('env-file - readSettings()', () => {
   });
 });
 
+/**
+ * stubPreflightMachine gives preflight a machine without agent CLIs: the
+ * Codex check only needs a binary that starts (the dependency's own is
+ * tested in codex-binary.spec.ts), and an empty PATH keeps the detection of
+ * `claude` and `cursor-agent` from starting whatever this machine has
+ * installed, which made the result and its duration depend on the machine.
+ */
+const stubPreflightMachine = () => {
+  vi.stubEnv('AEO_CODEX_BIN', process.execPath);
+  vi.stubEnv('PATH', path.join(root, 'no-agent-clis'));
+};
+
 describe('preflight - runPreflight()', () => {
-  // The check only needs a Codex that starts; the dependency's own binary is
-  // tested in codex-binary.spec.ts.
   beforeEach(() => {
-    vi.stubEnv('AEO_CODEX_BIN', process.execPath);
+    stubPreflightMachine();
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
+  });
+
+  const settingsOf = async (lines: string) => {
+    const envFile = path.join(root, 'settings.env');
+
+    // The env file is the only source: the developer's own values never
+    // reach these checks.
+    for (const name of [
+      'AI_GATEWAY_API_KEY',
+      'DATAFORSEO_LOGIN',
+      'DATAFORSEO_PASSWORD',
+      'OPENAI_API_KEY',
+      'CODEX_HOME',
+      'CLAUDE_CODE_OAUTH_TOKEN',
+      'ANTHROPIC_API_KEY',
+    ]) {
+      vi.stubEnv(name, undefined);
+    }
+
+    await writeFile(envFile, lines);
+
+    return readSettings(envFile);
+  };
+
+  it('should require the gateway key for the host calls even when only coding agents are measured', async () => {
+    const checks = await runPreflight({
+      surfaces: ['codex'],
+      bindings: defaultProbeBindings,
+      settings: await settingsOf(''),
+      dir: path.join(root, 'run'),
+    });
+
+    expect(
+      checks.find((check) => check.name === 'AI_GATEWAY_API_KEY'),
+    ).toMatchObject({
+      ok: false,
+    });
+  });
+
+  it('should list each bound adapter with its settings by name and source, never by value', async () => {
+    const checks = await runPreflight({
+      surfaces: ['chatgpt', 'google_ai_overview'],
+      bindings: defaultProbeBindings,
+      settings: await settingsOf(
+        'AI_GATEWAY_API_KEY=fake-secret-value-1\nDATAFORSEO_LOGIN=fake-login\n',
+      ),
+      dir: path.join(root, 'run'),
+    });
+
+    expect(checks.find((check) => check.name === 'chatgpt probes')).toEqual({
+      name: 'chatgpt probes',
+      ok: true,
+      detail:
+        'gateway.openai@1 with openai/gpt-5.4-mini; AI_GATEWAY_API_KEY from the env file',
+    });
+    expect(
+      checks.find((check) => check.name === 'google_ai_overview probes'),
+    ).toEqual({
+      name: 'google_ai_overview probes',
+      ok: false,
+      detail:
+        'dataforseo.ai_overview@1; DATAFORSEO_LOGIN from the env file; DATAFORSEO_PASSWORD not set',
+    });
+    expect(JSON.stringify(checks)).not.toContain('fake-secret-value-1');
+  });
+
+  it("should accept any one of a coding agent's grouped auth settings, and disclose Codex billed outside the cap", async () => {
+    expect(
+      agentAuthMode('codex', await settingsOf('CODEX_HOME=/fake/codex-home\n')),
+    ).toEqual({ kind: 'variable', name: 'CODEX_HOME' });
+    expect(agentAuthMode('codex', await settingsOf(''))).toEqual({
+      kind: 'cli_session',
+    });
+
+    vi.stubEnv('AEO_CODEX_BIN', process.execPath);
+    const checks = await runPreflight({
+      surfaces: ['codex'],
+      bindings: defaultProbeBindings,
+      settings: await settingsOf('OPENAI_API_KEY=fake-openai-key\n'),
+      dir: path.join(root, 'run'),
+    });
+
+    expect(
+      checks.find((check) => check.name === 'codex probes')?.detail,
+    ).toContain(
+      "authenticates with OPENAI_API_KEY, billed to that OpenAI account outside the run's cap",
+    );
+  });
+
+  it('should disclose Claude Code on an API key as billed outside the cap, and on a subscription token as not', async () => {
+    // A fake `claude` that only reports its version, alone on PATH with
+    // the Node it runs on; HOME here, so it reads its mode from this
+    // directory and writes nowhere else.
+    const bin = path.join(root, 'bin');
+
+    await mkdir(bin, { recursive: true });
+    await symlink(fakeCliPath, path.join(bin, 'claude'));
+    await symlink(process.execPath, path.join(bin, 'node'));
+    await writeFile(path.join(root, '.fake-cli-mode'), 'version');
+    vi.stubEnv('HOME', root);
+    vi.stubEnv('PATH', bin);
+
+    const detailWith = async (lines: string) => {
+      const checks = await runPreflight({
+        surfaces: ['claude_code'],
+        bindings: defaultProbeBindings,
+        settings: await settingsOf(lines),
+        dir: path.join(root, 'run'),
+      });
+
+      return checks.find((check) => check.name === 'claude_code probes')
+        ?.detail;
+    };
+
+    expect(await detailWith('ANTHROPIC_API_KEY=fake-anthropic-key\n')).toMatch(
+      /fake-cli 0\.0\.1; authenticates with ANTHROPIC_API_KEY, billed to that Anthropic account outside the run's cap$/,
+    );
+    expect(await detailWith('CLAUDE_CODE_OAUTH_TOKEN=fake-token\n')).toMatch(
+      /; authenticates with CLAUDE_CODE_OAUTH_TOKEN$/,
+    );
   });
 
   it('should ask for the DataForSEO pair only when AI Overviews are measured', async () => {
@@ -262,11 +410,13 @@ describe('preflight - runPreflight()', () => {
 
     const chatOnly = await runPreflight({
       surfaces: ['chatgpt'],
+      bindings: defaultProbeBindings,
       settings,
       dir: path.join(root, 'run'),
     });
     const withOverviews = await runPreflight({
       surfaces: ['chatgpt', 'google_ai_overview'],
+      bindings: defaultProbeBindings,
       settings,
       dir: path.join(root, 'run'),
     });
@@ -287,6 +437,7 @@ describe('preflight - runPreflight()', () => {
     const preflight = (rendersPages: boolean) => {
       return runPreflight({
         surfaces: ['chatgpt'],
+        bindings: defaultProbeBindings,
         settings,
         dir: path.join(root, 'run'),
         rendersPages,
@@ -525,6 +676,14 @@ describe('audit-file - money pages', () => {
 });
 
 describe('preflight - grounding search', () => {
+  beforeEach(() => {
+    stubPreflightMachine();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('should ask for the DataForSEO pair when full grounding searches through it', async () => {
     const envFile = path.join(root, 'empty.env');
 
@@ -532,6 +691,7 @@ describe('preflight - grounding search', () => {
     const settings = await readSettings(envFile);
     const checks = await runPreflight({
       surfaces: ['chatgpt'],
+      bindings: defaultProbeBindings,
       settings,
       dir: path.join(root, 'run'),
       groundingSearch: true,

@@ -1,0 +1,2734 @@
+{
+  "chatgptSuccess": {
+    "outcome": {
+      "status": "captured",
+      "unit": {
+        "promptId": "p1",
+        "surface": "chatgpt",
+        "runIndex": 1
+      },
+      "probe": {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "chatgpt",
+        "runIndex": 1,
+        "text": "As of **September 3, 2026**, the current **Node.js LTS version is Node.js 24.x**, with **v24.20.0** shown on the official Node.js site as the **Latest LTS** release. Node.js 26.x is currently the **Current** release line and is not LTS yet; the Node.js release page also shows Node.js 24 as LTS and Node.js 26 as Current. ([nodejs.org](https://nodejs.org/en/about?utm_source=openai))\n\nIf you want, I can also tell you:\n- the **name/codename** of the current LTS line,\n- when it **entered LTS**,\n- or which Node.js version you should use for a new project.\n\nSources used by search:\n- Node.js — About Node.js®: https://nodejs.org/en/about?utm_source=openai",
+        "retrieval": {
+          "exposure": "full",
+          "calls": [
+            {
+              "kind": "search",
+              "query": "site:nodejs.org Node.js LTS version current",
+              "url": null,
+              "resultUrls": [
+                "https://nodejs.org/en/about/previous-releases",
+                "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule",
+                "https://nodejs.org/en/about/eol",
+                "https://nodejs.org/en/about/previous-releases?source=post_page---------------------------",
+                "https://nodejs.org/en/blog/release/v26.0.0/",
+                "https://nodejs.org/en/blog/release/v22.11.0",
+                "https://nodejs.org/en/blog",
+                "https://nodejs.org/en/blog/announcements/v5-to-v7",
+                "https://nodejs.org/en/about",
+                "https://nodejs.org/en/blog?a=1",
+                "https://nodejs.org/en/blog/announcements",
+                "https://nodejs.org/en/blog/community/node-v5/",
+                "https://nodejs.org/static/documents/2018-survey-report.pdf",
+                "https://nodejs.org/static/documents/2016-survey-report.pdf",
+                "https://nodejs.org/en/about?utm_source=openai"
+              ],
+              "resultsComplete": false
+            },
+            {
+              "kind": "search",
+              "query": "site:nodejs.org/en about release schedule Node.js LTS",
+              "url": null,
+              "resultUrls": null,
+              "resultsComplete": false
+            }
+          ]
+        },
+        "reportedModel": "openai/gpt-5.4-mini-2026-03-17"
+      },
+      "attempts": 1
+    },
+    "banked": [
+      {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "chatgpt",
+        "runIndex": 1,
+        "text": "As of **September 3, 2026**, the current **Node.js LTS version is Node.js 24.x**, with **v24.20.0** shown on the official Node.js site as the **Latest LTS** release. Node.js 26.x is currently the **Current** release line and is not LTS yet; the Node.js release page also shows Node.js 24 as LTS and Node.js 26 as Current. ([nodejs.org](https://nodejs.org/en/about?utm_source=openai))\n\nIf you want, I can also tell you:\n- the **name/codename** of the current LTS line,\n- when it **entered LTS**,\n- or which Node.js version you should use for a new project.\n\nSources used by search:\n- Node.js — About Node.js®: https://nodejs.org/en/about?utm_source=openai",
+        "retrieval": {
+          "exposure": "full",
+          "calls": [
+            {
+              "kind": "search",
+              "query": "site:nodejs.org Node.js LTS version current",
+              "url": null,
+              "resultUrls": [
+                "https://nodejs.org/en/about/previous-releases",
+                "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule",
+                "https://nodejs.org/en/about/eol",
+                "https://nodejs.org/en/about/previous-releases?source=post_page---------------------------",
+                "https://nodejs.org/en/blog/release/v26.0.0/",
+                "https://nodejs.org/en/blog/release/v22.11.0",
+                "https://nodejs.org/en/blog",
+                "https://nodejs.org/en/blog/announcements/v5-to-v7",
+                "https://nodejs.org/en/about",
+                "https://nodejs.org/en/blog?a=1",
+                "https://nodejs.org/en/blog/announcements",
+                "https://nodejs.org/en/blog/community/node-v5/",
+                "https://nodejs.org/static/documents/2018-survey-report.pdf",
+                "https://nodejs.org/static/documents/2016-survey-report.pdf",
+                "https://nodejs.org/en/about?utm_source=openai"
+              ],
+              "resultsComplete": false
+            },
+            {
+              "kind": "search",
+              "query": "site:nodejs.org/en about release schedule Node.js LTS",
+              "url": null,
+              "resultUrls": null,
+              "resultsComplete": false
+            }
+          ]
+        },
+        "reportedModel": "openai/gpt-5.4-mini-2026-03-17"
+      }
+    ],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "chatgpt",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": "openai/gpt-5.4-mini",
+          "adapter": "gateway.openai@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "openai/gpt-5.4-mini",
+              "maxOutputTokens": 2000,
+              "toolChoice": "required",
+              "tools": [
+                {
+                  "name": "web_search",
+                  "id": "openai.web_search",
+                  "args": {}
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "As of **September 3, 2026**, the current **Node.js LTS version is Node.js 24.x**, with **v24.20.0** shown on the official Node.js site as the **Latest LTS** release. Node.js 26.x is currently the **Current** release line and is not LTS yet; the Node.js release page also shows Node.js 24 as LTS and Node.js 26 as Current. ([nodejs.org](https://nodejs.org/en/about?utm_source=openai))\n\nIf you want, I can also tell you:\n- the **name/codename** of the current LTS line,\n- when it **entered LTS**,\n- or which Node.js version you should use for a new project.\n\nSources used by search:\n- Node.js — About Node.js®: https://nodejs.org/en/about?utm_source=openai",
+          "retrieval": {
+            "exposure": "full",
+            "calls": [
+              {
+                "kind": "search",
+                "query": "site:nodejs.org Node.js LTS version current",
+                "url": null,
+                "resultUrls": [
+                  "https://nodejs.org/en/about/previous-releases",
+                  "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule",
+                  "https://nodejs.org/en/about/eol",
+                  "https://nodejs.org/en/about/previous-releases?source=post_page---------------------------",
+                  "https://nodejs.org/en/blog/release/v26.0.0/",
+                  "https://nodejs.org/en/blog/release/v22.11.0",
+                  "https://nodejs.org/en/blog",
+                  "https://nodejs.org/en/blog/announcements/v5-to-v7",
+                  "https://nodejs.org/en/about",
+                  "https://nodejs.org/en/blog?a=1",
+                  "https://nodejs.org/en/blog/announcements",
+                  "https://nodejs.org/en/blog/community/node-v5/",
+                  "https://nodejs.org/static/documents/2018-survey-report.pdf",
+                  "https://nodejs.org/static/documents/2016-survey-report.pdf",
+                  "https://nodejs.org/en/about?utm_source=openai"
+                ],
+                "resultsComplete": false
+              },
+              {
+                "kind": "search",
+                "query": "site:nodejs.org/en about release schedule Node.js LTS",
+                "url": null,
+                "resultUrls": null,
+                "resultsComplete": false
+              }
+            ]
+          },
+          "requestedModel": "openai/gpt-5.4-mini",
+          "reportedModel": "openai/gpt-5.4-mini-2026-03-17",
+          "costUsd": 0.0123
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "chatgpt",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "chatgpt",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": "openai/gpt-5.4-mini",
+            "adapter": "gateway.openai@1"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "2c2a3754e1e394144b1e156a738cb9e35d17719b971829cdda527d1ce1a48721",
+            "retrieval": "5f360495b7ad4b376d9348de9c8caf176914364842b9775808887bed8530195d"
+          },
+          "details": {
+            "requestedModel": "openai/gpt-5.4-mini",
+            "reportedModel": "openai/gpt-5.4-mini-2026-03-17",
+            "noOverview": false,
+            "costUsd": 0.0123
+          }
+        },
+        "objects": [
+          "2c2a3754e1e394144b1e156a738cb9e35d17719b971829cdda527d1ce1a48721",
+          "5f360495b7ad4b376d9348de9c8caf176914364842b9775808887bed8530195d"
+        ]
+      }
+    ],
+    "requests": [
+      {
+        "model": "gateway:openai/gpt-5.4-mini",
+        "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+        "maxOutputTokens": 2000,
+        "toolChoice": "required",
+        "maxRetries": 0,
+        "tools": [
+          {
+            "name": "web_search",
+            "id": "openai.web_search",
+            "args": {}
+          }
+        ]
+      }
+    ],
+    "network": []
+  },
+  "geminiSuccess": {
+    "outcome": {
+      "status": "captured",
+      "unit": {
+        "promptId": "p1",
+        "surface": "gemini",
+        "runIndex": 1
+      },
+      "probe": {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "gemini",
+        "runIndex": 1,
+        "text": "As of September 3, 2026, the current **Active LTS (Long-Term Support)** version of Node.js is **Node.js 24.x**.\n\nHere is a breakdown of the currently supported versions:\n\n*   **Active LTS: Node.js 24 (v24.20.0)**\n    *   **Status:** Recommended for most users and production environments.\n    *   **End of Life:** April 30, 2028.\n*   **Maintenance LTS: Node.js 22 (v22.23.2)**\n    *   **Status:** Receives critical bug fixes and security patches only.\n    *   **End of Life:** April 30, 2027.\n*   **Current (Latest): Node.js 26 (v26.8.1)**\n    *   **Status:** The current stable release containing the latest features. It is scheduled to be promoted to **Active LTS in October 2026**.\n\n### Upcoming Changes to the Release Schedule\nStarting with **Node.js 27** in October 2026, the project is shifting to a new release model. Instead of two major releases per year (the odd/even model), there will be **one major release per year** every April. Under this new plan, every major release will eventually become an LTS version, and version numbers will align with the calendar year (e.g., Node.js 27 in 2027). Node.js 26 is the final version to follow the old release cycle.\n\nSources used by search:\n- herodevs.com: https://source-1.example/page\n- eosl.date: https://source-2.example/page\n- nodejs.org: https://source-3.example/page\n- infoq.com: https://source-4.example/page\n- nodejsdesignpatterns.com: https://source-5.example/page\n- codercops.com: https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHFWdchrpk-Ll8jeEIaMPFYZFtqRhhVBtdUhw0OgNmlxM2HFpsO6yPHnbw1nQDsdVMp35LNAWjALqwpk9lQ6uA0eTRKkwuK0IPhfhF4K69Czr_cdE2ni_24gSAcn0E_yxg7lplQA3NpbzUxwKfbCk6KjZlHVLrFtMctHr64xwMz3io=",
+        "retrieval": {
+          "exposure": "partial",
+          "calls": [
+            {
+              "kind": "search",
+              "query": "current Node.js LTS version September 2026",
+              "url": null,
+              "resultUrls": null,
+              "resultsComplete": true
+            },
+            {
+              "kind": "search",
+              "query": "Node.js release schedule 2026",
+              "url": null,
+              "resultUrls": null,
+              "resultsComplete": true
+            }
+          ]
+        }
+      },
+      "attempts": 1
+    },
+    "banked": [
+      {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "gemini",
+        "runIndex": 1,
+        "text": "As of September 3, 2026, the current **Active LTS (Long-Term Support)** version of Node.js is **Node.js 24.x**.\n\nHere is a breakdown of the currently supported versions:\n\n*   **Active LTS: Node.js 24 (v24.20.0)**\n    *   **Status:** Recommended for most users and production environments.\n    *   **End of Life:** April 30, 2028.\n*   **Maintenance LTS: Node.js 22 (v22.23.2)**\n    *   **Status:** Receives critical bug fixes and security patches only.\n    *   **End of Life:** April 30, 2027.\n*   **Current (Latest): Node.js 26 (v26.8.1)**\n    *   **Status:** The current stable release containing the latest features. It is scheduled to be promoted to **Active LTS in October 2026**.\n\n### Upcoming Changes to the Release Schedule\nStarting with **Node.js 27** in October 2026, the project is shifting to a new release model. Instead of two major releases per year (the odd/even model), there will be **one major release per year** every April. Under this new plan, every major release will eventually become an LTS version, and version numbers will align with the calendar year (e.g., Node.js 27 in 2027). Node.js 26 is the final version to follow the old release cycle.\n\nSources used by search:\n- herodevs.com: https://source-1.example/page\n- eosl.date: https://source-2.example/page\n- nodejs.org: https://source-3.example/page\n- infoq.com: https://source-4.example/page\n- nodejsdesignpatterns.com: https://source-5.example/page\n- codercops.com: https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHFWdchrpk-Ll8jeEIaMPFYZFtqRhhVBtdUhw0OgNmlxM2HFpsO6yPHnbw1nQDsdVMp35LNAWjALqwpk9lQ6uA0eTRKkwuK0IPhfhF4K69Czr_cdE2ni_24gSAcn0E_yxg7lplQA3NpbzUxwKfbCk6KjZlHVLrFtMctHr64xwMz3io=",
+        "retrieval": {
+          "exposure": "partial",
+          "calls": [
+            {
+              "kind": "search",
+              "query": "current Node.js LTS version September 2026",
+              "url": null,
+              "resultUrls": null,
+              "resultsComplete": true
+            },
+            {
+              "kind": "search",
+              "query": "Node.js release schedule 2026",
+              "url": null,
+              "resultUrls": null,
+              "resultsComplete": true
+            }
+          ]
+        }
+      }
+    ],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "gemini",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": "google/gemini-3-flash",
+          "adapter": "gateway.google@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "google/gemini-3-flash",
+              "maxOutputTokens": 2000,
+              "toolChoice": "required",
+              "tools": [
+                {
+                  "name": "google_search",
+                  "id": "google.google_search",
+                  "args": {}
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "As of September 3, 2026, the current **Active LTS (Long-Term Support)** version of Node.js is **Node.js 24.x**.\n\nHere is a breakdown of the currently supported versions:\n\n*   **Active LTS: Node.js 24 (v24.20.0)**\n    *   **Status:** Recommended for most users and production environments.\n    *   **End of Life:** April 30, 2028.\n*   **Maintenance LTS: Node.js 22 (v22.23.2)**\n    *   **Status:** Receives critical bug fixes and security patches only.\n    *   **End of Life:** April 30, 2027.\n*   **Current (Latest): Node.js 26 (v26.8.1)**\n    *   **Status:** The current stable release containing the latest features. It is scheduled to be promoted to **Active LTS in October 2026**.\n\n### Upcoming Changes to the Release Schedule\nStarting with **Node.js 27** in October 2026, the project is shifting to a new release model. Instead of two major releases per year (the odd/even model), there will be **one major release per year** every April. Under this new plan, every major release will eventually become an LTS version, and version numbers will align with the calendar year (e.g., Node.js 27 in 2027). Node.js 26 is the final version to follow the old release cycle.\n\nSources used by search:\n- herodevs.com: https://source-1.example/page\n- eosl.date: https://source-2.example/page\n- nodejs.org: https://source-3.example/page\n- infoq.com: https://source-4.example/page\n- nodejsdesignpatterns.com: https://source-5.example/page\n- codercops.com: https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHFWdchrpk-Ll8jeEIaMPFYZFtqRhhVBtdUhw0OgNmlxM2HFpsO6yPHnbw1nQDsdVMp35LNAWjALqwpk9lQ6uA0eTRKkwuK0IPhfhF4K69Czr_cdE2ni_24gSAcn0E_yxg7lplQA3NpbzUxwKfbCk6KjZlHVLrFtMctHr64xwMz3io=",
+          "retrieval": {
+            "exposure": "partial",
+            "calls": [
+              {
+                "kind": "search",
+                "query": "current Node.js LTS version September 2026",
+                "url": null,
+                "resultUrls": null,
+                "resultsComplete": true
+              },
+              {
+                "kind": "search",
+                "query": "Node.js release schedule 2026",
+                "url": null,
+                "resultUrls": null,
+                "resultsComplete": true
+              }
+            ]
+          },
+          "requestedModel": "google/gemini-3-flash",
+          "costUsd": 0.004,
+          "redirects": [
+            {
+              "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEqiJTC3juKpThQiJ5w0fEN8uOJTA04ot92oBPPOtMe0wfoRUP3YzC810T0kvYoFzz7D-taWdtrQpI_Qm-kpAp95dpIW7Xa8xNNki4AA5bM1g_cFlh6e9izRl2-i91jb6KbcuCV12XzDmrC-4gUVL3fI77DanLesP7Us3asc77YyLzd7CD1IseCz1Q6FSZsvw==",
+              "target": "https://source-1.example/page",
+              "hops": 1
+            },
+            {
+              "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGDpSi8Oxi0s-PtdeDdbq8JS7o5nthApYnKPv450MRndoC5Veq2vN9Ntr51dX08fgTgU5Ihipcf3StgoR82RmOE1_3MjDXyOVC16fz4N4S9UPh7bXAbJlbBMNh9NCCXrZo=",
+              "target": "https://source-2.example/page",
+              "hops": 1
+            },
+            {
+              "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFNL-PvvbvF6d-FDICQm5QKCcxjOvVcWutYXm6JNAOcpQVUTK3cbQtZBUq2QrN6usJ5dirS2wMt55DvfgkQQcbWH48xBt7SGTItWc86IC-DeNVr06Q91h6wx8BvFRy4z9Jw9_x-einl58BUknzpZYS30fXgCjziEAmYZJTv0FRNDLVb4XkeZNGM",
+              "target": "https://source-3.example/page",
+              "hops": 1
+            },
+            {
+              "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHZPD4vwN3r8_9yJEWhtLURdz69v95nVh30YzNrfkcurFzYiym5lToGx3kShGq0Gz6uFIVCIiP9aZsJ2f4e2qATdG7UwgZhp_lhF8QGhgECmIWvoM4YT7jm_01Ah76U39xu0ttU7j61fDZje1pLajiCAi9Ogvk=",
+              "target": "https://source-4.example/page",
+              "hops": 1
+            },
+            {
+              "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE6Lkr6K-fhvMLdyOTT3ghD4Kt5rJZ1GZmJVaZaarZ3yjBFO-qTsptda_GwAKpENv000iWV8aPjrnEfsq--Of8O_MW8Q1UQRWBKOXf0wQzsUADs_tx5xCe3heGFMqoKk1HSH-71DlbWL7NxaXRFU4eLx_DRTdR5dTQINDO2Gg3fdpU=",
+              "target": "https://source-5.example/page",
+              "hops": 1
+            },
+            {
+              "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHFWdchrpk-Ll8jeEIaMPFYZFtqRhhVBtdUhw0OgNmlxM2HFpsO6yPHnbw1nQDsdVMp35LNAWjALqwpk9lQ6uA0eTRKkwuK0IPhfhF4K69Czr_cdE2ni_24gSAcn0E_yxg7lplQA3NpbzUxwKfbCk6KjZlHVLrFtMctHr64xwMz3io=",
+              "target": null,
+              "hops": 1,
+              "failure": "HTTP 404 without a redirect"
+            }
+          ]
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "gemini",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "718fac0157de0685130edef4b43e196ced1c5c5fb6160bee59046d5cd65e39b4"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "gemini",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": "google/gemini-3-flash",
+            "adapter": "gateway.google@1"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "718fac0157de0685130edef4b43e196ced1c5c5fb6160bee59046d5cd65e39b4"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "2643327fed94994c1d75ce852958b62eeeec0912de1442c5a4ea51d80db1fe30",
+            "retrieval": "7939ff7aa2145c4514b89afd068e9c091d6eded4fd2c75b2578181be1ddf4f6d"
+          },
+          "details": {
+            "requestedModel": "google/gemini-3-flash",
+            "reportedModel": null,
+            "noOverview": false,
+            "costUsd": 0.004,
+            "redirects": [
+              {
+                "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEqiJTC3juKpThQiJ5w0fEN8uOJTA04ot92oBPPOtMe0wfoRUP3YzC810T0kvYoFzz7D-taWdtrQpI_Qm-kpAp95dpIW7Xa8xNNki4AA5bM1g_cFlh6e9izRl2-i91jb6KbcuCV12XzDmrC-4gUVL3fI77DanLesP7Us3asc77YyLzd7CD1IseCz1Q6FSZsvw==",
+                "target": "https://source-1.example/page",
+                "hops": 1
+              },
+              {
+                "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGDpSi8Oxi0s-PtdeDdbq8JS7o5nthApYnKPv450MRndoC5Veq2vN9Ntr51dX08fgTgU5Ihipcf3StgoR82RmOE1_3MjDXyOVC16fz4N4S9UPh7bXAbJlbBMNh9NCCXrZo=",
+                "target": "https://source-2.example/page",
+                "hops": 1
+              },
+              {
+                "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFNL-PvvbvF6d-FDICQm5QKCcxjOvVcWutYXm6JNAOcpQVUTK3cbQtZBUq2QrN6usJ5dirS2wMt55DvfgkQQcbWH48xBt7SGTItWc86IC-DeNVr06Q91h6wx8BvFRy4z9Jw9_x-einl58BUknzpZYS30fXgCjziEAmYZJTv0FRNDLVb4XkeZNGM",
+                "target": "https://source-3.example/page",
+                "hops": 1
+              },
+              {
+                "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHZPD4vwN3r8_9yJEWhtLURdz69v95nVh30YzNrfkcurFzYiym5lToGx3kShGq0Gz6uFIVCIiP9aZsJ2f4e2qATdG7UwgZhp_lhF8QGhgECmIWvoM4YT7jm_01Ah76U39xu0ttU7j61fDZje1pLajiCAi9Ogvk=",
+                "target": "https://source-4.example/page",
+                "hops": 1
+              },
+              {
+                "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE6Lkr6K-fhvMLdyOTT3ghD4Kt5rJZ1GZmJVaZaarZ3yjBFO-qTsptda_GwAKpENv000iWV8aPjrnEfsq--Of8O_MW8Q1UQRWBKOXf0wQzsUADs_tx5xCe3heGFMqoKk1HSH-71DlbWL7NxaXRFU4eLx_DRTdR5dTQINDO2Gg3fdpU=",
+                "target": "https://source-5.example/page",
+                "hops": 1
+              },
+              {
+                "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHFWdchrpk-Ll8jeEIaMPFYZFtqRhhVBtdUhw0OgNmlxM2HFpsO6yPHnbw1nQDsdVMp35LNAWjALqwpk9lQ6uA0eTRKkwuK0IPhfhF4K69Czr_cdE2ni_24gSAcn0E_yxg7lplQA3NpbzUxwKfbCk6KjZlHVLrFtMctHr64xwMz3io=",
+                "target": null,
+                "hops": 1,
+                "failure": "HTTP 404 without a redirect"
+              }
+            ]
+          }
+        },
+        "objects": [
+          "2643327fed94994c1d75ce852958b62eeeec0912de1442c5a4ea51d80db1fe30",
+          "7939ff7aa2145c4514b89afd068e9c091d6eded4fd2c75b2578181be1ddf4f6d"
+        ]
+      }
+    ],
+    "requests": [
+      {
+        "model": "gateway:google/gemini-3-flash",
+        "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+        "maxOutputTokens": 2000,
+        "toolChoice": "required",
+        "maxRetries": 0,
+        "tools": [
+          {
+            "name": "google_search",
+            "id": "google.google_search",
+            "args": {}
+          }
+        ]
+      }
+    ],
+    "network": [
+      {
+        "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE6Lkr6K-fhvMLdyOTT3ghD4Kt5rJZ1GZmJVaZaarZ3yjBFO-qTsptda_GwAKpENv000iWV8aPjrnEfsq--Of8O_MW8Q1UQRWBKOXf0wQzsUADs_tx5xCe3heGFMqoKk1HSH-71DlbWL7NxaXRFU4eLx_DRTdR5dTQINDO2Gg3fdpU=",
+        "body": null
+      },
+      {
+        "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEqiJTC3juKpThQiJ5w0fEN8uOJTA04ot92oBPPOtMe0wfoRUP3YzC810T0kvYoFzz7D-taWdtrQpI_Qm-kpAp95dpIW7Xa8xNNki4AA5bM1g_cFlh6e9izRl2-i91jb6KbcuCV12XzDmrC-4gUVL3fI77DanLesP7Us3asc77YyLzd7CD1IseCz1Q6FSZsvw==",
+        "body": null
+      },
+      {
+        "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFNL-PvvbvF6d-FDICQm5QKCcxjOvVcWutYXm6JNAOcpQVUTK3cbQtZBUq2QrN6usJ5dirS2wMt55DvfgkQQcbWH48xBt7SGTItWc86IC-DeNVr06Q91h6wx8BvFRy4z9Jw9_x-einl58BUknzpZYS30fXgCjziEAmYZJTv0FRNDLVb4XkeZNGM",
+        "body": null
+      },
+      {
+        "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGDpSi8Oxi0s-PtdeDdbq8JS7o5nthApYnKPv450MRndoC5Veq2vN9Ntr51dX08fgTgU5Ihipcf3StgoR82RmOE1_3MjDXyOVC16fz4N4S9UPh7bXAbJlbBMNh9NCCXrZo=",
+        "body": null
+      },
+      {
+        "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHFWdchrpk-Ll8jeEIaMPFYZFtqRhhVBtdUhw0OgNmlxM2HFpsO6yPHnbw1nQDsdVMp35LNAWjALqwpk9lQ6uA0eTRKkwuK0IPhfhF4K69Czr_cdE2ni_24gSAcn0E_yxg7lplQA3NpbzUxwKfbCk6KjZlHVLrFtMctHr64xwMz3io=",
+        "body": null
+      },
+      {
+        "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHZPD4vwN3r8_9yJEWhtLURdz69v95nVh30YzNrfkcurFzYiym5lToGx3kShGq0Gz6uFIVCIiP9aZsJ2f4e2qATdG7UwgZhp_lhF8QGhgECmIWvoM4YT7jm_01Ah76U39xu0ttU7j61fDZje1pLajiCAi9Ogvk=",
+        "body": null
+      }
+    ]
+  },
+  "claudeSuccess": {
+    "outcome": {
+      "status": "captured",
+      "unit": {
+        "promptId": "p1",
+        "surface": "claude",
+        "runIndex": 1
+      },
+      "probe": {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "claude",
+        "runIndex": 1,
+        "text": "Based on the search results, I can provide you with the current Node.js LTS version information:\n\n## Current Node.js LTS Version: **Node.js 24** (Codename: Krypton)\n\nNode.js 24 is the current active LTS line in June 2026. For production applications that require stability, Node.js 24 is the current Active LTS release and Node.js 22 is in Maintenance LTS.\n\n### Other Supported Versions:\n\n- **Node.js 22** (Codename: Jod) - Currently in Maintenance LTS phase, supported through April 2027\n- **Node.js 20** (Codename: Iron) - Also in Maintenance LTS\n- **Node.js 26** - Currently in the Current (non-LTS) phase until October 2026, when it will transition to Active LTS\n\n### Recommendation:\n\nUse Node 24 for new projects. It provides the best balance of stability, long-term support, and modern features for production applications as of September 2026.\n\nSources used by search:\n- Node.js — Node.js Releases: https://nodejs.org/en/about/previous-releases\n- Node.js | endoflife.date: https://endoflife.date/nodejs\n- Node.js Moves to One Major Release Per Year, Starting with Node 27 - InfoQ: https://www.infoq.com/news/2026/06/nodejs-release-changes/\n- Node.js — Evolving the Node.js Release Schedule: https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule\n- Node.js 26 Released: What's New | InMotion Hosting: https://www.inmotionhosting.com/support/news/nodejs-v26-released/\n- Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides: https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026\n- GitHub - nodejs/Release: Node.js Release Working Group · GitHub: https://github.com/nodejs/Release\n- GitHub - msimerson/node-lts-versions: Get Node.js LTS versions · GitHub: https://github.com/msimerson/node-lts-versions\n- Node.js — Node.js 26.0.0 (Current): https://nodejs.org/en/blog/release/v26.0.0\n- Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides: https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026\n- Node.js 26 Released: What's New | InMotion Hosting: https://www.inmotionhosting.com/support/news/nodejs-v26-released/\n- Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides: https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026\n- Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides: https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026\n- Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides: https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+        "retrieval": {
+          "exposure": "full",
+          "calls": [
+            {
+              "kind": "search",
+              "query": "Node.js LTS version current 2026",
+              "url": null,
+              "resultUrls": [
+                "https://nodejs.org/en/about/previous-releases",
+                "https://endoflife.date/nodejs",
+                "https://www.infoq.com/news/2026/06/nodejs-release-changes/",
+                "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule",
+                "https://www.inmotionhosting.com/support/news/nodejs-v26-released/",
+                "https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+                "https://github.com/nodejs/Release",
+                "https://github.com/msimerson/node-lts-versions",
+                "https://nodejs.org/en/blog/release/v26.0.0"
+              ],
+              "resultsComplete": true
+            }
+          ]
+        }
+      },
+      "attempts": 1
+    },
+    "banked": [
+      {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "claude",
+        "runIndex": 1,
+        "text": "Based on the search results, I can provide you with the current Node.js LTS version information:\n\n## Current Node.js LTS Version: **Node.js 24** (Codename: Krypton)\n\nNode.js 24 is the current active LTS line in June 2026. For production applications that require stability, Node.js 24 is the current Active LTS release and Node.js 22 is in Maintenance LTS.\n\n### Other Supported Versions:\n\n- **Node.js 22** (Codename: Jod) - Currently in Maintenance LTS phase, supported through April 2027\n- **Node.js 20** (Codename: Iron) - Also in Maintenance LTS\n- **Node.js 26** - Currently in the Current (non-LTS) phase until October 2026, when it will transition to Active LTS\n\n### Recommendation:\n\nUse Node 24 for new projects. It provides the best balance of stability, long-term support, and modern features for production applications as of September 2026.\n\nSources used by search:\n- Node.js — Node.js Releases: https://nodejs.org/en/about/previous-releases\n- Node.js | endoflife.date: https://endoflife.date/nodejs\n- Node.js Moves to One Major Release Per Year, Starting with Node 27 - InfoQ: https://www.infoq.com/news/2026/06/nodejs-release-changes/\n- Node.js — Evolving the Node.js Release Schedule: https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule\n- Node.js 26 Released: What's New | InMotion Hosting: https://www.inmotionhosting.com/support/news/nodejs-v26-released/\n- Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides: https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026\n- GitHub - nodejs/Release: Node.js Release Working Group · GitHub: https://github.com/nodejs/Release\n- GitHub - msimerson/node-lts-versions: Get Node.js LTS versions · GitHub: https://github.com/msimerson/node-lts-versions\n- Node.js — Node.js 26.0.0 (Current): https://nodejs.org/en/blog/release/v26.0.0\n- Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides: https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026\n- Node.js 26 Released: What's New | InMotion Hosting: https://www.inmotionhosting.com/support/news/nodejs-v26-released/\n- Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides: https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026\n- Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides: https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026\n- Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides: https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+        "retrieval": {
+          "exposure": "full",
+          "calls": [
+            {
+              "kind": "search",
+              "query": "Node.js LTS version current 2026",
+              "url": null,
+              "resultUrls": [
+                "https://nodejs.org/en/about/previous-releases",
+                "https://endoflife.date/nodejs",
+                "https://www.infoq.com/news/2026/06/nodejs-release-changes/",
+                "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule",
+                "https://www.inmotionhosting.com/support/news/nodejs-v26-released/",
+                "https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+                "https://github.com/nodejs/Release",
+                "https://github.com/msimerson/node-lts-versions",
+                "https://nodejs.org/en/blog/release/v26.0.0"
+              ],
+              "resultsComplete": true
+            }
+          ]
+        }
+      }
+    ],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "claude",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": "anthropic/claude-sonnet-4.5",
+          "adapter": "gateway.anthropic@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "anthropic/claude-sonnet-4.5",
+              "maxOutputTokens": 2000,
+              "toolChoice": "required",
+              "tools": [
+                {
+                  "name": "web_search",
+                  "id": "anthropic.web_search_20250305",
+                  "args": {
+                    "maxUses": 5
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "Based on the search results, I can provide you with the current Node.js LTS version information:\n\n## Current Node.js LTS Version: **Node.js 24** (Codename: Krypton)\n\nNode.js 24 is the current active LTS line in June 2026. For production applications that require stability, Node.js 24 is the current Active LTS release and Node.js 22 is in Maintenance LTS.\n\n### Other Supported Versions:\n\n- **Node.js 22** (Codename: Jod) - Currently in Maintenance LTS phase, supported through April 2027\n- **Node.js 20** (Codename: Iron) - Also in Maintenance LTS\n- **Node.js 26** - Currently in the Current (non-LTS) phase until October 2026, when it will transition to Active LTS\n\n### Recommendation:\n\nUse Node 24 for new projects. It provides the best balance of stability, long-term support, and modern features for production applications as of September 2026.\n\nSources used by search:\n- Node.js — Node.js Releases: https://nodejs.org/en/about/previous-releases\n- Node.js | endoflife.date: https://endoflife.date/nodejs\n- Node.js Moves to One Major Release Per Year, Starting with Node 27 - InfoQ: https://www.infoq.com/news/2026/06/nodejs-release-changes/\n- Node.js — Evolving the Node.js Release Schedule: https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule\n- Node.js 26 Released: What's New | InMotion Hosting: https://www.inmotionhosting.com/support/news/nodejs-v26-released/\n- Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides: https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026\n- GitHub - nodejs/Release: Node.js Release Working Group · GitHub: https://github.com/nodejs/Release\n- GitHub - msimerson/node-lts-versions: Get Node.js LTS versions · GitHub: https://github.com/msimerson/node-lts-versions\n- Node.js — Node.js 26.0.0 (Current): https://nodejs.org/en/blog/release/v26.0.0\n- Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides: https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026\n- Node.js 26 Released: What's New | InMotion Hosting: https://www.inmotionhosting.com/support/news/nodejs-v26-released/\n- Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides: https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026\n- Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides: https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026\n- Node 22 vs Node 24 in 2026: LTS Support, Breaking Changes, and Upgrade Path — PkgPulse Guides: https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+          "retrieval": {
+            "exposure": "full",
+            "calls": [
+              {
+                "kind": "search",
+                "query": "Node.js LTS version current 2026",
+                "url": null,
+                "resultUrls": [
+                  "https://nodejs.org/en/about/previous-releases",
+                  "https://endoflife.date/nodejs",
+                  "https://www.infoq.com/news/2026/06/nodejs-release-changes/",
+                  "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule",
+                  "https://www.inmotionhosting.com/support/news/nodejs-v26-released/",
+                  "https://www.pkgpulse.com/guides/nodejs-22-vs-nodejs-24-2026",
+                  "https://github.com/nodejs/Release",
+                  "https://github.com/msimerson/node-lts-versions",
+                  "https://nodejs.org/en/blog/release/v26.0.0"
+                ],
+                "resultsComplete": true
+              }
+            ]
+          },
+          "requestedModel": "anthropic/claude-sonnet-4.5",
+          "costUsd": 0.066988
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "claude",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "6ed7931542bbeb379206fd9b32e8874205f890d2742703a763666a223fbf3a06"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "claude",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": "anthropic/claude-sonnet-4.5",
+            "adapter": "gateway.anthropic@1"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "6ed7931542bbeb379206fd9b32e8874205f890d2742703a763666a223fbf3a06"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "f594f2d4c7082d9766c81a708e14c6d787003bdf62bf9adba766da147f1a2158",
+            "retrieval": "23503a0e088b9d0b55c2c70f18e24a9890f7dc3def9409cd915a701852844eee"
+          },
+          "details": {
+            "requestedModel": "anthropic/claude-sonnet-4.5",
+            "reportedModel": null,
+            "noOverview": false,
+            "costUsd": 0.066988
+          }
+        },
+        "objects": [
+          "f594f2d4c7082d9766c81a708e14c6d787003bdf62bf9adba766da147f1a2158",
+          "23503a0e088b9d0b55c2c70f18e24a9890f7dc3def9409cd915a701852844eee"
+        ]
+      }
+    ],
+    "requests": [
+      {
+        "model": "gateway:anthropic/claude-sonnet-4.5",
+        "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+        "maxOutputTokens": 2000,
+        "toolChoice": "required",
+        "maxRetries": 0,
+        "tools": [
+          {
+            "name": "web_search",
+            "id": "anthropic.web_search_20250305",
+            "args": {
+              "maxUses": 5
+            }
+          }
+        ]
+      }
+    ],
+    "network": []
+  },
+  "perplexitySuccess": {
+    "outcome": {
+      "status": "captured",
+      "unit": {
+        "promptId": "p1",
+        "surface": "perplexity",
+        "runIndex": 1
+      },
+      "probe": {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "perplexity",
+        "runIndex": 1,
+        "text": "Acme Files suits small teams [1]. Rival Files is cheaper [2].\n\nSources used by search:\n- Acme Files: https://acme.example/\n- https://rival.example/pricing: https://rival.example/pricing",
+        "retrieval": {
+          "exposure": "none",
+          "calls": []
+        }
+      },
+      "attempts": 1
+    },
+    "banked": [
+      {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "perplexity",
+        "runIndex": 1,
+        "text": "Acme Files suits small teams [1]. Rival Files is cheaper [2].\n\nSources used by search:\n- Acme Files: https://acme.example/\n- https://rival.example/pricing: https://rival.example/pricing",
+        "retrieval": {
+          "exposure": "none",
+          "calls": []
+        }
+      }
+    ],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "perplexity",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": "perplexity/sonar-pro",
+          "adapter": "gateway.perplexity@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "perplexity/sonar-pro",
+              "maxOutputTokens": 2000
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "Acme Files suits small teams [1]. Rival Files is cheaper [2].\n\nSources used by search:\n- Acme Files: https://acme.example/\n- https://rival.example/pricing: https://rival.example/pricing",
+          "retrieval": {
+            "exposure": "none",
+            "calls": []
+          },
+          "requestedModel": "perplexity/sonar-pro",
+          "costUsd": 0.005
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "perplexity",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "0d14d33e657bf0ead149e06219ad817f2b187409521bb6c3aeae0616c8c5560d"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "perplexity",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": "perplexity/sonar-pro",
+            "adapter": "gateway.perplexity@1"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "0d14d33e657bf0ead149e06219ad817f2b187409521bb6c3aeae0616c8c5560d"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "db8bef69fbc6168da747a43af4153ac720c4a30220767df7c35f84913132d281",
+            "retrieval": "061b236e1c672eaad0ec675f85924d72a41f15c0e7339c0e87c541c7723cd4c2"
+          },
+          "details": {
+            "requestedModel": "perplexity/sonar-pro",
+            "reportedModel": null,
+            "noOverview": false,
+            "costUsd": 0.005
+          }
+        },
+        "objects": [
+          "db8bef69fbc6168da747a43af4153ac720c4a30220767df7c35f84913132d281",
+          "061b236e1c672eaad0ec675f85924d72a41f15c0e7339c0e87c541c7723cd4c2"
+        ]
+      }
+    ],
+    "requests": [
+      {
+        "model": "gateway:perplexity/sonar-pro",
+        "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+        "maxOutputTokens": 2000,
+        "maxRetries": 0
+      }
+    ],
+    "network": []
+  },
+  "perplexityEmptyWithSources": {
+    "outcome": {
+      "status": "failed",
+      "unit": {
+        "promptId": "p1",
+        "surface": "perplexity",
+        "runIndex": 1
+      },
+      "kind": "empty_answer",
+      "attempts": 2,
+      "lastError": "perplexity returned no answer text"
+    },
+    "banked": [],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "perplexity",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": "perplexity/sonar-pro",
+          "adapter": "gateway.perplexity@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "perplexity/sonar-pro",
+              "maxOutputTokens": 2000
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "failed",
+          "kind": "empty_answer",
+          "error": "perplexity returned no answer text"
+        }
+      },
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "perplexity",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 2,
+          "retryOf": "op-1",
+          "requestedModel": "perplexity/sonar-pro",
+          "adapter": "gateway.perplexity@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "perplexity/sonar-pro",
+              "maxOutputTokens": 2000
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "failed",
+          "kind": "empty_answer",
+          "error": "perplexity returned no answer text"
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "perplexity",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "0d14d33e657bf0ead149e06219ad817f2b187409521bb6c3aeae0616c8c5560d"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "perplexity",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": "perplexity/sonar-pro",
+            "adapter": "gateway.perplexity@1"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "0d14d33e657bf0ead149e06219ad817f2b187409521bb6c3aeae0616c8c5560d"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "failed",
+          "outputs": {},
+          "details": {
+            "kind": "empty_answer",
+            "error": "perplexity returned no answer text"
+          }
+        },
+        "objects": []
+      },
+      {
+        "type": "operation_started",
+        "operation": "op-2",
+        "payload": {
+          "kind": "probe",
+          "role": "perplexity",
+          "attempt": 2,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "0d14d33e657bf0ead149e06219ad817f2b187409521bb6c3aeae0616c8c5560d"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "perplexity",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": "op-1",
+            "requestedModel": "perplexity/sonar-pro",
+            "adapter": "gateway.perplexity@1"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "0d14d33e657bf0ead149e06219ad817f2b187409521bb6c3aeae0616c8c5560d"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-2",
+        "payload": {
+          "outcome": "failed",
+          "outputs": {},
+          "details": {
+            "kind": "empty_answer",
+            "error": "perplexity returned no answer text"
+          }
+        },
+        "objects": []
+      }
+    ],
+    "requests": [
+      {
+        "model": "gateway:perplexity/sonar-pro",
+        "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+        "maxOutputTokens": 2000,
+        "maxRetries": 0
+      },
+      {
+        "model": "gateway:perplexity/sonar-pro",
+        "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+        "maxOutputTokens": 2000,
+        "maxRetries": 0
+      }
+    ],
+    "network": []
+  },
+  "followUpWithSearchSources": {
+    "outcome": {
+      "status": "captured",
+      "unit": {
+        "promptId": "p1",
+        "surface": "chatgpt",
+        "runIndex": 1
+      },
+      "probe": {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "chatgpt",
+        "runIndex": 1,
+        "text": "Acme Files is the simplest choice.\n\nSources used by search:\n- Node.js — About Node.js®: https://nodejs.org/en/about?utm_source=openai",
+        "retrieval": {
+          "exposure": "full",
+          "calls": [
+            {
+              "kind": "search",
+              "query": "site:nodejs.org Node.js LTS version current",
+              "url": null,
+              "resultUrls": [
+                "https://nodejs.org/en/about/previous-releases",
+                "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule",
+                "https://nodejs.org/en/about/eol",
+                "https://nodejs.org/en/about/previous-releases?source=post_page---------------------------",
+                "https://nodejs.org/en/blog/release/v26.0.0/",
+                "https://nodejs.org/en/blog/release/v22.11.0",
+                "https://nodejs.org/en/blog",
+                "https://nodejs.org/en/blog/announcements/v5-to-v7",
+                "https://nodejs.org/en/about",
+                "https://nodejs.org/en/blog?a=1",
+                "https://nodejs.org/en/blog/announcements",
+                "https://nodejs.org/en/blog/community/node-v5/",
+                "https://nodejs.org/static/documents/2018-survey-report.pdf",
+                "https://nodejs.org/static/documents/2016-survey-report.pdf",
+                "https://nodejs.org/en/about?utm_source=openai"
+              ],
+              "resultsComplete": false
+            },
+            {
+              "kind": "search",
+              "query": "site:nodejs.org/en about release schedule Node.js LTS",
+              "url": null,
+              "resultUrls": null,
+              "resultsComplete": false
+            }
+          ]
+        }
+      },
+      "attempts": 1
+    },
+    "banked": [
+      {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "chatgpt",
+        "runIndex": 1,
+        "text": "Acme Files is the simplest choice.\n\nSources used by search:\n- Node.js — About Node.js®: https://nodejs.org/en/about?utm_source=openai",
+        "retrieval": {
+          "exposure": "full",
+          "calls": [
+            {
+              "kind": "search",
+              "query": "site:nodejs.org Node.js LTS version current",
+              "url": null,
+              "resultUrls": [
+                "https://nodejs.org/en/about/previous-releases",
+                "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule",
+                "https://nodejs.org/en/about/eol",
+                "https://nodejs.org/en/about/previous-releases?source=post_page---------------------------",
+                "https://nodejs.org/en/blog/release/v26.0.0/",
+                "https://nodejs.org/en/blog/release/v22.11.0",
+                "https://nodejs.org/en/blog",
+                "https://nodejs.org/en/blog/announcements/v5-to-v7",
+                "https://nodejs.org/en/about",
+                "https://nodejs.org/en/blog?a=1",
+                "https://nodejs.org/en/blog/announcements",
+                "https://nodejs.org/en/blog/community/node-v5/",
+                "https://nodejs.org/static/documents/2018-survey-report.pdf",
+                "https://nodejs.org/static/documents/2016-survey-report.pdf",
+                "https://nodejs.org/en/about?utm_source=openai"
+              ],
+              "resultsComplete": false
+            },
+            {
+              "kind": "search",
+              "query": "site:nodejs.org/en about release schedule Node.js LTS",
+              "url": null,
+              "resultUrls": null,
+              "resultsComplete": false
+            }
+          ]
+        }
+      }
+    ],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "chatgpt",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": "openai/gpt-5.4-mini",
+          "adapter": "gateway.openai@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "openai/gpt-5.4-mini",
+              "maxOutputTokens": 2000,
+              "toolChoice": "required",
+              "tools": [
+                {
+                  "name": "web_search",
+                  "id": "openai.web_search",
+                  "args": {}
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "Acme Files is the simplest choice.\n\nSources used by search:\n- Node.js — About Node.js®: https://nodejs.org/en/about?utm_source=openai",
+          "retrieval": {
+            "exposure": "full",
+            "calls": [
+              {
+                "kind": "search",
+                "query": "site:nodejs.org Node.js LTS version current",
+                "url": null,
+                "resultUrls": [
+                  "https://nodejs.org/en/about/previous-releases",
+                  "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule",
+                  "https://nodejs.org/en/about/eol",
+                  "https://nodejs.org/en/about/previous-releases?source=post_page---------------------------",
+                  "https://nodejs.org/en/blog/release/v26.0.0/",
+                  "https://nodejs.org/en/blog/release/v22.11.0",
+                  "https://nodejs.org/en/blog",
+                  "https://nodejs.org/en/blog/announcements/v5-to-v7",
+                  "https://nodejs.org/en/about",
+                  "https://nodejs.org/en/blog?a=1",
+                  "https://nodejs.org/en/blog/announcements",
+                  "https://nodejs.org/en/blog/community/node-v5/",
+                  "https://nodejs.org/static/documents/2018-survey-report.pdf",
+                  "https://nodejs.org/static/documents/2016-survey-report.pdf",
+                  "https://nodejs.org/en/about?utm_source=openai"
+                ],
+                "resultsComplete": false
+              },
+              {
+                "kind": "search",
+                "query": "site:nodejs.org/en about release schedule Node.js LTS",
+                "url": null,
+                "resultUrls": null,
+                "resultsComplete": false
+              }
+            ]
+          },
+          "requestedModel": "openai/gpt-5.4-mini",
+          "costUsd": 0.012
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "chatgpt",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "chatgpt",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": "openai/gpt-5.4-mini",
+            "adapter": "gateway.openai@1"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "ba3d8b5cb7157fc9b98fa692263c2fbf86d4770e9a0516e8a0da7998c07d945c",
+            "retrieval": "5f360495b7ad4b376d9348de9c8caf176914364842b9775808887bed8530195d"
+          },
+          "details": {
+            "requestedModel": "openai/gpt-5.4-mini",
+            "reportedModel": null,
+            "noOverview": false,
+            "costUsd": 0.012
+          }
+        },
+        "objects": [
+          "ba3d8b5cb7157fc9b98fa692263c2fbf86d4770e9a0516e8a0da7998c07d945c",
+          "5f360495b7ad4b376d9348de9c8caf176914364842b9775808887bed8530195d"
+        ]
+      }
+    ],
+    "requests": [
+      {
+        "model": "gateway:openai/gpt-5.4-mini",
+        "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+        "maxOutputTokens": 2000,
+        "toolChoice": "required",
+        "maxRetries": 0,
+        "tools": [
+          {
+            "name": "web_search",
+            "id": "openai.web_search",
+            "args": {}
+          }
+        ]
+      },
+      {
+        "model": "gateway:openai/gpt-5.4-mini",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?"
+          },
+          {
+            "role": "assistant",
+            "content": "Searched."
+          },
+          {
+            "role": "user",
+            "content": "Using the web search results from the previous turn, answer the original question in a complete, readable response. Do not perform another search. If the search results were insufficient, say what was missing."
+          }
+        ],
+        "maxOutputTokens": 2000,
+        "toolChoice": "none",
+        "maxRetries": 0,
+        "tools": [
+          {
+            "name": "web_search",
+            "id": "openai.web_search",
+            "args": {}
+          }
+        ]
+      }
+    ],
+    "network": []
+  },
+  "followUpWithOwnSources": {
+    "outcome": {
+      "status": "captured",
+      "unit": {
+        "promptId": "p1",
+        "surface": "chatgpt",
+        "runIndex": 1
+      },
+      "probe": {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "chatgpt",
+        "runIndex": 1,
+        "text": "Acme Files is the simplest choice.\n\nSources used by search:\n- Follow-up source: https://follow-up.example/"
+      },
+      "attempts": 1
+    },
+    "banked": [
+      {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "chatgpt",
+        "runIndex": 1,
+        "text": "Acme Files is the simplest choice.\n\nSources used by search:\n- Follow-up source: https://follow-up.example/"
+      }
+    ],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "chatgpt",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": "openai/gpt-5.4-mini",
+          "adapter": "gateway.openai@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "openai/gpt-5.4-mini",
+              "maxOutputTokens": 2000,
+              "toolChoice": "required",
+              "tools": [
+                {
+                  "name": "web_search",
+                  "id": "openai.web_search",
+                  "args": {}
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "Acme Files is the simplest choice.\n\nSources used by search:\n- Follow-up source: https://follow-up.example/",
+          "retrieval": null,
+          "requestedModel": "openai/gpt-5.4-mini"
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "chatgpt",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "chatgpt",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": "openai/gpt-5.4-mini",
+            "adapter": "gateway.openai@1"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "c588e7fcb84f11f0e8378cae70e36032c3881261631e599660047d0a0f70cf1e"
+          },
+          "details": {
+            "requestedModel": "openai/gpt-5.4-mini",
+            "reportedModel": null,
+            "noOverview": false,
+            "costUsd": null
+          }
+        },
+        "objects": [
+          "c588e7fcb84f11f0e8378cae70e36032c3881261631e599660047d0a0f70cf1e"
+        ]
+      }
+    ],
+    "requests": [
+      {
+        "model": "gateway:openai/gpt-5.4-mini",
+        "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+        "maxOutputTokens": 2000,
+        "toolChoice": "required",
+        "maxRetries": 0,
+        "tools": [
+          {
+            "name": "web_search",
+            "id": "openai.web_search",
+            "args": {}
+          }
+        ]
+      },
+      {
+        "model": "gateway:openai/gpt-5.4-mini",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?"
+          },
+          {
+            "role": "user",
+            "content": "Using the web search results from the previous turn, answer the original question in a complete, readable response. Do not perform another search. If the search results were insufficient, say what was missing."
+          }
+        ],
+        "maxOutputTokens": 2000,
+        "toolChoice": "none",
+        "maxRetries": 0,
+        "tools": [
+          {
+            "name": "web_search",
+            "id": "openai.web_search",
+            "args": {}
+          }
+        ]
+      }
+    ],
+    "network": []
+  },
+  "followUpEmpty": {
+    "outcome": {
+      "status": "failed",
+      "unit": {
+        "promptId": "p1",
+        "surface": "claude",
+        "runIndex": 1
+      },
+      "kind": "empty_answer",
+      "attempts": 2,
+      "lastError": "claude completed a required web search but returned no answer text (tool calls: 1, sources: 14)"
+    },
+    "banked": [],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "claude",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": "anthropic/claude-sonnet-4.5",
+          "adapter": "gateway.anthropic@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "anthropic/claude-sonnet-4.5",
+              "maxOutputTokens": 2000,
+              "toolChoice": "required",
+              "tools": [
+                {
+                  "name": "web_search",
+                  "id": "anthropic.web_search_20250305",
+                  "args": {
+                    "maxUses": 5
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "failed",
+          "kind": "empty_answer",
+          "error": "claude completed a required web search but returned no answer text (tool calls: 1, sources: 14)"
+        }
+      },
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "claude",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 2,
+          "retryOf": "op-1",
+          "requestedModel": "anthropic/claude-sonnet-4.5",
+          "adapter": "gateway.anthropic@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "anthropic/claude-sonnet-4.5",
+              "maxOutputTokens": 2000,
+              "toolChoice": "required",
+              "tools": [
+                {
+                  "name": "web_search",
+                  "id": "anthropic.web_search_20250305",
+                  "args": {
+                    "maxUses": 5
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "failed",
+          "kind": "empty_answer",
+          "error": "claude completed a required web search but returned no answer text (tool calls: 1, sources: 14)"
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "claude",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "6ed7931542bbeb379206fd9b32e8874205f890d2742703a763666a223fbf3a06"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "claude",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": "anthropic/claude-sonnet-4.5",
+            "adapter": "gateway.anthropic@1"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "6ed7931542bbeb379206fd9b32e8874205f890d2742703a763666a223fbf3a06"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "failed",
+          "outputs": {},
+          "details": {
+            "kind": "empty_answer",
+            "error": "claude completed a required web search but returned no answer text (tool calls: 1, sources: 14)"
+          }
+        },
+        "objects": []
+      },
+      {
+        "type": "operation_started",
+        "operation": "op-2",
+        "payload": {
+          "kind": "probe",
+          "role": "claude",
+          "attempt": 2,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "6ed7931542bbeb379206fd9b32e8874205f890d2742703a763666a223fbf3a06"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "claude",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": "op-1",
+            "requestedModel": "anthropic/claude-sonnet-4.5",
+            "adapter": "gateway.anthropic@1"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "6ed7931542bbeb379206fd9b32e8874205f890d2742703a763666a223fbf3a06"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-2",
+        "payload": {
+          "outcome": "failed",
+          "outputs": {},
+          "details": {
+            "kind": "empty_answer",
+            "error": "claude completed a required web search but returned no answer text (tool calls: 1, sources: 14)"
+          }
+        },
+        "objects": []
+      }
+    ],
+    "requests": [
+      {
+        "model": "gateway:anthropic/claude-sonnet-4.5",
+        "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+        "maxOutputTokens": 2000,
+        "toolChoice": "required",
+        "maxRetries": 0,
+        "tools": [
+          {
+            "name": "web_search",
+            "id": "anthropic.web_search_20250305",
+            "args": {
+              "maxUses": 5
+            }
+          }
+        ]
+      },
+      {
+        "model": "gateway:anthropic/claude-sonnet-4.5",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?"
+          },
+          {
+            "role": "user",
+            "content": "Using the web search results from the previous turn, answer the original question in a complete, readable response. Do not perform another search. If the search results were insufficient, say what was missing."
+          }
+        ],
+        "maxOutputTokens": 2000,
+        "toolChoice": "none",
+        "maxRetries": 0,
+        "tools": [
+          {
+            "name": "web_search",
+            "id": "anthropic.web_search_20250305",
+            "args": {
+              "maxUses": 5
+            }
+          }
+        ]
+      },
+      {
+        "model": "gateway:anthropic/claude-sonnet-4.5",
+        "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+        "maxOutputTokens": 2000,
+        "toolChoice": "required",
+        "maxRetries": 0,
+        "tools": [
+          {
+            "name": "web_search",
+            "id": "anthropic.web_search_20250305",
+            "args": {
+              "maxUses": 5
+            }
+          }
+        ]
+      },
+      {
+        "model": "gateway:anthropic/claude-sonnet-4.5",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?"
+          },
+          {
+            "role": "user",
+            "content": "Using the web search results from the previous turn, answer the original question in a complete, readable response. Do not perform another search. If the search results were insufficient, say what was missing."
+          }
+        ],
+        "maxOutputTokens": 2000,
+        "toolChoice": "none",
+        "maxRetries": 0,
+        "tools": [
+          {
+            "name": "web_search",
+            "id": "anthropic.web_search_20250305",
+            "args": {
+              "maxUses": 5
+            }
+          }
+        ]
+      }
+    ],
+    "network": []
+  },
+  "aiOverviewReferences": {
+    "outcome": {
+      "status": "captured",
+      "unit": {
+        "promptId": "p1",
+        "surface": "google_ai_overview",
+        "runIndex": 1
+      },
+      "probe": {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "google_ai_overview",
+        "runIndex": 1,
+        "text": "Acme Files is a managed file store for small teams.\n\n\nSources cited in AI Overview:\n- Acme Files (acme.example): \"Acme Files docs\" — https://acme.example/docs\n-  (): \"\" — https://rival.example/",
+        "retrieval": {
+          "exposure": "none",
+          "calls": []
+        }
+      },
+      "attempts": 1
+    },
+    "banked": [
+      {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "google_ai_overview",
+        "runIndex": 1,
+        "text": "Acme Files is a managed file store for small teams.\n\n\nSources cited in AI Overview:\n- Acme Files (acme.example): \"Acme Files docs\" — https://acme.example/docs\n-  (): \"\" — https://rival.example/",
+        "retrieval": {
+          "exposure": "none",
+          "calls": []
+        }
+      }
+    ],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "google_ai_overview",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": null,
+          "adapter": "dataforseo.ai_overview@1",
+          "request": {
+            "prompt": "Which managed file stores suit a small engineering team?",
+            "parameters": {
+              "endpoint": "/serp/google/organic/live/advanced",
+              "language_code": "en",
+              "location_code": 2840,
+              "load_async_ai_overview": true
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "Acme Files is a managed file store for small teams.\n\n\nSources cited in AI Overview:\n- Acme Files (acme.example): \"Acme Files docs\" — https://acme.example/docs\n-  (): \"\" — https://rival.example/",
+          "retrieval": {
+            "exposure": "none",
+            "calls": []
+          },
+          "requestedModel": null
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "google_ai_overview",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "602d79b162745dd1147818f9d4af5ff5e87a3f78ee0e524ce6b24ca7532ccd45"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "google_ai_overview",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": null,
+            "adapter": "dataforseo.ai_overview@1"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "602d79b162745dd1147818f9d4af5ff5e87a3f78ee0e524ce6b24ca7532ccd45"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "04469dbbc07d7b9ceb24b1913e174008064c99638643195398d882b9e7ec7b73",
+            "retrieval": "061b236e1c672eaad0ec675f85924d72a41f15c0e7339c0e87c541c7723cd4c2"
+          },
+          "details": {
+            "requestedModel": null,
+            "reportedModel": null,
+            "noOverview": false,
+            "costUsd": null
+          }
+        },
+        "objects": [
+          "04469dbbc07d7b9ceb24b1913e174008064c99638643195398d882b9e7ec7b73",
+          "061b236e1c672eaad0ec675f85924d72a41f15c0e7339c0e87c541c7723cd4c2"
+        ]
+      }
+    ],
+    "requests": [],
+    "network": [
+      {
+        "url": "https://api.dataforseo.com/v3/serp/google/organic/live/advanced",
+        "body": [
+          {
+            "keyword": "Which managed file stores suit a small engineering team?",
+            "language_code": "en",
+            "location_code": 2840,
+            "load_async_ai_overview": true
+          }
+        ]
+      }
+    ]
+  },
+  "aiOverviewRedirect": {
+    "outcome": {
+      "status": "captured",
+      "unit": {
+        "promptId": "p1",
+        "surface": "google_ai_overview",
+        "runIndex": 1
+      },
+      "probe": {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "google_ai_overview",
+        "runIndex": 1,
+        "text": "Rival Files publishes a comparison.\n\nSources cited in AI Overview:\n- Rival Files: \"Rival blog\" — https://rival.example/blog\n- Gone: \"Gone page\" — https://google.com/goto?url=https://gone.example/",
+        "retrieval": {
+          "exposure": "none",
+          "calls": []
+        }
+      },
+      "attempts": 1
+    },
+    "banked": [
+      {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "google_ai_overview",
+        "runIndex": 1,
+        "text": "Rival Files publishes a comparison.\n\nSources cited in AI Overview:\n- Rival Files: \"Rival blog\" — https://rival.example/blog\n- Gone: \"Gone page\" — https://google.com/goto?url=https://gone.example/",
+        "retrieval": {
+          "exposure": "none",
+          "calls": []
+        }
+      }
+    ],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "google_ai_overview",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": null,
+          "adapter": "dataforseo.ai_overview@1",
+          "request": {
+            "prompt": "Which managed file stores suit a small engineering team?",
+            "parameters": {
+              "endpoint": "/serp/google/organic/live/advanced",
+              "language_code": "en",
+              "location_code": 2840,
+              "load_async_ai_overview": true
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "Rival Files publishes a comparison.\n\nSources cited in AI Overview:\n- Rival Files: \"Rival blog\" — https://rival.example/blog\n- Gone: \"Gone page\" — https://google.com/goto?url=https://gone.example/",
+          "retrieval": {
+            "exposure": "none",
+            "calls": []
+          },
+          "requestedModel": null,
+          "redirects": [
+            {
+              "url": "https://google.com/goto?url=https://rival.example/blog",
+              "target": "https://rival.example/blog",
+              "hops": 2
+            },
+            {
+              "url": "https://google.com/goto?url=https://gone.example/",
+              "target": null,
+              "hops": 1,
+              "failure": "HTTP 404 without a redirect"
+            }
+          ]
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "google_ai_overview",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "602d79b162745dd1147818f9d4af5ff5e87a3f78ee0e524ce6b24ca7532ccd45"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "google_ai_overview",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": null,
+            "adapter": "dataforseo.ai_overview@1"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "602d79b162745dd1147818f9d4af5ff5e87a3f78ee0e524ce6b24ca7532ccd45"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "dbff22231ec780113b69f9dee83b20eab6b8b856fa7046f0a74d4bcf7d0129ab",
+            "retrieval": "061b236e1c672eaad0ec675f85924d72a41f15c0e7339c0e87c541c7723cd4c2"
+          },
+          "details": {
+            "requestedModel": null,
+            "reportedModel": null,
+            "noOverview": false,
+            "costUsd": null,
+            "redirects": [
+              {
+                "url": "https://google.com/goto?url=https://rival.example/blog",
+                "target": "https://rival.example/blog",
+                "hops": 2
+              },
+              {
+                "url": "https://google.com/goto?url=https://gone.example/",
+                "target": null,
+                "hops": 1,
+                "failure": "HTTP 404 without a redirect"
+              }
+            ]
+          }
+        },
+        "objects": [
+          "dbff22231ec780113b69f9dee83b20eab6b8b856fa7046f0a74d4bcf7d0129ab",
+          "061b236e1c672eaad0ec675f85924d72a41f15c0e7339c0e87c541c7723cd4c2"
+        ]
+      }
+    ],
+    "requests": [],
+    "network": [
+      {
+        "url": "https://api.dataforseo.com/v3/serp/google/organic/live/advanced",
+        "body": [
+          {
+            "keyword": "Which managed file stores suit a small engineering team?",
+            "language_code": "en",
+            "location_code": 2840,
+            "load_async_ai_overview": true
+          }
+        ]
+      },
+      {
+        "url": "https://google.com/goto?url=https://gone.example/",
+        "body": null
+      },
+      {
+        "url": "https://google.com/goto?url=https://rival.example/blog",
+        "body": null
+      },
+      {
+        "url": "https://www.google.com/goto?url=https://rival.example/blog",
+        "body": null
+      }
+    ]
+  },
+  "aiOverviewEmptyMarkdown": {
+    "outcome": {
+      "status": "captured",
+      "unit": {
+        "promptId": "p1",
+        "surface": "google_ai_overview",
+        "runIndex": 1
+      },
+      "probe": {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "google_ai_overview",
+        "runIndex": 1,
+        "text": "\n\nSources cited in AI Overview:\n- Acme Files (acme.example): \"Acme Files docs\" — https://acme.example/docs",
+        "retrieval": {
+          "exposure": "none",
+          "calls": []
+        }
+      },
+      "attempts": 1
+    },
+    "banked": [
+      {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "google_ai_overview",
+        "runIndex": 1,
+        "text": "\n\nSources cited in AI Overview:\n- Acme Files (acme.example): \"Acme Files docs\" — https://acme.example/docs",
+        "retrieval": {
+          "exposure": "none",
+          "calls": []
+        }
+      }
+    ],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "google_ai_overview",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": null,
+          "adapter": "dataforseo.ai_overview@1",
+          "request": {
+            "prompt": "Which managed file stores suit a small engineering team?",
+            "parameters": {
+              "endpoint": "/serp/google/organic/live/advanced",
+              "language_code": "en",
+              "location_code": 2840,
+              "load_async_ai_overview": true
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "\n\nSources cited in AI Overview:\n- Acme Files (acme.example): \"Acme Files docs\" — https://acme.example/docs",
+          "retrieval": {
+            "exposure": "none",
+            "calls": []
+          },
+          "requestedModel": null
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "google_ai_overview",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "602d79b162745dd1147818f9d4af5ff5e87a3f78ee0e524ce6b24ca7532ccd45"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "google_ai_overview",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": null,
+            "adapter": "dataforseo.ai_overview@1"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "602d79b162745dd1147818f9d4af5ff5e87a3f78ee0e524ce6b24ca7532ccd45"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "b72c20c380ca2a207236bde3dbf6a7773e84c84d20184c3f1c65e3735d2027c4",
+            "retrieval": "061b236e1c672eaad0ec675f85924d72a41f15c0e7339c0e87c541c7723cd4c2"
+          },
+          "details": {
+            "requestedModel": null,
+            "reportedModel": null,
+            "noOverview": false,
+            "costUsd": null
+          }
+        },
+        "objects": [
+          "b72c20c380ca2a207236bde3dbf6a7773e84c84d20184c3f1c65e3735d2027c4",
+          "061b236e1c672eaad0ec675f85924d72a41f15c0e7339c0e87c541c7723cd4c2"
+        ]
+      }
+    ],
+    "requests": [],
+    "network": [
+      {
+        "url": "https://api.dataforseo.com/v3/serp/google/organic/live/advanced",
+        "body": [
+          {
+            "keyword": "Which managed file stores suit a small engineering team?",
+            "language_code": "en",
+            "location_code": 2840,
+            "load_async_ai_overview": true
+          }
+        ]
+      }
+    ]
+  },
+  "aiOverviewNoOverview": {
+    "outcome": {
+      "status": "captured",
+      "unit": {
+        "promptId": "p1",
+        "surface": "google_ai_overview",
+        "runIndex": 1
+      },
+      "probe": {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "google_ai_overview",
+        "runIndex": 1,
+        "text": "",
+        "retrieval": {
+          "exposure": "none",
+          "calls": []
+        },
+        "noOverview": true
+      },
+      "attempts": 1
+    },
+    "banked": [
+      {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "google_ai_overview",
+        "runIndex": 1,
+        "text": "",
+        "retrieval": {
+          "exposure": "none",
+          "calls": []
+        },
+        "noOverview": true
+      }
+    ],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "google_ai_overview",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": null,
+          "adapter": "dataforseo.ai_overview@1",
+          "request": {
+            "prompt": "Which managed file stores suit a small engineering team?",
+            "parameters": {
+              "endpoint": "/serp/google/organic/live/advanced",
+              "language_code": "en",
+              "location_code": 2840,
+              "load_async_ai_overview": true
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "",
+          "retrieval": {
+            "exposure": "none",
+            "calls": []
+          },
+          "requestedModel": null,
+          "noOverview": true
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "google_ai_overview",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "602d79b162745dd1147818f9d4af5ff5e87a3f78ee0e524ce6b24ca7532ccd45"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "google_ai_overview",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": null,
+            "adapter": "dataforseo.ai_overview@1"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "602d79b162745dd1147818f9d4af5ff5e87a3f78ee0e524ce6b24ca7532ccd45"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "retrieval": "061b236e1c672eaad0ec675f85924d72a41f15c0e7339c0e87c541c7723cd4c2"
+          },
+          "details": {
+            "requestedModel": null,
+            "reportedModel": null,
+            "noOverview": true,
+            "costUsd": null
+          }
+        },
+        "objects": [
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "061b236e1c672eaad0ec675f85924d72a41f15c0e7339c0e87c541c7723cd4c2"
+        ]
+      }
+    ],
+    "requests": [],
+    "network": [
+      {
+        "url": "https://api.dataforseo.com/v3/serp/google/organic/live/advanced",
+        "body": [
+          {
+            "keyword": "Which managed file stores suit a small engineering team?",
+            "language_code": "en",
+            "location_code": 2840,
+            "load_async_ai_overview": true
+          }
+        ]
+      }
+    ]
+  },
+  "retriedFailure": {
+    "outcome": {
+      "status": "captured",
+      "unit": {
+        "promptId": "p1",
+        "surface": "chatgpt",
+        "runIndex": 1
+      },
+      "probe": {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "chatgpt",
+        "runIndex": 1,
+        "text": "As of **September 3, 2026**, the current **Node.js LTS version is Node.js 24.x**, with **v24.20.0** shown on the official Node.js site as the **Latest LTS** release. Node.js 26.x is currently the **Current** release line and is not LTS yet; the Node.js release page also shows Node.js 24 as LTS and Node.js 26 as Current. ([nodejs.org](https://nodejs.org/en/about?utm_source=openai))\n\nIf you want, I can also tell you:\n- the **name/codename** of the current LTS line,\n- when it **entered LTS**,\n- or which Node.js version you should use for a new project.\n\nSources used by search:\n- Node.js — About Node.js®: https://nodejs.org/en/about?utm_source=openai",
+        "retrieval": {
+          "exposure": "full",
+          "calls": [
+            {
+              "kind": "search",
+              "query": "site:nodejs.org Node.js LTS version current",
+              "url": null,
+              "resultUrls": [
+                "https://nodejs.org/en/about/previous-releases",
+                "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule",
+                "https://nodejs.org/en/about/eol",
+                "https://nodejs.org/en/about/previous-releases?source=post_page---------------------------",
+                "https://nodejs.org/en/blog/release/v26.0.0/",
+                "https://nodejs.org/en/blog/release/v22.11.0",
+                "https://nodejs.org/en/blog",
+                "https://nodejs.org/en/blog/announcements/v5-to-v7",
+                "https://nodejs.org/en/about",
+                "https://nodejs.org/en/blog?a=1",
+                "https://nodejs.org/en/blog/announcements",
+                "https://nodejs.org/en/blog/community/node-v5/",
+                "https://nodejs.org/static/documents/2018-survey-report.pdf",
+                "https://nodejs.org/static/documents/2016-survey-report.pdf",
+                "https://nodejs.org/en/about?utm_source=openai"
+              ],
+              "resultsComplete": false
+            },
+            {
+              "kind": "search",
+              "query": "site:nodejs.org/en about release schedule Node.js LTS",
+              "url": null,
+              "resultUrls": null,
+              "resultsComplete": false
+            }
+          ]
+        }
+      },
+      "attempts": 2
+    },
+    "banked": [
+      {
+        "promptId": "p1",
+        "promptText": "Which managed file stores suit a small engineering team?",
+        "promptCategory": "product_recommendation",
+        "modelName": "chatgpt",
+        "runIndex": 1,
+        "text": "As of **September 3, 2026**, the current **Node.js LTS version is Node.js 24.x**, with **v24.20.0** shown on the official Node.js site as the **Latest LTS** release. Node.js 26.x is currently the **Current** release line and is not LTS yet; the Node.js release page also shows Node.js 24 as LTS and Node.js 26 as Current. ([nodejs.org](https://nodejs.org/en/about?utm_source=openai))\n\nIf you want, I can also tell you:\n- the **name/codename** of the current LTS line,\n- when it **entered LTS**,\n- or which Node.js version you should use for a new project.\n\nSources used by search:\n- Node.js — About Node.js®: https://nodejs.org/en/about?utm_source=openai",
+        "retrieval": {
+          "exposure": "full",
+          "calls": [
+            {
+              "kind": "search",
+              "query": "site:nodejs.org Node.js LTS version current",
+              "url": null,
+              "resultUrls": [
+                "https://nodejs.org/en/about/previous-releases",
+                "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule",
+                "https://nodejs.org/en/about/eol",
+                "https://nodejs.org/en/about/previous-releases?source=post_page---------------------------",
+                "https://nodejs.org/en/blog/release/v26.0.0/",
+                "https://nodejs.org/en/blog/release/v22.11.0",
+                "https://nodejs.org/en/blog",
+                "https://nodejs.org/en/blog/announcements/v5-to-v7",
+                "https://nodejs.org/en/about",
+                "https://nodejs.org/en/blog?a=1",
+                "https://nodejs.org/en/blog/announcements",
+                "https://nodejs.org/en/blog/community/node-v5/",
+                "https://nodejs.org/static/documents/2018-survey-report.pdf",
+                "https://nodejs.org/static/documents/2016-survey-report.pdf",
+                "https://nodejs.org/en/about?utm_source=openai"
+              ],
+              "resultsComplete": false
+            },
+            {
+              "kind": "search",
+              "query": "site:nodejs.org/en about release schedule Node.js LTS",
+              "url": null,
+              "resultUrls": null,
+              "resultsComplete": false
+            }
+          ]
+        }
+      }
+    ],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "chatgpt",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": "openai/gpt-5.4-mini",
+          "adapter": "gateway.openai@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "openai/gpt-5.4-mini",
+              "maxOutputTokens": 2000,
+              "toolChoice": "required",
+              "tools": [
+                {
+                  "name": "web_search",
+                  "id": "openai.web_search",
+                  "args": {}
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "failed",
+          "kind": "cli_error",
+          "error": "Internal server error"
+        }
+      },
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "chatgpt",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 2,
+          "retryOf": "op-1",
+          "requestedModel": "openai/gpt-5.4-mini",
+          "adapter": "gateway.openai@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "openai/gpt-5.4-mini",
+              "maxOutputTokens": 2000,
+              "toolChoice": "required",
+              "tools": [
+                {
+                  "name": "web_search",
+                  "id": "openai.web_search",
+                  "args": {}
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "As of **September 3, 2026**, the current **Node.js LTS version is Node.js 24.x**, with **v24.20.0** shown on the official Node.js site as the **Latest LTS** release. Node.js 26.x is currently the **Current** release line and is not LTS yet; the Node.js release page also shows Node.js 24 as LTS and Node.js 26 as Current. ([nodejs.org](https://nodejs.org/en/about?utm_source=openai))\n\nIf you want, I can also tell you:\n- the **name/codename** of the current LTS line,\n- when it **entered LTS**,\n- or which Node.js version you should use for a new project.\n\nSources used by search:\n- Node.js — About Node.js®: https://nodejs.org/en/about?utm_source=openai",
+          "retrieval": {
+            "exposure": "full",
+            "calls": [
+              {
+                "kind": "search",
+                "query": "site:nodejs.org Node.js LTS version current",
+                "url": null,
+                "resultUrls": [
+                  "https://nodejs.org/en/about/previous-releases",
+                  "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule",
+                  "https://nodejs.org/en/about/eol",
+                  "https://nodejs.org/en/about/previous-releases?source=post_page---------------------------",
+                  "https://nodejs.org/en/blog/release/v26.0.0/",
+                  "https://nodejs.org/en/blog/release/v22.11.0",
+                  "https://nodejs.org/en/blog",
+                  "https://nodejs.org/en/blog/announcements/v5-to-v7",
+                  "https://nodejs.org/en/about",
+                  "https://nodejs.org/en/blog?a=1",
+                  "https://nodejs.org/en/blog/announcements",
+                  "https://nodejs.org/en/blog/community/node-v5/",
+                  "https://nodejs.org/static/documents/2018-survey-report.pdf",
+                  "https://nodejs.org/static/documents/2016-survey-report.pdf",
+                  "https://nodejs.org/en/about?utm_source=openai"
+                ],
+                "resultsComplete": false
+              },
+              {
+                "kind": "search",
+                "query": "site:nodejs.org/en about release schedule Node.js LTS",
+                "url": null,
+                "resultUrls": null,
+                "resultsComplete": false
+              }
+            ]
+          },
+          "requestedModel": "openai/gpt-5.4-mini",
+          "costUsd": 0.01461745
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "chatgpt",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "chatgpt",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": "openai/gpt-5.4-mini",
+            "adapter": "gateway.openai@1"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "failed",
+          "outputs": {},
+          "details": {
+            "kind": "cli_error",
+            "error": "Internal server error"
+          }
+        },
+        "objects": []
+      },
+      {
+        "type": "operation_started",
+        "operation": "op-2",
+        "payload": {
+          "kind": "probe",
+          "role": "chatgpt",
+          "attempt": 2,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "chatgpt",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": "op-1",
+            "requestedModel": "openai/gpt-5.4-mini",
+            "adapter": "gateway.openai@1"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "ed8837fee3fc3783c3676893d613729191a20ae4bcd79eb29745684f3f3ede3d"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-2",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "2c2a3754e1e394144b1e156a738cb9e35d17719b971829cdda527d1ce1a48721",
+            "retrieval": "5f360495b7ad4b376d9348de9c8caf176914364842b9775808887bed8530195d"
+          },
+          "details": {
+            "requestedModel": "openai/gpt-5.4-mini",
+            "reportedModel": null,
+            "noOverview": false,
+            "costUsd": 0.01461745
+          }
+        },
+        "objects": [
+          "2c2a3754e1e394144b1e156a738cb9e35d17719b971829cdda527d1ce1a48721",
+          "5f360495b7ad4b376d9348de9c8caf176914364842b9775808887bed8530195d"
+        ]
+      }
+    ],
+    "requests": [
+      {
+        "model": "gateway:openai/gpt-5.4-mini",
+        "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+        "maxOutputTokens": 2000,
+        "toolChoice": "required",
+        "maxRetries": 0,
+        "tools": [
+          {
+            "name": "web_search",
+            "id": "openai.web_search",
+            "args": {}
+          }
+        ]
+      },
+      {
+        "model": "gateway:openai/gpt-5.4-mini",
+        "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+        "maxOutputTokens": 2000,
+        "toolChoice": "required",
+        "maxRetries": 0,
+        "tools": [
+          {
+            "name": "web_search",
+            "id": "openai.web_search",
+            "args": {}
+          }
+        ]
+      }
+    ],
+    "network": []
+  },
+  "persistenceBankingFailed": {
+    "outcome": {
+      "status": "failed",
+      "unit": {
+        "promptId": "p1",
+        "surface": "perplexity",
+        "runIndex": 1
+      },
+      "kind": "persistence",
+      "attempts": 1,
+      "lastError": "store down"
+    },
+    "banked": [],
+    "port": [
+      {
+        "call": "start",
+        "attempt": {
+          "surface": "perplexity",
+          "promptId": "p1",
+          "promptText": "Which managed file stores suit a small engineering team?",
+          "runIndex": 1,
+          "attempt": 1,
+          "requestedModel": "perplexity/sonar-pro",
+          "adapter": "gateway.perplexity@1",
+          "request": {
+            "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+            "parameters": {
+              "model": "perplexity/sonar-pro",
+              "maxOutputTokens": 2000
+            }
+          }
+        }
+      },
+      {
+        "call": "end",
+        "result": {
+          "outcome": "succeeded",
+          "text": "Acme Files suits small teams.",
+          "retrieval": {
+            "exposure": "none",
+            "calls": []
+          },
+          "requestedModel": "perplexity/sonar-pro"
+        }
+      }
+    ],
+    "journal": [
+      {
+        "type": "operation_started",
+        "operation": "op-1",
+        "payload": {
+          "kind": "probe",
+          "role": "perplexity",
+          "attempt": 1,
+          "inputs": {
+            "prompt": "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+            "request": "0d14d33e657bf0ead149e06219ad817f2b187409521bb6c3aeae0616c8c5560d"
+          },
+          "details": {
+            "sectionKey": null,
+            "surface": "perplexity",
+            "promptId": "p1",
+            "runIndex": 1,
+            "retryOf": null,
+            "requestedModel": "perplexity/sonar-pro",
+            "adapter": "gateway.perplexity@1"
+          }
+        },
+        "objects": [
+          "d4af6307478352e4d1fbf5c8453630a7ac96d28cb103b035c4016ad85bbd25fa",
+          "0d14d33e657bf0ead149e06219ad817f2b187409521bb6c3aeae0616c8c5560d"
+        ]
+      },
+      {
+        "type": "operation_finished",
+        "operation": "op-1",
+        "payload": {
+          "outcome": "succeeded",
+          "outputs": {
+            "answer": "898e48d31d8f40775b6300a129aeb33fcfab2f5e656b4c954866d5fe1e4825cc",
+            "retrieval": "061b236e1c672eaad0ec675f85924d72a41f15c0e7339c0e87c541c7723cd4c2"
+          },
+          "details": {
+            "requestedModel": "perplexity/sonar-pro",
+            "reportedModel": null,
+            "noOverview": false,
+            "costUsd": null
+          }
+        },
+        "objects": [
+          "898e48d31d8f40775b6300a129aeb33fcfab2f5e656b4c954866d5fe1e4825cc",
+          "061b236e1c672eaad0ec675f85924d72a41f15c0e7339c0e87c541c7723cd4c2"
+        ]
+      }
+    ],
+    "requests": [
+      {
+        "model": "gateway:perplexity/sonar-pro",
+        "prompt": "Search the web for current information to answer the following question. Return a complete answer, not just search results.\n\nWhich managed file stores suit a small engineering team?",
+        "maxOutputTokens": 2000,
+        "maxRetries": 0
+      }
+    ],
+    "network": []
+  },
+  "persistenceJournal": {
+    "notOpened": {
+      "status": "failed",
+      "unit": {
+        "promptId": "p1",
+        "surface": "perplexity",
+        "runIndex": 1
+      },
+      "kind": "persistence",
+      "attempts": 1,
+      "lastError": "the probe's operation could not be recorded: read-only file system"
+    },
+    "notClosed": {
+      "status": "failed",
+      "unit": {
+        "promptId": "p1",
+        "surface": "perplexity",
+        "runIndex": 1
+      },
+      "kind": "persistence",
+      "attempts": 1,
+      "lastError": "the probe's outcome could not be recorded: disk full"
+    }
+  }
+}

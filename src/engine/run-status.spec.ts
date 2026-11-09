@@ -75,6 +75,7 @@ const createStoppedRun = async () => {
         probe: {
           promptId: unit.promptId,
           promptText: unit.promptText,
+          promptCategory: 'product_recommendation',
           modelName: unit.surface,
           runIndex: unit.runIndex,
           text: 'Northwind Data is one option.',
@@ -241,7 +242,14 @@ describe('run-status - readRunStatus()', () => {
       surface: 'chatgpt',
       runIndex: 1,
       capturedAt: '2026-11-01T10:00:00.000Z',
-      probe: { modelName: 'chatgpt', runIndex: 1, text: 'An answer.' },
+      probe: {
+        promptId: 'gone',
+        promptText: 'A question no longer asked.',
+        promptCategory: 'product_recommendation',
+        modelName: 'chatgpt',
+        runIndex: 1,
+        text: 'An answer.',
+      },
     };
 
     await writeFile(

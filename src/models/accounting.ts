@@ -127,6 +127,13 @@ export type ModelCallAccounting = {
   reserve(call: ModelCallReservation): Promise<void>;
   assertOwned(): Promise<void>;
   settle(callId: string, usage: ModelCallUsage): Promise<void>;
+  /**
+   * Withdraws a reservation whose call was never dispatched (its operation
+   * could not be recorded first). Unlike a settlement at $0, it records no
+   * cost the provider did not report: the call leaves the ledger. A settled
+   * call cannot be released.
+   */
+  release(callId: string): Promise<void>;
   /** Present when the run records its execution: the request before
    * dispatch, the response before settlement. A failure stops the call. */
   observe?(callId: string, evidence: ModelCallEvidence): Promise<void>;
@@ -318,6 +325,22 @@ const settleCall = (
   return settled;
 };
 
+const releaseCall = (state: BudgetState, callId: string): BudgetState => {
+  const call = state.calls[callId];
+
+  if (!call) {
+    throw new ModelBudgetError('Model call was not reserved');
+  }
+
+  if (call.usage) {
+    throw new ModelBudgetError('A settled model call cannot be released');
+  }
+
+  const { [callId]: _released, ...calls } = state.calls;
+
+  return { ...state, calls };
+};
+
 // Runs synchronous work so that a throw becomes a rejected promise, as it would
 // inside an async function.
 const runAsPromise = (work: () => void) => {
@@ -346,6 +369,11 @@ export const createMemoryModelAccounting = (
     settle: (callId: string, usage: ModelCallUsage) => {
       return runAsPromise(() => {
         state.calls = settleCall(state, { callId, usage }).calls;
+      });
+    },
+    release: (callId: string) => {
+      return runAsPromise(() => {
+        state.calls = releaseCall(state, callId).calls;
       });
     },
   };
@@ -462,6 +490,9 @@ export const createFileModelAccounting = (args: {
     },
     settle: async (callId, usage) => {
       await update((state) => settleCall(state, { callId, usage }));
+    },
+    release: async (callId) => {
+      await update((state) => releaseCall(state, callId));
     },
   };
 
@@ -649,6 +680,9 @@ export const createPostgresModelAccounting = (args: {
     },
     settle: async (callId, usage) => {
       await update((state) => settleCall(state, { callId, usage }));
+    },
+    release: async (callId) => {
+      await update((state) => releaseCall(state, callId));
     },
   };
 

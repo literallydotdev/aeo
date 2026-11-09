@@ -4,8 +4,9 @@ import {
   createMemoryModelAccounting,
 } from '../models/accounting';
 import { authorToolCaps } from '../codex-workflow/author-tools';
-import { sessionReservation } from '../models/cost-coefficients';
+import { probeUsd, sessionReservation } from '../models/cost-coefficients';
 import { tokenCostUsd } from '../models/pricing';
+import { defaultProbeBindings } from '../probes/bindings';
 import {
   resolveSupportedModel,
   supportedModels,
@@ -76,9 +77,41 @@ const never = (): never => {
 };
 
 describe('cost-estimate - estimateRunCost()', () => {
+  it("should price each surface's probes at its bound adapter, under coefficients version 2", () => {
+    const plan = {
+      units: Array.from({ length: 4 }, (_, index) => ({ index })),
+      probesBySurface: new Map<AeoSurface, number>([['chatgpt', 4]]),
+    } as never;
+    const priced = (bindings: typeof defaultProbeBindings) => {
+      return estimateRunCost({
+        plan,
+        model: resolveSupportedModel(),
+        grounding: 'extraction_only',
+        bindings,
+      });
+    };
+
+    const defaults = priced(defaultProbeBindings);
+    const rebound = priced({
+      ...defaultProbeBindings,
+      chatgpt: { adapter: 'gateway.anthropic@1', model: 'anthropic/test-1' },
+    });
+
+    expect(defaults.coefficientsVersion).toBe(2);
+    expect(defaults.categories.probes).toEqual({
+      low: probeUsd['gateway.openai@1'].low * 4,
+      high: probeUsd['gateway.openai@1'].high * 4,
+    });
+    expect(rebound.categories.probes).toEqual({
+      low: probeUsd['gateway.anthropic@1'].low * 4,
+      high: probeUsd['gateway.anthropic@1'].high * 4,
+    });
+  });
+
   it('should estimate every category, with a cap at the high end', () => {
     const estimate = estimateRunCost({
       plan: planOf(32),
+      bindings: defaultProbeBindings,
       model: resolveSupportedModel(),
       grounding: 'full',
     });
@@ -109,6 +142,7 @@ describe('cost-estimate - estimateRunCost()', () => {
       const model = resolveSupportedModel(modelId);
       const estimate = estimateRunCost({
         plan: planOf(run.answers),
+        bindings: defaultProbeBindings,
         model,
         grounding: run.grounding === 'full' ? 'full' : 'extraction_only',
       });
@@ -131,6 +165,7 @@ describe('cost-estimate - estimateRunCost()', () => {
   it('should charge nothing for search under extraction-only grounding', () => {
     const estimate = estimateRunCost({
       plan: planOf(16),
+      bindings: defaultProbeBindings,
       model: resolveSupportedModel(),
       grounding: 'extraction_only',
     });
@@ -163,6 +198,7 @@ describe('cost-estimate - reservations under the recommended cap', () => {
       const model = resolveSupportedModel(modelId);
       const estimate = estimateRunCost({
         plan: planOf(4),
+        bindings: defaultProbeBindings,
         model,
         grounding: 'full',
       });

@@ -148,6 +148,9 @@ const createLazyLedger = (
     settle: async (id, usage) => {
       await requireDefined(base, 'ledger').settle(id, usage);
     },
+    release: async (id) => {
+      await requireDefined(base, 'ledger').release(id);
+    },
   };
 
   return {
@@ -571,6 +574,7 @@ describe('extract - extractClaimCandidates() concurrency', () => {
 
         return Promise.resolve();
       },
+      release: (id) => base.release(id),
       settle: async (id, usage) => {
         await base.settle(id, usage);
         owned = false;
