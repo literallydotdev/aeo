@@ -35,6 +35,14 @@ CI is free: no step calls a real model or provider. macOS is not tested in
 CI (hosted macOS runners queue too long); run `pnpm test` on a Mac before
 claiming a macOS fix.
 
+**Never run a heavy command bare.** `tsc`, `eslint`, `vitest` and the build
+can exhaust a machine's memory, and the OOM killer then takes the editor,
+not the command. `pnpm typecheck`, `pnpm lint`, `pnpm test` and
+`pnpm build` already run through `scripts/capped.sh`, which uses a `capped`
+memory guard where one is installed; anything narrower (`npx vitest run <file>`, `npx tsc`,
+`pnpm pack`) needs an explicit `capped` prefix. See
+[`.claude/rules/capped-commands.md`](.claude/rules/capped-commands.md).
+
 ## Layout
 
 - `src/cli/` the command; `src/engine/` local runs, budgets, resources and the
@@ -106,6 +114,7 @@ One body of guidance for Claude Code, Cursor and Codex. Map and sync rules:
   - `tests-cost-nothing`: before adding or changing tests or CI
   - `eslint-suppressions`: before adding any `eslint-disable`
   - `git-operations`: before any git command that writes
+  - `capped-commands`: before running `tsc`, `eslint`, `vitest` or the build
 - **Skills** (user-invoked): `scrutinize` and `scrutinize-wide` (self-review
   of session work against the principles), `code-style` (review of session
   TypeScript against the style guide). Mounted at

@@ -53,11 +53,11 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "node scripts/build.mjs",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint --max-warnings=0",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "build": "sh scripts/capped.sh node scripts/build.mjs",
+    "typecheck": "sh scripts/capped.sh tsc --noEmit",
+    "lint": "sh scripts/capped.sh eslint --max-warnings=0",
+    "test": "sh scripts/capped.sh vitest run",
+    "test:watch": "sh scripts/capped.sh vitest",
     "format": "prettier --write .",
     "cli": "tsx src/cli/literally-aeo.ts",
     "prepack": "node scripts/build.mjs"

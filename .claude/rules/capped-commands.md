@@ -1,0 +1,66 @@
+# Heavy Commands Run Under the Memory Guard
+
+`tsc`, `eslint` (it builds a TypeScript program), `vitest` and the build are
+heavy: they compile, bundle or fork workers. On a machine with little free
+memory and no swap, one that outgrows what is free has nothing to fall back
+on, and the kernel's OOM killer picks a victim from the whole session: the
+editor or the browser, not the command.
+
+`scripts/capped.sh` runs a command under `capped` when that memory guard is
+installed: any command that runs its arguments under a memory limit (for
+example a systemd user scope with `MemoryMax`), so a command that outgrows it
+dies alone. Where it is not installed (CI, most machines) the shim runs the
+command plainly.
+
+## The rule
+
+**Never run a heavy command bare.**
+
+- **Prefer the package scripts.** `pnpm typecheck`, `pnpm lint`,
+  `pnpm test` and `pnpm build` already go through `scripts/capped.sh`.
+- **Anything narrower needs the guard itself**, because `npx` and a direct
+  binary do not inherit it:
+
+  ```bash
+  capped npx vitest run src/probes/attempt.spec.ts
+  capped npx tsc --noEmit
+  capped pnpm pack
+  ```
+
+  On a machine without `capped`, run the same command without the prefix.
+
+- **Narrowing a command is not a substitute for the guard.** A single spec
+  file run bare can still spike; the same file run capped cannot take the
+  desktop down.
+
+## Sizing
+
+- `vitest.config.ts` caps the pool at four workers. Uncapped, vitest starts
+  one worker per core, each loading the engine, and a full run grows with the
+  machine instead of fitting in it.
+- `tsc --noEmit` peaks under 1 GB (measured 2026-11-08), so no script
+  raises `--max-old-space-size`. But Node sizes its default heap from the
+  memory limit it runs under: under the guard, about half of what the
+  guard allows, which is itself a share of the memory free at launch. On a
+  loaded machine (2 GB free, measured 2026-11-09) that heap is too small
+  for `eslint`, which aborts with
+  `Ineffective mark-compacts near heap limit`. That is too little free
+  memory, not broken code: free some, or give that one run more room,
+  still capped, for example
+  `NODE_OPTIONS=--max-old-space-size=1536 pnpm lint` (with
+  `CAPPED_MEMORY_SHARE=90` for a guard that reads it).
+
+## Reading the aftermath
+
+A capped command killed by its memory limit exits **137** (SIGKILL), and
+one whose heap ran out aborts with **134** (see Sizing), not with a
+compiler or test error. Treat either as "ran out of memory", never as "the
+code is broken" and never as a pass. On Linux,
+
+```bash
+journalctl -k --since "1 hour ago" | grep -iE "oom-kill|Killed process"
+```
+
+shows which: `constraint=CONSTRAINT_MEMCG` means the guard worked and only
+the command died; `CONSTRAINT_NONE` means something escaped the guard, and
+the command that did should be named.
