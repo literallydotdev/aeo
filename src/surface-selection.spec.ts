@@ -108,18 +108,25 @@ describe('runner - planRun()', () => {
     expect(plan.agentSurfaces).toEqual(['codex']);
   });
 
-  it('should refuse to plan AI Overviews in a market DataForSEO cannot place, naming the market', () => {
-    const unmapped = aeoAuditConfigSchema.parse({
-      ...base,
-      geography: 'global',
-      language: 'en',
-    });
+  it.each([
+    ['global', 'en'],
+    ['constructor', 'en'],
+    ['us', '__proto__'],
+  ])(
+    'should refuse to plan AI Overviews in a market DataForSEO cannot place, naming the market: %s, %s',
+    (geography, language) => {
+      const unmapped = aeoAuditConfigSchema.parse({
+        ...base,
+        geography,
+        language,
+      });
 
-    expect(() => planRun(unmapped, request())).toThrow(RunRequestError);
-    expect(() => planRun(unmapped, request())).toThrow(
-      /geography "global" and language "en"/,
-    );
-  });
+      expect(() => planRun(unmapped, request())).toThrow(RunRequestError);
+      expect(() => planRun(unmapped, request())).toThrow(
+        `geography "${geography}" and language "${language}"`,
+      );
+    },
+  );
 
   it('should plan an unmapped market when the run leaves AI Overviews out', () => {
     const unmapped = aeoAuditConfigSchema.parse({

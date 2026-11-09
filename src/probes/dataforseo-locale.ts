@@ -62,8 +62,19 @@ export const resolveDataForSeoLocale = (
   geography: string,
   language: string,
 ): { locationCode: number; languageCode: string } | undefined => {
-  const locationCode = dataForSeoLocationCodes[geography.toLowerCase()];
-  const languageCode = dataForSeoLanguageCodes[language.toLowerCase()];
+  const geographyKey = geography.toLowerCase();
+  const languageKey = language.toLowerCase();
+
+  // Own keys only: "constructor" or "__proto__" is not a market.
+  if (
+    !Object.hasOwn(dataForSeoLocationCodes, geographyKey) ||
+    !Object.hasOwn(dataForSeoLanguageCodes, languageKey)
+  ) {
+    return undefined;
+  }
+
+  const locationCode = dataForSeoLocationCodes[geographyKey];
+  const languageCode = dataForSeoLanguageCodes[languageKey];
 
   return locationCode === undefined || languageCode === undefined
     ? undefined
