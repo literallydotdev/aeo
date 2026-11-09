@@ -20,19 +20,22 @@ not imported into any agent's context.
 | ---------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | Engineering principles | `docs/engineering-principles.md` | imported by `CLAUDE.md`; full body in `.cursor/rules/engineering-principles.mdc`; compressed rulebook in `AGENTS.md` |
 | TypeScript style guide | `docs/typescript-style-guide.md` | not auto-loaded; linked from `AGENTS.md` and the principles; applied by the `code-style` skill                       |
-| Topic rules (7)        | `.claude/rules/*.md`             | `.cursor/rules/*.mdc` (same body plus frontmatter)                                                                   |
+| Topic rules (8)        | `.claude/rules/*.md`             | `.cursor/rules/*.mdc` (same body plus frontmatter)                                                                   |
 | Skills (3)             | `.claude/skills/<name>/SKILL.md` | byte-identical twin at `.agents/skills/<name>/SKILL.md`                                                              |
 
 Topic rules: `public-repository`, `measurement-stability`, `evidence-honesty`,
 `untrusted-input`, `tests-cost-nothing`, `eslint-suppressions`,
-`git-operations`.
+`git-operations`, `capped-commands`.
 
 Skills, all user-invoked (`disable-model-invocation: true`): `scrutinize`,
 `scrutinize-wide`, `code-style`.
 
 `git-operations` is stated twice on purpose: in short in `AGENTS.md`, read
 before any tool call, and in full in the rule file. A rule consulted only
-after the agent has decided to commit arrives too late.
+after the agent has decided to commit arrives too late. `capped-commands`
+is stated twice for the same reason: it governs how a command is run, so it
+has to be read before the first heavy command, not after one has taken the
+editor down.
 
 ## Sync invariants
 
