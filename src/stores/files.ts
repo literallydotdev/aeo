@@ -281,9 +281,22 @@ export class FileProbeStore implements ProbeStore {
       return;
     }
 
+    // Set before the write, so a concurrent put of the same unit meets it;
+    // undone when the write fails, so the store never reports a row the
+    // file does not hold.
     this.#records.set(key, record);
 
-    await this.#file.append(JSON.stringify(record));
+    try {
+      await this.#file.append(JSON.stringify(record));
+    } catch (error) {
+      if (existing) {
+        this.#records.set(key, existing);
+      } else {
+        this.#records.delete(key);
+      }
+
+      throw error;
+    }
   }
 
   async invalidate(match: CheckpointMatch): Promise<number> {

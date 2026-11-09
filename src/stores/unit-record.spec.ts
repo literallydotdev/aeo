@@ -1,4 +1,11 @@
-import { appendFile, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  appendFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -144,6 +151,24 @@ describe('files - FileProbeStore.open()', () => {
 
     expect(reopened.size).toBe(2);
     expect(await readFile(file, 'utf8')).not.toContain('file_st"');
+  });
+
+  it('should hold no row whose write failed, so the unit is never read as banked', async () => {
+    const store = await FileProbeStore.open('report', { dir });
+    const file = path.join(dir, 'report.jsonl');
+    const row = { ...agentRow, status: 'captured' } as UnitRecord;
+
+    // The store's file cannot be opened for writing: a directory sits there.
+    await mkdir(file);
+
+    await expect(store.put(row)).rejects.toThrow();
+    expect(await store.get(row)).toBeNull();
+    expect(await store.list()).toEqual([]);
+
+    await rm(file, { recursive: true });
+    await store.put(row);
+
+    expect(await store.get(row)).toEqual(row);
   });
 });
 
