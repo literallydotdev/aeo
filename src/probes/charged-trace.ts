@@ -97,13 +97,28 @@ export const chargedProbeTrace = (
 
           // Without a reported cost the call keeps charging its estimate,
           // and the ledger records no cost the provider did not report.
-          await ledger.settle(callId, {
-            ...(attempt.requestedModel !== null && {
-              requestedModel: attempt.requestedModel,
-            }),
-            ...(reportedUsd !== undefined && { costUsd: reportedUsd }),
-            ...(result.outcome !== 'succeeded' && { valid: false }),
-          });
+          // The outcome is recorded by now, so a settlement that fails (the
+          // operator stopped the run, the ledger could not be written) must
+          // not fail the unit: its paid answer would go unbanked and be
+          // bought again on resume. The call keeps charging its estimate,
+          // an overstatement of the spend, never an understatement.
+          await ledger
+            .settle(callId, {
+              ...(attempt.requestedModel !== null && {
+                requestedModel: attempt.requestedModel,
+              }),
+              ...(reportedUsd !== undefined && { costUsd: reportedUsd }),
+              ...(result.outcome !== 'succeeded' && { valid: false }),
+            })
+            .catch((settleError: unknown) => {
+              log.warn('Probe cost could not be settled', {
+                callId,
+                error:
+                  settleError instanceof Error
+                    ? settleError.message
+                    : String(settleError),
+              });
+            });
         },
       };
     },

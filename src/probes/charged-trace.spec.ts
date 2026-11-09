@@ -106,6 +106,35 @@ describe('charged-trace - chargedProbeTrace()', () => {
     expect(charged.exhausted()).toBeUndefined();
   });
 
+  it('should keep a recorded outcome, with the call charging its estimate, when its settlement fails', async () => {
+    const ledger = ledgerOf(10);
+    const stopped = {
+      ...ledger,
+      settle: () =>
+        Promise.reject(new DOMException('The run was stopped.', 'AbortError')),
+    };
+    const handle = await chargedProbeTrace(
+      trace,
+      stopped,
+      defaultProbeBindings,
+    ).trace.start(attempt);
+
+    await expect(
+      handle.end({
+        outcome: 'succeeded',
+        text: 'answer',
+        retrieval: null,
+        requestedModel: attempt.requestedModel,
+        costUsd: 0.004,
+      }),
+    ).resolves.toBeUndefined();
+    expect(mockEnd).toHaveBeenCalledOnce();
+    expect(Object.values(ledger.state.calls)[0]?.usage).toBeUndefined();
+    expect(chargedTotal(Object.values(ledger.state.calls)).usd).toBe(
+      probeUsd['gateway.openai@1'].high,
+    );
+  });
+
   it("should charge nothing for a coding-agent probe on the operator's own login", async () => {
     const ledger = ledgerOf(0.001);
 

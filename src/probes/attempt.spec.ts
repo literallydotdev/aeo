@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createLog } from '../lib/log';
+import { createMemoryModelAccounting } from '../models/accounting';
 import { probeUsd } from '../models/cost-coefficients';
 import type { ProbeAdapter, ProbeAnswer } from './adapter';
 import {
@@ -9,6 +10,8 @@ import {
   runProbeUnit,
   type BankedAnswer,
 } from './attempt';
+import { defaultProbeBindings } from './bindings';
+import { chargedProbeTrace } from './charged-trace';
 import { ProbeFailure } from './failure';
 import { ProbeLimiter, unlimited } from './limits';
 import type {
@@ -192,6 +195,36 @@ describe('attempt - runProbeUnit()', () => {
       attempts: 1,
       lastError: 'store down',
     });
+    expect(probe).toHaveBeenCalledOnce();
+  });
+
+  it('should bank a paid answer whose cost cannot be settled once the operator stops the run, never buying it again', async () => {
+    const ledger = createMemoryModelAccounting({
+      maxUsd: 10,
+      maxTokens: 1_000_000,
+      deadlineAt: '2099-01-01T00:00:00.000Z',
+    });
+    const stopped = {
+      ...ledger,
+      settle: () =>
+        Promise.reject(new DOMException('The run was stopped.', 'AbortError')),
+    };
+    const { trace } = recordingTrace();
+    const probe = vi.fn(() => Promise.resolve(answerOf()));
+    const bank = vi.fn(() => Promise.resolve());
+
+    const outcome = await runProbeUnit(fakeAdapter(probe), unit, {
+      rules: attemptRules.chat,
+      trace: chargedProbeTrace(trace, stopped, defaultProbeBindings).trace,
+      limiter: unlimited(),
+      log,
+      logContext: {},
+      toResult,
+      bank,
+    });
+
+    expect(outcome).toMatchObject({ status: 'captured', attempts: 1 });
+    expect(bank).toHaveBeenCalledOnce();
     expect(probe).toHaveBeenCalledOnce();
   });
 
