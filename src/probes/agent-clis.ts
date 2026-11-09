@@ -248,6 +248,12 @@ const cliVersion = async (
       return workerVersionSchema.parse(version) ?? null;
     }
 
+    // The isolated adapter container's own policy, as for every launch: it
+    // runs no CLI itself, so without a transport it detects none.
+    if (readEnv('AEO_ISOLATED_ADAPTER') === '1') {
+      return null;
+    }
+
     const local = localCommand(command, args, env);
     const { stdout } = await execFileAsync(local.command, local.args, {
       timeout: 15_000,

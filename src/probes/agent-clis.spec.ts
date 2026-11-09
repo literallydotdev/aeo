@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WorkerInvocationError } from '../container/protocol';
 import {
   classifyAgentError,
   cliFailureSignals,
   describeCliFailure,
+  detectAgentClis,
 } from './agent-clis';
 import { AgentStreamError, RejectedWebToolError } from './agent-cli-parsers';
 import { ChildProcessError, type ChildRunResult } from './child-process';
@@ -276,5 +277,23 @@ describe('failure - isCapacityError()', () => {
     ]) {
       expect(isCapacityError(message), message).toBe(false);
     }
+  });
+});
+
+describe('agent-clis - detectAgentClis()', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('should detect no CLI in the isolated adapter container without its transport, never running one there', async () => {
+    vi.stubEnv('AEO_ISOLATED_ADAPTER', '1');
+
+    // Codex "installed" as this Node: run, it would report Node's version.
+    await expect(
+      detectAgentClis({
+        env: { AEO_CODEX_BIN: process.execPath },
+        claudeConfigDir: null,
+      }),
+    ).resolves.toEqual({ claudeCode: null, codex: null, cursor: null });
   });
 });
