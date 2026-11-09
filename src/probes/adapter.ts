@@ -31,8 +31,15 @@ export type ProbeAdapterId =
   (typeof ProbeAdapterId)[keyof typeof ProbeAdapterId];
 
 /** A setting an adapter reads. Settings that share a group are
- * alternatives: any one of them is enough. */
-export type ProbeSetting = { name: string; secret: boolean; group?: 'auth' };
+ * alternatives: any one of them is enough. `billsAccount` names the
+ * provider account an auth setting bills per use, outside the run's cap;
+ * plan and doctor disclose it. */
+export type ProbeSetting = {
+  name: string;
+  secret: boolean;
+  group?: 'auth';
+  billsAccount?: string;
+};
 
 /** The retry family whose rules the host applies (attempt.ts). */
 export type ProbeRetryFamily = 'chat' | 'agent';

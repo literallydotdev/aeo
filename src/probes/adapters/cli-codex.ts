@@ -16,7 +16,12 @@ export const codexProfile: ProbeAdapterProfile = {
   id: ProbeAdapterId.CLI_CODEX,
   observes: { retrieval: 'queries_only', servedModel: 'raw' },
   settings: [
-    { name: 'OPENAI_API_KEY', secret: true, group: 'auth' },
+    {
+      name: 'OPENAI_API_KEY',
+      secret: true,
+      group: 'auth',
+      billsAccount: 'OpenAI',
+    },
     { name: 'CODEX_HOME', secret: false, group: 'auth' },
   ],
   pool: 'codex',

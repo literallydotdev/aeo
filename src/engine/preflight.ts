@@ -82,19 +82,24 @@ export const runSettingNames = [
   ...Object.values(agentAuthEnv).flatMap((auth) => auth.anyOf),
 ];
 
-// A coding agent's probes bill its own plan, outside the run's cap; Codex
-// on an API key bills that OpenAI account, which the cap does not see.
+// A coding agent's probes bill its own plan, outside the run's cap; an
+// auth setting that bills a provider account per use (an API key) says so,
+// since the cap does not see that spend either.
 const agentAuthDetail = (
-  surface: AeoAgentSurface,
+  binding: ProbeBinding,
   auth: ReturnType<typeof agentAuthMode>,
 ): string => {
   if (auth.kind === 'cli_session') {
     return 'uses the CLI login on this machine, checked by a canary before the run';
   }
 
-  return surface === 'codex' && auth.name === 'OPENAI_API_KEY'
-    ? `authenticates with ${auth.name}, billed to that OpenAI account outside the run's cap`
-    : `authenticates with ${auth.name}`;
+  const account = profileOf(binding).settings.find(
+    (setting) => setting.name === auth.name,
+  )?.billsAccount;
+
+  return account === undefined
+    ? `authenticates with ${auth.name}`
+    : `authenticates with ${auth.name}, billed to that ${account} account outside the run's cap`;
 };
 
 /** How an agent surface authenticates on this machine: a variable, or the
@@ -347,7 +352,7 @@ export const runPreflight = async (args: {
       detail:
         version === null
           ? `${binding}; \`${cliNameForSurface(surface)}\` not found on PATH`
-          : `${binding}; ${cliNameForSurface(surface)} ${version}; ${agentAuthDetail(surface, auth)}`,
+          : `${binding}; ${cliNameForSurface(surface)} ${version}; ${agentAuthDetail(bindings[surface], auth)}`,
     });
   }
 

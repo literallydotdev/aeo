@@ -17,7 +17,12 @@ export const claudeCodeProfile: ProbeAdapterProfile = {
   observes: { retrieval: 'full', servedModel: 'raw' },
   settings: [
     { name: 'CLAUDE_CODE_OAUTH_TOKEN', secret: true, group: 'auth' },
-    { name: 'ANTHROPIC_API_KEY', secret: true, group: 'auth' },
+    {
+      name: 'ANTHROPIC_API_KEY',
+      secret: true,
+      group: 'auth',
+      billsAccount: 'Anthropic',
+    },
   ],
   pool: 'claude_code',
   retry: 'agent',

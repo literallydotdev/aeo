@@ -1,4 +1,11 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -46,6 +53,16 @@ vi.mock('playwright', () => ({
           ),
   },
 }));
+
+// A stand-in for the agent CLIs (hardening spec §6.2).
+const fakeCliPath = path.join(
+  import.meta.dirname,
+  '..',
+  'probes',
+  '__fixtures__',
+  'fake-cli',
+  'fake-cli.mjs',
+);
 
 let root: string;
 
@@ -276,6 +293,8 @@ describe('preflight - runPreflight()', () => {
       'DATAFORSEO_PASSWORD',
       'OPENAI_API_KEY',
       'CODEX_HOME',
+      'CLAUDE_CODE_OAUTH_TOKEN',
+      'ANTHROPIC_API_KEY',
     ]) {
       vi.stubEnv(name, undefined);
     }
@@ -347,6 +366,39 @@ describe('preflight - runPreflight()', () => {
       checks.find((check) => check.name === 'codex probes')?.detail,
     ).toContain(
       "authenticates with OPENAI_API_KEY, billed to that OpenAI account outside the run's cap",
+    );
+  });
+
+  it('should disclose Claude Code on an API key as billed outside the cap, and on a subscription token as not', async () => {
+    // A fake `claude` that only reports its version, alone on PATH with
+    // the Node it runs on; HOME here, so it reads its mode from this
+    // directory and writes nowhere else.
+    const bin = path.join(root, 'bin');
+
+    await mkdir(bin, { recursive: true });
+    await symlink(fakeCliPath, path.join(bin, 'claude'));
+    await symlink(process.execPath, path.join(bin, 'node'));
+    await writeFile(path.join(root, '.fake-cli-mode'), 'version');
+    vi.stubEnv('HOME', root);
+    vi.stubEnv('PATH', bin);
+
+    const detailWith = async (lines: string) => {
+      const checks = await runPreflight({
+        surfaces: ['claude_code'],
+        bindings: defaultProbeBindings,
+        settings: await settingsOf(lines),
+        dir: path.join(root, 'run'),
+      });
+
+      return checks.find((check) => check.name === 'claude_code probes')
+        ?.detail;
+    };
+
+    expect(await detailWith('ANTHROPIC_API_KEY=fake-anthropic-key\n')).toMatch(
+      /fake-cli 0\.0\.1; authenticates with ANTHROPIC_API_KEY, billed to that Anthropic account outside the run's cap$/,
+    );
+    expect(await detailWith('CLAUDE_CODE_OAUTH_TOKEN=fake-token\n')).toMatch(
+      /; authenticates with CLAUDE_CODE_OAUTH_TOKEN$/,
     );
   });
 

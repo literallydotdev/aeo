@@ -33,7 +33,11 @@ import {
   runSettingNames,
 } from '../engine/preflight';
 import { prepareRejudgment } from '../engine/rejudge';
-import { defaultProbeBindings, RunBindingsError } from '../probes/bindings';
+import {
+  defaultProbeBindings,
+  profileOf,
+  RunBindingsError,
+} from '../probes/bindings';
 import { estimateBindingsOf } from '../engine/run-bindings';
 import {
   readAuthorEvidence,
@@ -210,11 +214,30 @@ export const runPlan = async (flags: Flags) => {
   const state = await runDirectoryState(dir);
   const bySurface = Object.fromEntries(plan.probesBySurface);
   const model = resolveSupportedModel(file.model);
+  const bindings = await estimateBindingsOf(path.join(dir, bankDir));
   const estimate = estimateRunCost({
     plan,
     model,
     grounding: request.grounding,
-    bindings: await estimateBindingsOf(path.join(dir, bankDir)),
+    bindings,
+  });
+  // A coding agent bills its own plan, or, on an API key, that provider
+  // account per use: either way outside the cap, which the plan says.
+  const agentBilling = plan.agentSurfaces.flatMap((surface) => {
+    const accounts = profileOf(bindings[surface]).settings.flatMap((setting) =>
+      setting.billsAccount === undefined
+        ? []
+        : [`on ${setting.name}, that ${setting.billsAccount} account`],
+    );
+
+    return accounts.length === 0
+      ? []
+      : [
+          formatLine(
+            `${surface} billing`,
+            `on its own login, your plan; ${accounts.join('; ')}, outside this run's cap`,
+          ),
+        ];
   });
   const summary = {
     brand: config.brand.name,
@@ -251,14 +274,7 @@ export const runPlan = async (flags: Flags) => {
         formatLine(`Section ${section.key}`, `${section.questions} questions`),
       ),
       formatLine('Surfaces', summary.surfaces.join(', ')),
-      ...(summary.surfaces.includes('codex')
-        ? [
-            formatLine(
-              'Codex billing',
-              "on a Codex login, your plan; on OPENAI_API_KEY, that OpenAI account, outside this run's cap",
-            ),
-          ]
-        : []),
+      ...agentBilling,
       ...Object.entries(bySurface).map(([surface, count]) =>
         formatLine(`  ${surface}`, `${count} answers`),
       ),
