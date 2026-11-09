@@ -1,12 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   credentialSettingNames,
   engineSecretSettingNames,
 } from '../engine/preflight';
 import { surfaceRetrievalExposure } from '../retrieval';
 import { allSurfaces } from '../surfaces';
+import { ProbeAdapterId, type ProbeAdapter } from './adapter';
 import { agentAuthEnv, assertAgentAuth } from './agent-clis';
 import {
+  createChatAdapter,
   defaultProbeBindings,
   probeAdapterProfiles,
   probeDependenciesOf,
@@ -41,6 +43,10 @@ describe('bindings - defaultProbeBindings', () => {
 });
 
 describe('bindings - probeDependenciesOf()', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('should create the gateway and the DataForSEO client from the settings it is given', () => {
     const dependencies = probeDependenciesOf(
       {
@@ -65,8 +71,73 @@ describe('bindings - probeDependenciesOf()', () => {
     'should create no DataForSEO client with %s, leaving preflight to name it',
     (_case, settings) => {
       expect(
-        probeDependenciesOf(settings, defaultProbeBindings).dataForSeo,
+        probeDependenciesOf(
+          { AI_GATEWAY_API_KEY: 'gateway-test-key', ...settings },
+          defaultProbeBindings,
+        ).dataForSeo,
       ).toBeUndefined();
+    },
+  );
+
+  it('should refuse settings without the gateway key, never letting the provider package find one elsewhere', () => {
+    vi.stubEnv('AI_GATEWAY_API_KEY', 'a-key-from-the-process');
+
+    expect(() =>
+      probeDependenciesOf(
+        { DATAFORSEO_LOGIN: 'login', DATAFORSEO_PASSWORD: 'password' },
+        defaultProbeBindings,
+      ),
+    ).toThrow(/AI_GATEWAY_API_KEY is not set/);
+  });
+});
+
+describe('bindings - createChatAdapter()', () => {
+  const dependencies = {
+    bindings: defaultProbeBindings,
+    gateway: () => {
+      throw new Error('No gateway here.');
+    },
+  };
+  const market = { geography: 'us', language: 'en' };
+  const registered = (fields: Partial<ProbeAdapter>): ProbeAdapter => {
+    return {
+      ...profileOf(defaultProbeBindings.chatgpt),
+      surface: 'chatgpt',
+      model: defaultProbeBindings.chatgpt.model,
+      request: (prompt) => ({ prompt, parameters: {} }),
+      probe: () => Promise.reject(new Error('Not asked here.')),
+      classifyError: () => ({ kind: 'cli_error', message: 'fake' }),
+      ...fields,
+    };
+  };
+
+  it('should use an adapter registered for the binding the run froze', () => {
+    const adapter = registered({});
+
+    expect(
+      createChatAdapter('chatgpt', {
+        ...market,
+        dependencies: { ...dependencies, registry: () => adapter },
+      }),
+    ).toBe(adapter);
+  });
+
+  it.each([
+    ['another adapter', { id: ProbeAdapterId.GATEWAY_GOOGLE }],
+    ['another model', { model: 'openai/gpt-test-1' }],
+    ['another surface', { surface: 'gemini' as const }],
+  ])(
+    'should refuse a registered adapter for %s than the binding, so the evidence names one method',
+    (_case, fields) => {
+      expect(() =>
+        createChatAdapter('chatgpt', {
+          ...market,
+          dependencies: {
+            ...dependencies,
+            registry: () => registered(fields),
+          },
+        }),
+      ).toThrow(/not the run's binding of gateway\.openai@1/);
     },
   );
 });

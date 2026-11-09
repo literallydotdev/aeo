@@ -1,13 +1,7 @@
 import { createGateway } from '@ai-sdk/gateway';
 import { toolVersion } from '../bundle/contracts';
 import type { CapturedUnitRecord } from '../stores/ports';
-import {
-  allSurfaces,
-  isAgentSurface,
-  type AeoAgentSurface,
-  type AeoChatSurface,
-  type AeoSurface,
-} from '../surfaces';
+import { allSurfaces, type AeoChatSurface, type AeoSurface } from '../surfaces';
 import {
   ProbeAdapterId,
   type ChatModelProvider,
@@ -90,20 +84,29 @@ export type ChatAdapterRegistry = (
 /**
  * probeDependenciesOf creates a run's probe clients from its settings, for
  * the local run and for a host alike: the engine builds the gateway with its
- * own pinned provider package, which shapes every probe request. A client
- * whose credentials are not set is absent; preflight requires them for every
- * surface in scope.
+ * own pinned provider package, which shapes every probe request. The
+ * gateway key is required: without one, the provider package would look
+ * for a key in the process environment on its own. The DataForSEO client is
+ * absent when its credentials are not set; preflight requires them for
+ * every surface in scope.
  */
 export const probeDependenciesOf = (
   env: NodeJS.ProcessEnv,
   bindings: RunBindings,
 ): ProbeDependencies => {
+  const apiKey = env.AI_GATEWAY_API_KEY;
   const login = env.DATAFORSEO_LOGIN;
   const password = env.DATAFORSEO_PASSWORD;
 
+  if (!apiKey) {
+    throw new Error(
+      'AI_GATEWAY_API_KEY is not set in the settings the probe clients are created from. Please set it; every run calls the gateway.',
+    );
+  }
+
   const dependencies: ProbeDependencies = {
     bindings,
-    gateway: createGateway({ apiKey: env.AI_GATEWAY_API_KEY }),
+    gateway: createGateway({ apiKey }),
     ...(login && password
       ? { dataForSeo: createDataForSeoProbeClient({ login, password }) }
       : {}),
@@ -136,54 +139,25 @@ export const profileOf = (binding: ProbeBinding): ProbeAdapterProfile => {
   return probeAdapterProfiles[binding.adapter];
 };
 
-// The adapters the engine can build for each kind of surface: a coding
-// agent only through its own CLI; a chat surface through any chat adapter,
-// a model API with the model its binding names.
-const cliAdapterIdOf: Readonly<Record<AeoAgentSurface, ProbeAdapterId>> = {
-  claude_code: ProbeAdapterId.CLI_CLAUDE_CODE,
-  codex: ProbeAdapterId.CLI_CODEX,
-  cursor: ProbeAdapterId.CLI_CURSOR,
-};
-
-const modelApiAdapterIds: readonly ProbeAdapterId[] = [
-  ProbeAdapterId.GATEWAY_OPENAI,
-  ProbeAdapterId.GATEWAY_GOOGLE,
-  ProbeAdapterId.GATEWAY_ANTHROPIC,
-  ProbeAdapterId.GATEWAY_PERPLEXITY,
-];
-
-const chatAdapterIds: readonly ProbeAdapterId[] = [
-  ...modelApiAdapterIds,
-  ProbeAdapterId.DATAFORSEO_AI_OVERVIEW,
-];
-
+// The bindings the engine runs: its defaults, and the legacy table a
+// directory from before bindings is frozen with. Until a method release
+// they are the same table and the only bindings a run can have (probe
+// adapters spec §4.5): a frozen file naming any other adapter, surface or
+// model is refused, never measured.
 const availableBinding = (
   surface: AeoSurface,
   binding: { adapter: string; model?: string },
 ): ProbeBinding | undefined => {
-  if (isAgentSurface(surface)) {
-    const id = cliAdapterIdOf[surface];
+  const known: readonly ProbeBinding[] = [
+    defaultProbeBindings[surface],
+    legacyProbeBindings[surface],
+  ];
 
-    return binding.adapter === id && binding.model === undefined
-      ? { adapter: id }
-      : undefined;
-  }
-
-  const id = chatAdapterIds.find((candidate) => candidate === binding.adapter);
-
-  if (id === undefined) {
-    return undefined;
-  }
-
-  const needsModel = modelApiAdapterIds.includes(id);
-
-  if (needsModel !== (binding.model !== undefined)) {
-    return undefined;
-  }
-
-  return binding.model === undefined
-    ? { adapter: id }
-    : { adapter: id, model: binding.model };
+  return known.find(
+    (candidate) =>
+      candidate.adapter === binding.adapter &&
+      candidate.model === binding.model,
+  );
 };
 
 /**
@@ -294,6 +268,19 @@ export const createChatAdapter = (
   const registered = dependencies.registry?.(surface, binding);
 
   if (registered) {
+    // The capture metadata, the reservation and the journal all name the
+    // run's binding: an adapter registered for it implements that binding,
+    // never another.
+    if (
+      registered.surface !== surface ||
+      registered.id !== binding.adapter ||
+      registered.model !== binding.model
+    ) {
+      throw new Error(
+        `The adapter registered for ${surface} is ${registered.surface} with ${registered.id} (${registered.model ?? 'no model'}), not the run's binding of ${binding.adapter} (${binding.model ?? 'no model'}). A registry implements the frozen binding it is handed.`,
+      );
+    }
+
     return registered;
   }
 

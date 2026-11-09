@@ -4,7 +4,11 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { defaultProbeBindings, RunBindingsError } from '../probes/bindings';
 import { legacyProbeBindings } from '../probes/legacy-bindings';
-import { bindingsFile, resolveRunBindings } from './run-bindings';
+import {
+  bindingsFile,
+  carryFrozenBindings,
+  resolveRunBindings,
+} from './run-bindings';
 
 // ============================================================================
 // Freezing a run's bindings (probe adapters spec §4.5): a new run freezes
@@ -47,20 +51,31 @@ describe('run-bindings - resolveRunBindings()', () => {
     expect(bindings).toEqual(legacyProbeBindings);
   });
 
-  it('should keep the frozen bindings on a resume, never the defaults', async () => {
-    const frozen = {
-      ...defaultProbeBindings,
-      chatgpt: { adapter: 'gateway.openai@1', model: 'openai/gpt-test-1' },
-    };
-
-    await frozenFile(frozen);
+  it('should read the frozen bindings back on a resume, never choosing again', async () => {
+    await frozenFile(legacyProbeBindings);
+    const written = await readFile(path.join(bank, bindingsFile), 'utf8');
 
     await expect(
-      resolveRunBindings(bank, { startedBefore: true }),
-    ).resolves.toEqual(frozen);
+      resolveRunBindings(bank, { startedBefore: false }),
+    ).resolves.toEqual(legacyProbeBindings);
+    expect(await readFile(path.join(bank, bindingsFile), 'utf8')).toBe(written);
   });
 
   it.each([
+    [
+      'a model the engine does not bind',
+      {
+        chatgpt: { adapter: 'gateway.openai@1', model: 'openai/gpt-test-1' },
+      },
+      /chatgpt with gateway\.openai@1 with openai\/gpt-test-1/,
+    ],
+    [
+      "another surface's adapter",
+      {
+        chatgpt: { adapter: 'gateway.google@1', model: 'google/gemini-test-1' },
+      },
+      /chatgpt with gateway\.google@1/,
+    ],
     [
       'an adapter version the engine does not have',
       {
@@ -97,5 +112,33 @@ describe('run-bindings - resolveRunBindings()', () => {
     await expect(
       resolveRunBindings(bank, { startedBefore: true }),
     ).rejects.toBeInstanceOf(RunBindingsError);
+  });
+});
+
+describe('run-bindings - carryFrozenBindings()', () => {
+  it("should give a rejudgment the source run's frozen bindings, byte for byte", async () => {
+    const target = path.join(path.dirname(bank), 'target', 'BANK');
+
+    await frozenFile(legacyProbeBindings);
+    await mkdir(target, { recursive: true });
+
+    await carryFrozenBindings(bank, target);
+
+    expect(await readFile(path.join(target, bindingsFile), 'utf8')).toBe(
+      await readFile(path.join(bank, bindingsFile), 'utf8'),
+    );
+  });
+
+  it('should freeze the legacy bindings for a source run from before bindings were frozen, never the defaults', async () => {
+    const target = path.join(path.dirname(bank), 'target', 'BANK');
+
+    await mkdir(bank, { recursive: true });
+    await mkdir(target, { recursive: true });
+
+    await carryFrozenBindings(bank, target);
+
+    expect(
+      JSON.parse(await readFile(path.join(target, bindingsFile), 'utf8')),
+    ).toEqual({ version: 1, bindings: legacyProbeBindings });
   });
 });

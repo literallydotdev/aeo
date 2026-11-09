@@ -11,6 +11,7 @@ import { readRunInputs } from '../codex-workflow/run-inputs';
 import { hasErrorCode } from '../stores/fs-errors';
 import { localReportKey, type AuditFile } from './audit-file';
 import { bankDir, planLocalRun, runDirectoryState } from './local-run';
+import { carryFrozenBindings } from './run-bindings';
 
 const technicalFile = 'TECHNICAL.json';
 
@@ -86,6 +87,10 @@ export const prepareRejudgment = async ({
   await copyFile(
     path.join(source, bankDir, `${reportKey}.jsonl`),
     path.join(target, bankDir, `${reportKey}.jsonl`),
+  );
+  await carryFrozenBindings(
+    path.join(source, bankDir),
+    path.join(target, bankDir),
   );
   // The technical checks are part of the measurement, like the captures:
   // a rejudgment judges the site as it was, never as it is today.

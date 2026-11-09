@@ -19,6 +19,7 @@ import {
   bankBindingMismatches,
   RunBindingsError,
   type ProbeDependencies,
+  type RunBindings,
 } from '../probes/bindings';
 
 // ============================================================================
@@ -107,6 +108,48 @@ const sectionArgs = (
   };
 };
 
+/**
+ * assertBankUsable refuses a bank the run cannot build on, before anything
+ * is dispatched: a row no release wrote (phase 3 item 6), or a banked
+ * answer the plan reuses that another binding captured. captureForRun runs
+ * it before its first section, where the sections would otherwise settle
+ * independently and spend while one fails; a host runs it before its agent
+ * canaries too.
+ */
+export const assertBankUsable = async (
+  probeStore: Pick<ProbeStore, 'list'>,
+  plan: RunPlan,
+  bindings: RunBindings,
+): Promise<void> => {
+  const banked = await probeStore.list();
+
+  for (const record of banked) {
+    parseUnitRecord(record, unitRecordKey(record));
+  }
+
+  // A banked answer is reused only under the binding that captured it; a
+  // mismatch stops the run, never re-probed silently.
+  const plannedKeys = new Set(plan.units.map(unitRecordKey));
+  const mismatched = bankBindingMismatches(
+    banked.filter(
+      (record): record is CapturedUnitRecord =>
+        record.status === 'captured' && plannedKeys.has(unitRecordKey(record)),
+    ),
+    bindings,
+  );
+
+  if (mismatched.length > 0) {
+    const surfaces = [...new Set(mismatched.map((record) => record.surface))];
+    const bound = surfaces
+      .map((surface) => `${surface} (${bindings[surface].adapter})`)
+      .join(', ');
+
+    throw new RunBindingsError(
+      `${mismatched.length} banked answers were captured with another adapter than this run's binding of ${bound}. A banked answer is never probed again under another binding: start a fresh run (a new run directory, or mode fresh) to measure them this way.`,
+    );
+  }
+};
+
 /** Orders by UTF-16 code units, independent of the host's locale. */
 const compareCodeUnits = (left: string, right: string) => {
   if (left === right) {
@@ -123,39 +166,11 @@ export const captureForRun = async (
   const now = deps.now ?? (() => new Date());
   const captureSection = deps.captureSection ?? captureSectionProbes;
 
-  // Every banked row is validated before the first section dispatches: the
-  // sections settle independently, so a row refused inside one would let
-  // the others spend while it fails (phase 3 item 6).
-  const banked = await deps.stores.probeStore.list();
-
-  for (const record of banked) {
-    parseUnitRecord(record, unitRecordKey(record));
-  }
-
-  // A banked answer is reused only under the binding that captured it; a
-  // mismatch stops the run before dispatch, never re-probed silently.
-  const plannedKeys = new Set(plan.units.map(unitRecordKey));
-  const mismatched = bankBindingMismatches(
-    banked.filter(
-      (record): record is CapturedUnitRecord =>
-        record.status === 'captured' && plannedKeys.has(unitRecordKey(record)),
-    ),
+  await assertBankUsable(
+    deps.stores.probeStore,
+    plan,
     deps.probeDependencies.bindings,
   );
-
-  if (mismatched.length > 0) {
-    const surfaces = [...new Set(mismatched.map((record) => record.surface))];
-    const bound = surfaces
-      .map(
-        (surface) =>
-          `${surface} (${deps.probeDependencies.bindings[surface].adapter})`,
-      )
-      .join(', ');
-
-    throw new RunBindingsError(
-      `${mismatched.length} banked answers were captured with another adapter than this run's binding of ${bound}. A banked answer is never probed again under another binding: start a fresh run (a new run directory, or mode fresh) to measure them this way.`,
-    );
-  }
 
   const startedAt = now().toISOString();
   const settled = await Promise.allSettled(

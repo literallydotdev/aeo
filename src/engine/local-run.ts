@@ -11,6 +11,7 @@ import {
 import { acquireWriterLock, type WriterLock } from '../bundle/writer-lock';
 import { capturePlan } from '../capture-manifest';
 import {
+  assertBankUsable,
   captureForRun,
   agentSurfacesToCapture,
 } from '../codex-workflow/capture';
@@ -231,9 +232,14 @@ const openLockedLocalRun = async (
   },
 ): Promise<LocalRun> => {
   const { recorder } = held;
-  // Read before the budget freezes: a directory that already holds one
-  // started before its bindings were frozen.
-  const startedBefore = (await readFrozenBudget(dir)) !== undefined;
+  const bank = path.join(dir, bankDir);
+  // Frozen before the budget and the first canary, then kept on every
+  // resume: a directory that holds a budget but no bindings started before
+  // bindings were frozen. Frozen after the budget, an attempt stopped
+  // between the two (a refused plan, a crash) would read as one.
+  const bindings = await resolveRunBindings(bank, {
+    startedBefore: (await readFrozenBudget(dir)) !== undefined,
+  });
   const budget = await resolveRunBudget(dir, file.runPolicy.budget, {
     model: resolveSupportedModel(file.model).id,
     ...(maxUsd !== undefined && { maxUsd }),
@@ -245,9 +251,6 @@ const openLockedLocalRun = async (
     ...(derivedFromRunId !== undefined && { derivedFromRunId }),
   };
   const plan = planRun(config, request);
-  const bank = path.join(dir, bankDir);
-  // Frozen before the first canary, and kept on every resume.
-  const bindings = await resolveRunBindings(bank, { startedBefore });
   const stores = await openFileStores(config.reportKey, {
     checkpointDir: bank,
     contentDir: path.join(bank, 'report'),
@@ -288,6 +291,9 @@ const openLockedLocalRun = async (
       recorder,
     ),
   };
+  // Before the canaries, which dispatch: a bank the run cannot build on
+  // stops it with nothing sent.
+  await assertBankUsable(stores.probeStore, plan, bindings);
   const agents = await agentSurfacesToCapture(plan, stores.probeStore);
   const agentCliVersions = await detectAgentClis();
 

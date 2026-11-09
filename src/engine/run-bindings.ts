@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { copyFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 import { writeFileAtomically } from '../codex-workflow/pending';
@@ -104,10 +104,39 @@ export const resolveRunBindings = async (
 
   const bindings = startedBefore ? legacyProbeBindings : defaultProbeBindings;
 
-  await writeFileAtomically(
-    file,
-    `${JSON.stringify({ version: 1, bindings }, null, 2)}\n`,
-  );
+  await freezeBindings(bankPath, bindings);
 
   return bindings;
+};
+
+/**
+ * carryFrozenBindings gives a derived run directory (a rejudgment) the
+ * bindings its reused answers were captured under: the source's frozen
+ * file, or, from before bindings were frozen, the legacy bindings. Never
+ * the installed defaults.
+ */
+export const carryFrozenBindings = async (
+  sourceBank: string,
+  targetBank: string,
+): Promise<void> => {
+  await copyFile(
+    path.join(sourceBank, bindingsFile),
+    path.join(targetBank, bindingsFile),
+  ).catch(async (err: unknown) => {
+    if (!hasErrorCode(err, 'ENOENT')) {
+      throw err;
+    }
+
+    await freezeBindings(targetBank, legacyProbeBindings);
+  });
+};
+
+const freezeBindings = async (
+  bankPath: string,
+  bindings: RunBindings,
+): Promise<void> => {
+  await writeFileAtomically(
+    path.join(bankPath, bindingsFile),
+    `${JSON.stringify({ version: 1, bindings }, null, 2)}\n`,
+  );
 };
