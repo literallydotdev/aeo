@@ -275,6 +275,9 @@ export const assembleSnapshot = (args: {
   generatedAt: string;
   /** What judged the answers: the Codex analyze stage's version and model. */
   analyzer: { version: number; model: string };
+  /** Labels of the surfaces asked of another model than their default
+   * (surfaceLabelOverrides); empty on the defaults. */
+  surfaceLabels?: Record<string, string>;
 }): AeoSnapshot => {
   const { config, request, plan, enriched, resumed } = args;
 
@@ -307,6 +310,9 @@ export const assembleSnapshot = (args: {
         : {}),
       partialFailures: args.partialFailures,
       surfaces: [...plan.surfaces],
+      ...(args.surfaceLabels && Object.keys(args.surfaceLabels).length > 0
+        ? { surfaceLabels: args.surfaceLabels }
+        : {}),
       agentClis: args.agentCliVersions,
       analyzerVersion: args.analyzer.version,
       domainClassifierVersion,

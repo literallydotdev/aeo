@@ -19,6 +19,7 @@ import {
   localReportKey,
   readAuditFile,
   toAuditConfig,
+  requestedBindings,
 } from './audit-file';
 import { readSettings } from './env-file';
 import {
@@ -147,6 +148,44 @@ describe('local-run - planLocalRun()', () => {
     });
 
     expect(result.digests).toEqual(planLocalRun(exampleFile).digests);
+  });
+
+  it('should keep the measurement and plan digests when only the model behind a surface changes', () => {
+    const swapped = auditFileSchema.parse({
+      ...exampleAuditFile,
+      probes: { chatgpt: { model: 'openai/gpt-test-1' } },
+    });
+
+    // A model is how a surface is asked, not what is measured.
+    expect(planLocalRun(swapped).digests).toEqual(
+      planLocalRun(exampleFile).digests,
+    );
+    expect(requestedBindings(swapped)).toEqual({
+      bindings: {
+        ...defaultProbeBindings,
+        chatgpt: { adapter: 'gateway.openai@1', model: 'openai/gpt-test-1' },
+      },
+      overridden: ['chatgpt'],
+    });
+    expect(requestedBindings(exampleFile)).toEqual({
+      bindings: defaultProbeBindings,
+      overridden: [],
+    });
+  });
+
+  it('should refuse a model behind a surface that asks none, and an unknown adapter', () => {
+    const parse = (probes: unknown) => {
+      return auditFileSchema.safeParse({ ...exampleAuditFile, probes });
+    };
+
+    expect(parse({ google_ai_overview: { model: 'google/x' } }).success).toBe(
+      false,
+    );
+    expect(parse({ codex: { model: 'gpt-test-1' } }).success).toBe(false);
+    expect(
+      parse({ chatgpt: { model: 'openai/x', adapter: 'cli.codex@1' } }).success,
+    ).toBe(false);
+    expect(parse({ chatgpt: { model: 'openai/x' } }).success).toBe(true);
   });
 
   it('should plan every chat surface at the configured chat depth, as a new measurement', () => {

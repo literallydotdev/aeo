@@ -16,6 +16,11 @@ import {
   type SupportedModel,
 } from '../models/supported-models';
 import { resolveDataForSeoLocale } from '../probes/dataforseo-locale';
+import {
+  modelAdapterIds,
+  modelBoundSurfaces,
+  requestedBindingsOf,
+} from '../probes/bindings';
 import { probeLimitsSchema } from '../probes/limits';
 import {
   aeoAuditConfigSchema,
@@ -31,6 +36,7 @@ import {
   type AeoAuditConfig,
   type RunRequest,
 } from '../schema';
+import type { RequestedBindings } from './run-bindings';
 import { budgetPolicySchema } from './budget';
 
 // ============================================================================
@@ -135,6 +141,25 @@ const describeMoneyPageProblem = (
   return `${page} is not on ${domain} or its subdomains. Name its host in runPolicy.checkHosts to let the site checks fetch it.`;
 };
 
+const probeOverrideSchema = z
+  .object({
+    model: z.string().trim().min(1).max(200),
+    // Absent means the adapter of the model's provider.
+    adapter: z.enum(modelAdapterIds).optional(),
+  })
+  .strict();
+
+// Only the API chat surfaces take a model: AI Overview has none to choose,
+// and the coding agents run their CLI's own.
+const probeOverridesSchema = z
+  .object({
+    chatgpt: probeOverrideSchema.optional(),
+    gemini: probeOverrideSchema.optional(),
+    claude: probeOverrideSchema.optional(),
+    perplexity: probeOverrideSchema.optional(),
+  })
+  .strict();
+
 export const auditFileSchema = z
   .object({
     version: z.literal(auditFileVersion),
@@ -143,6 +168,11 @@ export const auditFileSchema = z
     // Absent means the engine's recommended model. Probe surfaces are what
     // is measured and keep their own pinned models.
     model: z.string().trim().min(1).optional(),
+    // Another model behind an API chat surface (open models spec §4): any
+    // language model the gateway's model list prices. Absent means the
+    // surface's pinned free-tier model. Never part of the measurement
+    // digest: a model is how a surface was asked, not what was measured.
+    probes: probeOverridesSchema.optional(),
     brand: brandSchema,
     competitors: z.array(brandSchema).min(1),
     ownedDomains: z.array(z.string().min(1)).max(20).optional(),
@@ -305,6 +335,19 @@ export const toAuditConfig = (file: AuditFile): AeoAuditConfig => {
   });
 
   return config;
+};
+
+/** requestedBindings is what an audit file asks of a run's bindings: the
+ * defaults with its model overrides, and which surfaces it overrides. */
+export const requestedBindings = (file: AuditFile): RequestedBindings => {
+  const overrides = file.probes ?? {};
+
+  return {
+    bindings: requestedBindingsOf(overrides),
+    overridden: modelBoundSurfaces.filter(
+      (surface) => overrides[surface] !== undefined,
+    ),
+  };
 };
 
 /** toRunRequest is the request a local run executes under. The budget is

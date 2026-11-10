@@ -65,8 +65,23 @@ price is kept for the whole run. Such a model was never verified on the
 analysis stages, which `doctor` says; it is refused only when the list has
 no price for it. Without network access to the list, set
 `AEO_MODEL_CATALOG` to a saved copy of
-`https://ai-gateway.vercel.sh/v1/models`. The assistants being measured
-keep their own pinned models; they are what the audit observes.
+`https://ai-gateway.vercel.sh/v1/models`.
+
+Each API chat surface (`chatgpt`, `claude`, `gemini`, `perplexity`) asks a
+pinned model: the gateway model closest to what that product serves its
+free tier by default. To measure another model behind a surface, name it
+in `audit.json`:
+
+```json
+"probes": { "chatgpt": { "model": "openai/gpt-6-sol" } }
+```
+
+Any model of that provider works, with no further check: it is asked
+through the provider's own web search, priced from the same model list, and
+named in the surface's label ("ChatGPT (API, openai/gpt-6-sol)"). A run
+keeps the models it started with. Swapping a model does not change what the
+run measures (the questions, surfaces and depth), only how; a comparison
+with an earlier run says the collection method changed.
 
 `literally-aeo plan` estimates what a run costs, as a range per kind of
 work: the assistant answers, the analysis stages, the other model calls and

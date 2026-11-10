@@ -448,6 +448,12 @@ export const aeoSnapshotSchema = z.object({
     // CLI check, `agentClis.<cli>: null` can only mean "not in scope", and
     // this field says so explicitly. Optional: older snapshots lack it.
     surfaces: z.array(aeoSurfaceSchema).optional(),
+    // The label of each surface that was not asked of its default model,
+    // naming the model it was asked of. Absent on a run measured with the
+    // defaults: readers fall back to the engine's own labels.
+    surfaceLabels: z
+      .record(z.string().min(1).max(60), z.string().min(1).max(300))
+      .optional(),
     // Which agent CLIs answered, for the methodology note. Null = not run.
     agentClis: z
       .object({

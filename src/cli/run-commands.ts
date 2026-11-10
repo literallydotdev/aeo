@@ -35,11 +35,14 @@ import {
 } from '../engine/preflight';
 import { prepareRejudgment } from '../engine/rejudge';
 import {
+  catalogPricedModels,
   defaultProbeBindings,
   profileOf,
   RunBindingsError,
+  type RunBindings,
 } from '../probes/bindings';
 import { estimateBindingsOf } from '../engine/run-bindings';
+import { requestedBindings } from '../engine/audit-file';
 import {
   readAuthorEvidence,
   readBrief,
@@ -60,10 +63,11 @@ import {
   fileCatalogSource,
   gatewayCatalogSource,
   ModelCatalogError,
+  type CatalogModel,
   type ModelCatalogSource,
 } from '../models/catalog';
 import type { SupportedModel } from '../models/supported-models';
-import { resolveReportModel } from '../engine/run-models';
+import { resolveReportModel, resolveRunModels } from '../engine/run-models';
 import { hasErrorCode } from '../stores/fs-errors';
 import { formatLine, writeErr, writeOut, type Flags } from './io';
 
@@ -86,6 +90,35 @@ const catalogOf = (settings: Settings): ModelCatalogSource => {
   return saved
     ? fileCatalogSource(path.resolve(saved))
     : gatewayCatalogSource({ fetch: globalThis.fetch });
+};
+
+/** How a run over `dir` would ask its surfaces, and what the models it
+ * asks cost: the directory's frozen bindings once it has them, otherwise
+ * the defaults with audit.json's overrides. Read-only, like the report
+ * model below. */
+const probesFor = async (
+  file: AuditFile,
+  dir: string,
+  settings: Settings,
+): Promise<{
+  bindings: RunBindings;
+  probeModels: Map<string, CatalogModel>;
+}> => {
+  const bank = path.join(dir, bankDir);
+  const bindings = await estimateBindingsOf(
+    bank,
+    requestedBindings(file).bindings,
+  );
+  const priced = await resolveRunModels(
+    bank,
+    catalogPricedModels(bindings, file.surfaces),
+    { source: catalogOf(settings), now: new Date(), freeze: false },
+  );
+
+  return {
+    bindings,
+    probeModels: new Map(priced.map((entry) => [entry.model.id, entry.model])),
+  };
 };
 
 /** The report model a command plans, estimates and checks with. A run
@@ -234,7 +267,10 @@ export const runDoctor = async (flags: Flags) => {
     model,
     groundingSearch: usesGroundingSearch(request),
     rendersPages: file.moneyPages.length > 0,
-    bindings: await estimateBindingsOf(path.join(dir, bankDir)),
+    bindings: await estimateBindingsOf(
+      path.join(dir, bankDir),
+      requestedBindings(file).bindings,
+    ),
   });
   const ok = checks.every((check) => check.ok);
 
@@ -262,11 +298,8 @@ export const runDoctor = async (flags: Flags) => {
 export const runPlan = async (flags: Flags) => {
   const file = await readAuditFile(configPathOf(flags));
   const dir = runDirOf(flags);
-  const model = await reportModelFor(
-    file.model,
-    dir,
-    await readSettings(flags.options.get('--env-file')),
-  );
+  const settings = await readSettings(flags.options.get('--env-file'));
+  const model = await reportModelFor(file.model, dir, settings);
   const { config, request, plan, digests } = planLocalRun(
     file,
     'planned',
@@ -274,12 +307,13 @@ export const runPlan = async (flags: Flags) => {
   );
   const state = await runDirectoryState(dir);
   const bySurface = Object.fromEntries(plan.probesBySurface);
-  const bindings = await estimateBindingsOf(path.join(dir, bankDir));
+  const { bindings, probeModels } = await probesFor(file, dir, settings);
   const estimate = estimateRunCost({
     plan,
     model,
     grounding: request.grounding,
     bindings,
+    probeModels,
   });
   // A coding agent bills its own plan, or, on an API key, that provider
   // account per use: either way outside the cap, which the plan says.
@@ -377,6 +411,7 @@ export const runRun = async (flags: Flags) => {
     ? await readBudgetAmendment(path.resolve(budgetFile))
     : undefined;
   const maxUsd = maxUsdOf(flags);
+  const { bindings, probeModels } = await probesFor(file, dir, settings);
   const refused = await refuseWithoutCap({
     file,
     dir,
@@ -385,7 +420,8 @@ export const runRun = async (flags: Flags) => {
       plan,
       model,
       grounding: request.grounding,
-      bindings: await estimateBindingsOf(path.join(dir, bankDir)),
+      bindings,
+      probeModels,
     }),
   });
 
@@ -400,7 +436,7 @@ export const runRun = async (flags: Flags) => {
     model: { outcome: 'resolved', model, named: file.model !== undefined },
     groundingSearch: usesGroundingSearch(request),
     rendersPages: file.moneyPages.length > 0,
-    bindings: await estimateBindingsOf(path.join(dir, bankDir)),
+    bindings,
   });
   const failing = checks.filter((check) => !check.ok);
 

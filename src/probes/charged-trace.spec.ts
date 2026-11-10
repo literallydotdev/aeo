@@ -33,7 +33,9 @@ const trace: ProbeTrace = { start: mockStart };
 describe('charged-trace - chargedProbeTrace()', () => {
   it('should reserve a probe at its estimate before it starts and settle it at the reported cost', async () => {
     const ledger = ledgerOf(10);
-    const charged = chargedProbeTrace(trace, ledger, defaultProbeBindings);
+    const charged = chargedProbeTrace(trace, ledger, {
+      bindings: defaultProbeBindings,
+    });
 
     const handle = await charged.trace.start(attempt);
 
@@ -55,11 +57,9 @@ describe('charged-trace - chargedProbeTrace()', () => {
 
   it('should keep charging the estimate when the provider reported no cost, and record no cost', async () => {
     const ledger = ledgerOf(10);
-    const handle = await chargedProbeTrace(
-      trace,
-      ledger,
-      defaultProbeBindings,
-    ).trace.start(attempt);
+    const handle = await chargedProbeTrace(trace, ledger, {
+      bindings: defaultProbeBindings,
+    }).trace.start(attempt);
 
     await handle.end({
       outcome: 'failed',
@@ -78,7 +78,9 @@ describe('charged-trace - chargedProbeTrace()', () => {
 
   it('should NOT dispatch a probe the cap cannot afford, and report the refusal', async () => {
     const ledger = ledgerOf(probeUsd['gateway.openai@1'].high / 2);
-    const charged = chargedProbeTrace(trace, ledger, defaultProbeBindings);
+    const charged = chargedProbeTrace(trace, ledger, {
+      bindings: defaultProbeBindings,
+    });
 
     await expect(charged.trace.start(attempt)).rejects.toThrow(
       ModelBudgetError,
@@ -92,11 +94,9 @@ describe('charged-trace - chargedProbeTrace()', () => {
     const unrecordable: ProbeTrace = {
       start: () => Promise.reject(new Error('read-only file system')),
     };
-    const charged = chargedProbeTrace(
-      unrecordable,
-      ledger,
-      defaultProbeBindings,
-    );
+    const charged = chargedProbeTrace(unrecordable, ledger, {
+      bindings: defaultProbeBindings,
+    });
 
     await expect(charged.trace.start(attempt)).rejects.toThrow(
       'read-only file system',
@@ -113,11 +113,9 @@ describe('charged-trace - chargedProbeTrace()', () => {
       settle: () =>
         Promise.reject(new DOMException('The run was stopped.', 'AbortError')),
     };
-    const handle = await chargedProbeTrace(
-      trace,
-      stopped,
-      defaultProbeBindings,
-    ).trace.start(attempt);
+    const handle = await chargedProbeTrace(trace, stopped, {
+      bindings: defaultProbeBindings,
+    }).trace.start(attempt);
 
     await expect(
       handle.end({
@@ -138,7 +136,9 @@ describe('charged-trace - chargedProbeTrace()', () => {
   it("should charge nothing for a coding-agent probe on the operator's own login", async () => {
     const ledger = ledgerOf(0.001);
 
-    await chargedProbeTrace(trace, ledger, defaultProbeBindings).trace.start({
+    await chargedProbeTrace(trace, ledger, {
+      bindings: defaultProbeBindings,
+    }).trace.start({
       ...attempt,
       surface: 'claude_code',
       requestedModel: null,

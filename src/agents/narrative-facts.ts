@@ -4,12 +4,16 @@ import { allSurfaces, isAgentSurface, surfaceLabels } from '../surfaces';
 import type { ReportFact } from './facts';
 import { pendingReportCopy } from './copy-schema';
 
-const capturedSurfaceNames = (surfaces: ReadonlySet<AeoSurface>): string => {
+const capturedSurfaceNames = (
+  surfaces: ReadonlySet<AeoSurface>,
+  /** The snapshot's own labels, for surfaces asked of another model. */
+  labels: Readonly<Record<string, string>>,
+): string => {
   const captured = allSurfaces.filter((surface) => surfaces.has(surface));
   const names = (agents: boolean) => {
     const joined = captured
       .filter((surface) => isAgentSurface(surface) === agents)
-      .map((surface) => surfaceLabels[surface])
+      .map((surface) => labels[surface] ?? surfaceLabels[surface])
       .join(', ');
 
     return joined === '' ? 'none' : joined;
@@ -35,6 +39,7 @@ export const buildNarrativeFacts = (
     surface: null,
     entity: config.brand.name,
   };
+  const labels = snapshot.meta.surfaceLabels ?? {};
   const capturedSurfaces = new Set(
     snapshot.sections.flatMap((section) =>
       section.visibility.matrix.map((row) => row.surface),
@@ -59,7 +64,7 @@ export const buildNarrativeFacts = (
       numerator: capturedSurfaces.size,
       denominator: null,
       unit: 'count',
-      sentence: `This audit of ${config.brand.name} covers the surfaces with captured answers. ${capturedSurfaceNames(capturedSurfaces)} Planned surfaces without captured answers are not included in this list; it does not describe every available AI product.`,
+      sentence: `This audit of ${config.brand.name} covers the surfaces with captured answers. ${capturedSurfaceNames(capturedSurfaces, labels)} Planned surfaces without captured answers are not included in this list; it does not describe every available AI product.`,
     },
     {
       ...base,
@@ -94,7 +99,7 @@ export const buildNarrativeFacts = (
       numerator: sectionSurfaces.size,
       denominator: null,
       unit: 'count',
-      sentence: `For ${config.brand.name}'s ${market} audit section, only surfaces with captured answers are included here. ${capturedSurfaceNames(sectionSurfaces)} This section's captured surfaces can differ from other sections or the planned audit scope.`,
+      sentence: `For ${config.brand.name}'s ${market} audit section, only surfaces with captured answers are included here. ${capturedSurfaceNames(sectionSurfaces, labels)} This section's captured surfaces can differ from other sections or the planned audit scope.`,
     });
     facts.push({
       ...base,

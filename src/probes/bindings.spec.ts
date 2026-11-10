@@ -5,6 +5,7 @@ import {
 } from '../engine/preflight';
 import { surfaceRetrievalExposure } from '../retrieval';
 import { allSurfaces } from '../surfaces';
+import type { CapturedUnitRecord } from '../stores/ports';
 import { ProbeAdapterId, type ProbeAdapter } from './adapter';
 import { agentAuthEnv, assertAgentAuth } from './agent-clis';
 import {
@@ -13,6 +14,7 @@ import {
   probeAdapterProfiles,
   probeDependenciesOf,
   profileOf,
+  surfaceLabelOverrides,
 } from './bindings';
 import { legacyProbeBindings } from './legacy-bindings';
 
@@ -212,6 +214,55 @@ describe('agent-clis - assertAgentAuth()', () => {
         runtimeWith({ ANTHROPIC_API_KEY: 'fake-anthropic-key' }),
       ),
     ).not.toThrow();
+  });
+});
+
+describe('bindings - surfaceLabelOverrides()', () => {
+  const askedOf = (
+    surface: 'chatgpt' | 'claude' | 'codex',
+    requestedModel: string | null,
+  ): CapturedUnitRecord => {
+    return {
+      status: 'captured',
+      sectionKey: 'file_stores',
+      promptId: 'p1',
+      promptText: 'Which store?',
+      surface,
+      runIndex: 1,
+      capturedAt: '2026-11-10T10:00:00.000Z',
+      probe: {
+        promptId: 'p1',
+        promptText: 'Which store?',
+        promptCategory: 'comparison',
+        modelName: surface,
+        runIndex: 1,
+        text: 'Acme Files.',
+      },
+      captureMetadata: { requestedModel, reportedModel: null, parameters: {} },
+    };
+  };
+
+  it('should label nothing when every surface was asked of its default model', () => {
+    expect(
+      surfaceLabelOverrides([
+        askedOf('chatgpt', defaultProbeBindings.chatgpt.model ?? null),
+        askedOf('claude', defaultProbeBindings.claude.model ?? null),
+        // A coding agent's CLI names its own model: never a label.
+        askedOf('codex', 'gpt-test-codex'),
+      ]),
+    ).toEqual({});
+  });
+
+  it('should name the model in the label of a surface asked of another one, legacy models included', () => {
+    expect(
+      surfaceLabelOverrides([
+        askedOf('chatgpt', 'openai/gpt-test-1'),
+        askedOf('claude', legacyProbeBindings.claude.model),
+      ]),
+    ).toEqual({
+      chatgpt: 'ChatGPT (API, openai/gpt-test-1)',
+      claude: 'Claude (API, anthropic/claude-sonnet-4.5)',
+    });
   });
 });
 

@@ -77,7 +77,7 @@ const never = (): never => {
 };
 
 describe('cost-estimate - estimateRunCost()', () => {
-  it("should price each surface's probes at its bound adapter, under coefficients version 2", () => {
+  it("should price each surface's probes at its bound adapter's flat figure, under coefficients version 3", () => {
     const plan = {
       units: Array.from({ length: 4 }, (_, index) => ({ index })),
       probesBySurface: new Map<AeoSurface, number>([['chatgpt', 4]]),
@@ -92,12 +92,13 @@ describe('cost-estimate - estimateRunCost()', () => {
     };
 
     const defaults = priced(defaultProbeBindings);
+    // Another of the engine's own bindings behind the surface.
     const rebound = priced({
       ...defaultProbeBindings,
-      chatgpt: { adapter: 'gateway.anthropic@1', model: 'anthropic/test-1' },
+      chatgpt: defaultProbeBindings.claude,
     });
 
-    expect(defaults.coefficientsVersion).toBe(2);
+    expect(defaults.coefficientsVersion).toBe(3);
     expect(defaults.categories.probes).toEqual({
       low: probeUsd['gateway.openai@1'].low * 4,
       high: probeUsd['gateway.openai@1'].high * 4,
@@ -106,6 +107,48 @@ describe('cost-estimate - estimateRunCost()', () => {
       low: probeUsd['gateway.anthropic@1'].low * 4,
       high: probeUsd['gateway.anthropic@1'].high * 4,
     });
+  });
+
+  it("should price a probe of any other model from its catalog price and a probe's assumed usage", () => {
+    const plan = {
+      units: Array.from({ length: 4 }, (_, index) => ({ index })),
+      probesBySurface: new Map<AeoSurface, number>([['chatgpt', 4]]),
+    } as never;
+    const bindings = {
+      ...defaultProbeBindings,
+      chatgpt: { adapter: 'gateway.openai@1', model: 'openai/gpt-test-1' },
+    } as const;
+    const listed = {
+      id: 'openai/gpt-test-1',
+      label: 'GPT Test 1',
+      pricingUsdPerMillion: { input: 2, output: 10, cachedInput: 0.2 },
+      webSearchUsdPerRequest: 0.02,
+      contextWindow: 200_000,
+      maxOutputTokens: 16_000,
+      reasoning: true,
+      reasoningEfforts: [],
+    };
+
+    const estimate = estimateRunCost({
+      plan,
+      model: resolveSupportedModel(),
+      grounding: 'extraction_only',
+      bindings,
+      probeModels: new Map([[listed.id, listed]]),
+    });
+
+    // One probe: 8,000 to 30,000 tokens in, 500 to 4,000 out, 1 to 3
+    // searches. At $2 and $10 per million and $0.02 a search that is
+    // $0.041 to $0.16, four times, to the cent.
+    expect(estimate.categories.probes).toEqual({ low: 0.16, high: 0.64 });
+    expect(() =>
+      estimateRunCost({
+        plan,
+        model: resolveSupportedModel(),
+        grounding: 'extraction_only',
+        bindings,
+      }),
+    ).toThrow(/No catalog price was resolved for openai\/gpt-test-1/);
   });
 
   it('should estimate every category, with a cap at the high end', () => {

@@ -1,7 +1,18 @@
 import { createGateway } from '@ai-sdk/gateway';
 import { toolVersion } from '../bundle/contracts';
 import type { CapturedUnitRecord } from '../stores/ports';
-import { allSurfaces, type AeoChatSurface, type AeoSurface } from '../surfaces';
+import type { CatalogModel } from '../models/catalog';
+import {
+  probeSearchUsd,
+  probeUsage,
+  type Range,
+} from '../models/cost-coefficients';
+import {
+  allSurfaces,
+  surfaceLabels,
+  type AeoChatSurface,
+  type AeoSurface,
+} from '../surfaces';
 import {
   ProbeAdapterId,
   type ChatModelProvider,
@@ -177,25 +188,159 @@ export const profileOf = (binding: ProbeBinding): ProbeAdapterProfile => {
   return probeAdapterProfiles[binding.adapter];
 };
 
-// The bindings the engine runs: its defaults, and the legacy table that a
-// directory from before bindings, or one an earlier release froze, is
-// measured with. They are the only bindings a run can have (probe adapters
-// spec §4.5): a frozen file naming any other adapter, surface or model is
-// refused, never measured.
+/** The API chat surfaces: the ones a model can be swapped behind. */
+export const modelBoundSurfaces = [
+  'chatgpt',
+  'gemini',
+  'claude',
+  'perplexity',
+] as const satisfies readonly AeoChatSurface[];
+
+export type ModelBoundSurface = (typeof modelBoundSurfaces)[number];
+
+/** The adapters that ask a gateway model: the ones a model override can
+ * name or infer. */
+export const modelAdapterIds = [
+  ProbeAdapterId.GATEWAY_OPENAI,
+  ProbeAdapterId.GATEWAY_GOOGLE,
+  ProbeAdapterId.GATEWAY_ANTHROPIC,
+  ProbeAdapterId.GATEWAY_PERPLEXITY,
+] as const;
+
+type ModelAdapterId = (typeof modelAdapterIds)[number];
+
+const isModelAdapterId = (adapter: string): adapter is ModelAdapterId => {
+  return modelAdapterIds.some((id) => id === adapter);
+};
+
+// Each provider's own search tool only works with that provider's models,
+// so the adapter follows the model's provider (open models spec §4).
+const adapterByProvider: Readonly<Record<string, ModelAdapterId>> = {
+  openai: ProbeAdapterId.GATEWAY_OPENAI,
+  google: ProbeAdapterId.GATEWAY_GOOGLE,
+  anthropic: ProbeAdapterId.GATEWAY_ANTHROPIC,
+  perplexity: ProbeAdapterId.GATEWAY_PERPLEXITY,
+};
+
+/** What audit.json's `probes` asks for one surface. */
+export type ProbeOverride = { model: string; adapter?: ModelAdapterId };
+
+export type ProbeOverrides = Partial<Record<ModelBoundSurface, ProbeOverride>>;
+
+/**
+ * requestedBindingsOf is the bindings a new run freezes: the defaults, with
+ * each override's model behind its surface. The adapter is the one the
+ * override names, or the one of the model's provider.
+ */
+export const requestedBindingsOf = (
+  overrides: ProbeOverrides = {},
+): RunBindings => {
+  const bound = Object.fromEntries(
+    modelBoundSurfaces.flatMap((surface) => {
+      const override = overrides[surface];
+
+      if (!override) {
+        return [];
+      }
+
+      const provider = override.model.split('/')[0] ?? '';
+      const adapter = override.adapter ?? adapterByProvider[provider];
+
+      if (!adapter) {
+        throw new RunBindingsError(
+          `audit.json asks ${surface} of ${override.model}, and no search adapter is known for the provider "${provider}". Please name one in probes.${surface}.adapter: ${modelAdapterIds.join(', ')}.`,
+        );
+      }
+
+      return [[surface, { adapter, model: override.model }]];
+    }),
+  );
+
+  return { ...defaultProbeBindings, ...bound };
+};
+
+/** Whether the engine has its own cost figure for a binding: one of its
+ * default or legacy bindings. Any other is priced from the catalog. */
+export const isOwnBinding = (binding: ProbeBinding): boolean => {
+  return allSurfaces.some((surface) =>
+    [defaultProbeBindings[surface], legacyProbeBindings[surface]].some(
+      (own: ProbeBinding) =>
+        own.adapter === binding.adapter && own.model === binding.model,
+    ),
+  );
+};
+
+/** The models a run's bindings need a catalog price for. */
+export const catalogPricedModels = (
+  bindings: RunBindings,
+  surfaces: readonly AeoSurface[],
+): string[] => {
+  return [
+    ...new Set(
+      surfaces.flatMap((surface) => {
+        const binding = bindings[surface];
+
+        return binding.model !== undefined && !isOwnBinding(binding)
+          ? [binding.model]
+          : [];
+      }),
+    ),
+  ];
+};
+
+/**
+ * probeEstimateUsd is what one probe under `binding` is estimated and
+ * reserved at: the engine's flat figure for its own bindings, and for any
+ * other model the assumed usage of a probe at that model's catalog price.
+ */
+export const probeEstimateUsd = (
+  binding: ProbeBinding,
+  priced: ReadonlyMap<string, CatalogModel>,
+): Range<number> => {
+  const flat = profileOf(binding).estimateUsd;
+
+  if (binding.model === undefined || isOwnBinding(binding)) {
+    return flat;
+  }
+
+  const model = priced.get(binding.model);
+
+  if (!model) {
+    throw new Error(
+      `No catalog price was resolved for ${binding.model}; a probe is never reserved without one.`,
+    );
+  }
+
+  const { input, output } = model.pricingUsdPerMillion;
+  const search = model.webSearchUsdPerRequest ?? probeSearchUsd;
+  const costOf = (end: 'low' | 'high') => {
+    return (
+      (probeUsage.input[end] * input + probeUsage.output[end] * output) / 1e6 +
+      probeUsage.searches[end] * search
+    );
+  };
+
+  return { low: costOf('low'), high: costOf('high') };
+};
+
+// A binding the engine can build: an adapter it has, with a model exactly
+// when the adapter asks one. The model itself is not judged (open models
+// spec §2): a run that names one the provider refuses stops at its canary.
 const availableBinding = (
   surface: AeoSurface,
   binding: { adapter: string; model?: string },
 ): ProbeBinding | undefined => {
-  const known: readonly ProbeBinding[] = [
-    defaultProbeBindings[surface],
-    legacyProbeBindings[surface],
-  ];
+  const own: ProbeBinding = defaultProbeBindings[surface];
 
-  return known.find(
-    (candidate) =>
-      candidate.adapter === binding.adapter &&
-      candidate.model === binding.model,
-  );
+  if (isModelAdapterId(binding.adapter)) {
+    return binding.model !== undefined && isModelAdapterId(own.adapter)
+      ? { adapter: binding.adapter, model: binding.model }
+      : undefined;
+  }
+
+  return binding.adapter === own.adapter && binding.model === undefined
+    ? own
+    : undefined;
 };
 
 /**
@@ -285,6 +430,37 @@ const capturedModelOf = (record: CapturedUnitRecord): string | undefined => {
   return record.captureMetadata
     ? (record.captureMetadata.requestedModel ?? undefined)
     : legacy.model;
+};
+
+/**
+ * surfaceLabelOverrides names the model in the label of every surface whose
+ * captured answers were not asked of its default model (open models spec
+ * §4): the default label claims the free-tier pin. Empty for a run on the
+ * defaults, whose snapshot then carries no labels at all.
+ */
+export const surfaceLabelOverrides = (
+  captured: readonly CapturedUnitRecord[],
+): Record<string, string> => {
+  return Object.fromEntries(
+    modelBoundSurfaces.flatMap((surface) => {
+      const own: ProbeBinding = defaultProbeBindings[surface];
+      const asked = [
+        ...new Set(
+          captured
+            .filter((record) => record.surface === surface)
+            .flatMap((record) => capturedModelOf(record) ?? []),
+        ),
+      ].sort();
+
+      if (asked.length === 0 || asked.every((model) => model === own.model)) {
+        return [];
+      }
+
+      const label = surfaceLabels[surface] ?? surface;
+
+      return [[surface, label.replace(/\)$/, `, ${asked.join(', ')})`)]];
+    }),
+  );
 };
 
 /**

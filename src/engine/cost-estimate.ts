@@ -11,7 +11,8 @@ import {
 } from '../models/cost-coefficients';
 import { tokenCostUsd } from '../models/pricing';
 import type { SupportedModel } from '../models/supported-models';
-import { profileOf, type RunBindings } from '../probes/bindings';
+import type { CatalogModel } from '../models/catalog';
+import { probeEstimateUsd, type RunBindings } from '../probes/bindings';
 import type { RunPlan } from '../runner';
 
 // ============================================================================
@@ -90,6 +91,9 @@ type EstimateRunOptions = {
   /** The bindings the run measures with: each surface's probes cost what
    * its bound adapter costs. */
   bindings: RunBindings;
+  /** Catalog prices of the bound models the engine has no flat figure
+   * for (catalogPricedModels). */
+  probeModels?: ReadonlyMap<string, CatalogModel>;
 };
 
 /** estimateRunCost estimates a whole run as planned; a resume spends less,
@@ -99,13 +103,14 @@ export const estimateRunCost = ({
   model,
   grounding,
   bindings,
+  probeModels = new Map(),
 }: EstimateRunOptions): RunCostEstimate => {
   const answers = plan.units.length;
   const { cachedShare } = stageTokens;
 
   const probes = sumOf(
     [...plan.probesBySurface].map(([surface, count]) => {
-      const usd = profileOf(bindings[surface]).estimateUsd;
+      const usd = probeEstimateUsd(bindings[surface], probeModels);
 
       return rangeOf(usd.low * count, usd.high * count);
     }),

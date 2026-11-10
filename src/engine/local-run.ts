@@ -36,7 +36,7 @@ import {
 import type { ModelCatalogSource } from '../models/catalog';
 import type { SupportedModel } from '../models/supported-models';
 import { chargedProbeTrace } from '../probes/charged-trace';
-import { probeDependenciesOf } from '../probes/bindings';
+import { catalogPricedModels, probeDependenciesOf } from '../probes/bindings';
 import type { InternalModelContext } from '../models/context';
 import { ProbeLimiter } from '../probes/limits';
 import { planRun, type RunPlan } from '../runner';
@@ -45,9 +45,14 @@ import { hasErrorCode } from '../stores/fs-errors';
 import { openFileStores } from '../stores/files';
 import type { CapturedUnitRecord } from '../stores/ports';
 import { getEnvironment } from '../lib/env';
-import { toAuditConfig, toRunRequest, type AuditFile } from './audit-file';
+import {
+  requestedBindings,
+  toAuditConfig,
+  toRunRequest,
+  type AuditFile,
+} from './audit-file';
 import { resolveRunBindings } from './run-bindings';
-import { resolveReportModel } from './run-models';
+import { resolveReportModel, resolveRunModels } from './run-models';
 import { bankDir } from './run-configuration';
 import { resolveRunMethod } from './run-method';
 import {
@@ -265,12 +270,23 @@ const openLockedLocalRun = async (
 
   await resolveRunMethod(dir, bank, { startedBefore });
 
-  const bindings = await resolveRunBindings(bank, { startedBefore });
-  const model = await resolveReportModel(file.model, bank, {
-    source: catalog,
-    now: new Date(),
-    freeze: true,
+  const bindings = await resolveRunBindings(bank, {
+    startedBefore,
+    requested: requestedBindings(file),
   });
+  const pricing = { source: catalog, now: new Date(), freeze: true };
+  const model = await resolveReportModel(file.model, bank, pricing);
+  // A bound model the engine has no flat figure for is reserved at its
+  // catalog price, frozen here with the report model's.
+  const probeModels = new Map(
+    (
+      await resolveRunModels(
+        bank,
+        catalogPricedModels(bindings, file.surfaces),
+        pricing,
+      )
+    ).map((entry) => [entry.model.id, entry.model]),
+  );
   const budget = await resolveRunBudget(dir, file.runPolicy.budget, {
     model: model.id,
     ...(maxUsd !== undefined && { maxUsd }),
@@ -342,11 +358,10 @@ const openLockedLocalRun = async (
     );
   }
 
-  const probes = chargedProbeTrace(
-    probeTraceOf(recorder, 'probe'),
-    ledger,
+  const probes = chargedProbeTrace(probeTraceOf(recorder, 'probe'), ledger, {
     bindings,
-  );
+    priced: probeModels,
+  });
   const capture = await captureForRun({
     probeDependencies: probeDependenciesOf(getEnvironment(), bindings),
     config,

@@ -127,11 +127,9 @@ describe('probes - a registered adapter', () => {
         runId: 'fake-run',
         probeStore,
         analysisStore: null,
-        trace: chargedProbeTrace(
-          probeTraceOf(recorder, 'probe'),
-          ledger,
-          defaultProbeBindings,
-        ).trace,
+        trace: chargedProbeTrace(probeTraceOf(recorder, 'probe'), ledger, {
+          bindings: defaultProbeBindings,
+        }).trace,
         probeDependencies: {
           bindings: defaultProbeBindings,
           gateway: () => 'unused',

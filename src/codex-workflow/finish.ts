@@ -16,6 +16,7 @@ import {
   type GroundingBundle,
 } from '../grounding/schema';
 import type { SectionRunResult } from '../pipeline';
+import { surfaceLabelOverrides } from '../probes/bindings';
 import { ProbeLimiter } from '../probes/limits';
 import {
   checkRetrievalCapture,
@@ -253,6 +254,7 @@ export const finishRun = async (args: {
     partialFailures,
     generatedAt: createdAt,
     analyzer: codexAnalyzer(args.stageModelId),
+    surfaceLabels: surfaceLabelOverrides(source.captured),
   });
 
   const snapshotFile = path.join(dir, 'OUT', 'snapshot.json');

@@ -68,6 +68,22 @@ describe('narrative-facts - buildNarrativeFacts()', () => {
     expect(secondScope.sentence).not.toContain('ChatGPT');
   });
 
+  it('should name the model of a surface the snapshot says was asked of another one', () => {
+    const config = aeoAuditConfigSchema.parse(configFixture);
+    const snapshot = aeoSnapshotSchema.parse(snapshotFixture);
+    const surface = snapshot.sections[0]?.visibility.matrix[0]?.surface;
+
+    assert(surface);
+    snapshot.meta.surfaceLabels = { [surface]: 'Swapped (API, acme/model-1)' };
+
+    const scope = buildNarrativeFacts(snapshot, config, 'run-1').find(
+      ({ factId }) => factId === 'scope:surfaces',
+    );
+
+    assert(scope);
+    expect(scope.sentence).toContain('Swapped (API, acme/model-1)');
+  });
+
   it('should NOT infer captured coverage from planned surfaces when every answer is missing', () => {
     const config = aeoAuditConfigSchema.parse(configFixture);
     const snapshot = aeoSnapshotSchema.parse(snapshotFixture);

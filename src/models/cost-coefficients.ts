@@ -33,9 +33,14 @@ import type { TokenUsage } from './pricing';
 // Version 2 (probe adapters spec §4.8) keys the probe figures by adapter
 // rather than by surface, with version 1's numbers for every default
 // adapter: a surface costs what the adapter it is bound to costs.
+//
+// Version 3 (open models spec §7) adds what one probe is assumed to use,
+// by adapter: tokens and searches. A probe of a model the engine has no
+// flat figure for costs those at the model's catalog price. The flat
+// figures are unchanged.
 // ============================================================================
 
-export const costCoefficientsVersion = 2;
+export const costCoefficientsVersion = 3;
 
 export type TokenRange = {
   input: number;
@@ -101,6 +106,20 @@ export const probeUsd: Readonly<Record<ProbeAdapterId, Range<number>>> = {
   [ProbeAdapterId.CLI_CODEX]: { low: 0, high: 0 },
   [ProbeAdapterId.CLI_CURSOR]: { low: 0, high: 0 },
 };
+
+/** What one probe of a model-API adapter is assumed to use: as rough as the
+ * flat figures above, and replaced with them once runs are recorded. The
+ * input is mostly the search results the provider feeds the model. */
+export const probeUsage = {
+  input: { low: 8000, high: 30_000 },
+  // A reasoning model bills its thinking as output.
+  output: { low: 500, high: 4000 },
+  searches: { low: 1, high: 3 },
+} as const;
+
+/** The search fee per request assumed for a model whose catalog entry
+ * lists none. */
+export const probeSearchUsd = 0.01;
 
 /** The calibrated workload a Codex session is: a batch of answer files
  * (analyze, qualify, review), the whole report (write) or a brief
