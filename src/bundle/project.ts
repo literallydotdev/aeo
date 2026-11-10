@@ -7,7 +7,9 @@ import { stagePrompts } from '../codex-workflow/prompts';
 import { readRunInputs, type RunInputs } from '../codex-workflow/run-inputs';
 import { stageVersions } from '../codex-workflow/schemas';
 import { hasErrorCode } from '../stores/fs-errors';
+import { readFrozenBudget } from '../engine/budget';
 import { readFrozenBindings } from '../engine/run-bindings';
+import { readRunMethod, type RecordedRunMethod } from '../engine/run-method';
 import {
   auditCopyFile,
   authorEvidenceFile,
@@ -132,6 +134,15 @@ const stageModelOf = (inputs: RunInputs) => {
     : null;
 };
 
+/** What `dir` records of the method it was run with. */
+export const recordedRunMethod = async (
+  dir: string,
+): Promise<RecordedRunMethod> => {
+  return readRunMethod(dir, path.join(dir, bankDir), {
+    startedBefore: (await readFrozenBudget(dir)) !== undefined,
+  });
+};
+
 const methodOf = async (
   dir: string,
   {
@@ -156,6 +167,7 @@ const methodOf = async (
   }
 
   const frozenBindings = await readFrozenBindings(path.join(dir, bankDir));
+  const recorded = await recordedRunMethod(dir);
   const method = {
     version: 1,
     calculationVersion: numbersMadeWith,
@@ -172,9 +184,20 @@ const methodOf = async (
     },
     schemas,
     // The stage instructions every Codex session starts from, by value;
-    // a session's own packet is in the journal.
-    stagePrompts,
-    stageVersions,
+    // a session's own packet is in the journal. They are the ones the run
+    // directory froze (method release spec §3.1). A work directory that
+    // freezes nothing, a hosted or imported one, is stamped with the
+    // exporting engine's, and `stageMethodFrom` says so.
+    stagePrompts:
+      recorded.kind === 'frozen' ? recorded.stagePrompts : stagePrompts,
+    stageVersions:
+      recorded.kind === 'frozen'
+        ? recorded.method.stageVersions
+        : stageVersions,
+    stageMethodFrom:
+      recorded.kind === 'frozen' ? 'run_directory' : 'exporting_engine',
+    // Every version the run froze, with the release that ran it.
+    runMethod: recorded.kind === 'frozen' ? recorded.method : null,
     codexModel: stageModelOf(inputs),
     // How each planned surface was asked, so the method digest names the
     // probe models (method release spec §3.2): the run's frozen bindings,

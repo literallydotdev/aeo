@@ -4,11 +4,14 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { toolVersion } from '../bundle/contracts';
 import { hasErrorCode } from '../stores/fs-errors';
+import { stagePrompts } from '../codex-workflow/prompts';
 import {
   currentMethod,
   methodFile,
+  readRunMethod,
   resolveRunMethod,
   RunMethodChangedError,
+  stagePromptsFile,
 } from './run-method';
 
 // ============================================================================
@@ -100,5 +103,66 @@ describe('run-method - resolveRunMethod()', () => {
 
   it('should record the release it was frozen by', () => {
     expect(currentMethod().toolVersion).toBe(toolVersion);
+  });
+});
+
+describe('run-method - the stage prompts a run keeps', () => {
+  const storedPrompts = async (): Promise<unknown> => {
+    const text = await readFile(path.join(bank, stagePromptsFile), 'utf8');
+    const value: unknown = JSON.parse(text);
+
+    return value;
+  };
+
+  it('should save the stage prompts with the method, before a new run does anything', async () => {
+    await resolveRunMethod(dir, bank, { startedBefore: false });
+
+    expect(await storedPrompts()).toEqual({ version: 1, stagePrompts });
+    expect(await readRunMethod(dir, bank, { startedBefore: true })).toEqual({
+      kind: 'frozen',
+      method: currentMethod(),
+      stagePrompts,
+    });
+  });
+
+  it('should keep the prompts a run saved, whatever the installed engine says later', async () => {
+    await resolveRunMethod(dir, bank, { startedBefore: false });
+    await writeFile(
+      path.join(bank, stagePromptsFile),
+      JSON.stringify({ version: 1, stagePrompts: { analyze: 'As it was.' } }),
+    );
+
+    await resolveRunMethod(dir, bank, { startedBefore: true });
+
+    expect(await storedPrompts()).toEqual({
+      version: 1,
+      stagePrompts: { analyze: 'As it was.' },
+    });
+  });
+
+  it('should give its prompts to a directory that froze the same method before prompts were kept', async () => {
+    await frozenFile(currentMethod());
+
+    await resolveRunMethod(dir, bank, { startedBefore: true });
+
+    expect(await storedPrompts()).toEqual({ version: 1, stagePrompts });
+  });
+
+  it('should tell a run from before the freeze from a directory the local engine never ran', async () => {
+    expect(await readRunMethod(dir, bank, { startedBefore: true })).toEqual({
+      kind: 'before_freeze',
+    });
+    expect(await readRunMethod(dir, bank, { startedBefore: false })).toEqual({
+      kind: 'not_recorded',
+    });
+  });
+
+  it('should refuse a damaged record rather than state another method', async () => {
+    await resolveRunMethod(dir, bank, { startedBefore: false });
+    await writeFile(path.join(bank, stagePromptsFile), '{"version":1}');
+
+    await expect(
+      readRunMethod(dir, bank, { startedBefore: true }),
+    ).rejects.toThrow(/stage-prompts\.json .* is not a frozen method file/);
   });
 });

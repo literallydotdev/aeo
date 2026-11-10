@@ -5,6 +5,7 @@ import { premiseVerifierPromptVersion } from '../agents/copy-validation';
 import { factCatalogVersion } from '../agents/facts';
 import { calculationVersion, toolVersion } from '../bundle/contracts';
 import { writeFileAtomically } from '../codex-workflow/pending';
+import { stagePrompts } from '../codex-workflow/prompts';
 import { stageVersions } from '../codex-workflow/schemas';
 import { canonicalJson } from '../lib/canonical-json';
 import { hasErrorCode } from '../stores/fs-errors';
@@ -19,6 +20,17 @@ import { hasErrorCode } from '../stores/fs-errors';
 // ============================================================================
 
 export const methodFile = 'method.json';
+/** The stage instructions the run's Codex sessions start from, by value:
+ * what an export states the run was made with, whichever release makes the
+ * export. Written with the method, never compared. */
+export const stagePromptsFile = 'stage-prompts.json';
+
+const frozenStagePromptsSchema = z
+  .object({
+    version: z.literal(1),
+    stagePrompts: z.record(z.string().min(1).max(60), z.string().max(200_000)),
+  })
+  .strict();
 
 // The last release before run directories froze their method. It resumes
 // every directory started before then, on the bindings it was captured
@@ -66,8 +78,94 @@ const measuredBy = ({ toolVersion: _tool, ...method }: FrozenMethod) => {
   return canonicalJson(method);
 };
 
-const finishOrRejudge = (dir: string, release: string) => {
-  return `A run directory is finished by the method it started with: finish it with npx literally-aeo@${release} run --output ${dir}, which reuses every banked answer, or measure its captures under ${toolVersion} in a new directory with literally-aeo rejudge ${dir} --output <new-dir>.`;
+const finishOrRejudge = (
+  dir: string,
+  release: string,
+  /** A directory from before the freeze does not say what it was made
+   * with, so only the release that ran it can freeze it for a rejudgment. */
+  { exportFirst }: { exportFirst: boolean },
+) => {
+  const rejudge = `literally-aeo rejudge ${dir} --output <new-dir>`;
+
+  return `A run directory is finished by the method it started with: finish it with npx literally-aeo@${release} run --output ${dir}, which reuses every banked answer, or measure its captures under ${toolVersion} in a new directory with ${exportFirst ? `npx literally-aeo@${release} export ${dir} and then ${rejudge}` : rejudge}.`;
+};
+
+/** What a run directory says of the method it was run with. */
+export type RecordedRunMethod =
+  | {
+      kind: 'frozen';
+      method: FrozenMethod;
+      stagePrompts: Record<string, string>;
+    }
+  /** A local run from before methods were frozen: it has a budget, and no
+   * record of its method. */
+  | { kind: 'before_freeze' }
+  /** A work directory the local engine did not run: a hosted or imported
+   * one, which freezes nothing. */
+  | { kind: 'not_recorded' };
+
+const readJsonFile = async (file: string): Promise<unknown> => {
+  const text = await readFile(file, 'utf8').catch((err: unknown) => {
+    if (hasErrorCode(err, 'ENOENT')) {
+      return undefined;
+    }
+
+    throw err;
+  });
+
+  if (text === undefined) {
+    return undefined;
+  }
+
+  const value: unknown = JSON.parse(text);
+
+  return value;
+};
+
+/**
+ * readRunMethod reads the method a run directory froze, for the exporter:
+ * a bundle states the method its run was made with, never the exporting
+ * engine's (method release spec §3.1).
+ */
+export const readRunMethod = async (
+  dir: string,
+  bankPath: string,
+  { startedBefore }: { startedBefore: boolean },
+): Promise<RecordedRunMethod> => {
+  const method = await readJsonFile(path.join(bankPath, methodFile));
+  const prompts = await readJsonFile(path.join(bankPath, stagePromptsFile));
+
+  if (method === undefined || prompts === undefined) {
+    return { kind: startedBefore ? 'before_freeze' : 'not_recorded' };
+  }
+
+  const frozen = frozenMethodSchema.safeParse(method);
+  const frozenPrompts = frozenStagePromptsSchema.safeParse(prompts);
+
+  if (!frozen.success || !frozenPrompts.success) {
+    throw new RunMethodChangedError(
+      `${path.join(bankPath, frozen.success ? stagePromptsFile : methodFile)} in ${dir} is not a frozen method file. Please restore it; an export states the method its run was made with.`,
+    );
+  }
+
+  return {
+    kind: 'frozen',
+    method: frozen.data,
+    stagePrompts: frozenPrompts.data.stagePrompts,
+  };
+};
+
+/** The release that can export a run directory from before methods were
+ * frozen, and why this one cannot. */
+export const exportBeforeFreezeMessage = (dir: string): string => {
+  return `${dir} was run before literally-aeo 0.4.0, which records in a run directory the method the run was made with. An export states that method, so this release cannot make one for it. Please export it with the release that ran it: npx literally-aeo@${lastReleaseBeforeMethodFreeze} export ${dir}. A rejudgment then reuses that revision.`;
+};
+
+const freezeStagePrompts = async (bankPath: string): Promise<void> => {
+  await writeFileAtomically(
+    path.join(bankPath, stagePromptsFile),
+    `${JSON.stringify({ version: 1, stagePrompts }, null, 2)}\n`,
+  );
 };
 
 /**
@@ -93,10 +191,12 @@ export const resolveRunMethod = async (
   if (text === undefined) {
     if (startedBefore) {
       throw new RunMethodChangedError(
-        `This run directory was started before literally-aeo 0.4.0, which measures with another method; it has no ${methodFile}. ${finishOrRejudge(dir, lastReleaseBeforeMethodFreeze)}`,
+        `This run directory was started before literally-aeo 0.4.0, which measures with another method; it has no ${methodFile}. ${finishOrRejudge(dir, lastReleaseBeforeMethodFreeze, { exportFirst: true })}`,
       );
     }
 
+    // The prompts first: a directory with a method always has them.
+    await freezeStagePrompts(bankPath);
     await writeFileAtomically(file, `${JSON.stringify(current, null, 2)}\n`);
 
     return current;
@@ -114,8 +214,16 @@ export const resolveRunMethod = async (
 
   if (measuredBy(frozen) !== measuredBy(current)) {
     throw new RunMethodChangedError(
-      `This run directory is measured with the method of literally-aeo ${frozen.toolVersion}; ${toolVersion} measures with another one. ${finishOrRejudge(dir, frozen.toolVersion)}`,
+      `This run directory is measured with the method of literally-aeo ${frozen.toolVersion}; ${toolVersion} measures with another one. ${finishOrRejudge(dir, frozen.toolVersion, { exportFirst: false })}`,
     );
+  }
+
+  // Under the same method the prompts are the same: a directory that froze
+  // its method before prompts were kept gains them here.
+  if (
+    (await readJsonFile(path.join(bankPath, stagePromptsFile))) === undefined
+  ) {
+    await freezeStagePrompts(bankPath);
   }
 
   return frozen;

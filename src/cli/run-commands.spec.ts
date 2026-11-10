@@ -114,7 +114,7 @@ describe('run-commands - runRun()', () => {
     // method and bindings the run froze.
     await expect(
       readdir(path.join(root, 'run', 'BANK')).then((files) => files.sort()),
-    ).resolves.toEqual(['bindings.json', 'method.json']);
+    ).resolves.toEqual(['bindings.json', 'method.json', 'stage-prompts.json']);
     // The bindings freeze before the budget: an attempt stopped between
     // the two never leaves a budget without bindings, which only a
     // directory from before bindings were frozen holds.
@@ -291,6 +291,7 @@ describe('run-commands - runRun()', () => {
     await expect(readdir(bank)).resolves.toEqual([
       'bindings.json',
       'method.json',
+      'stage-prompts.json',
     ]);
   });
 

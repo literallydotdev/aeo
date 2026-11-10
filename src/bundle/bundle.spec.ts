@@ -10,7 +10,14 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
+import { budgetPolicySchema, resolveRunBudget } from '../engine/budget';
 import { resolveRunBindings } from '../engine/run-bindings';
+import {
+  currentMethod,
+  methodFile,
+  resolveRunMethod,
+  stagePromptsFile,
+} from '../engine/run-method';
 import { canonicalJson, strictCanonicalJson } from '../lib/canonical-json';
 import { defaultProbeBindings } from '../probes/bindings';
 import { aeoVisibilitySchema } from '../report/core/schema';
@@ -949,5 +956,97 @@ describe('export - probe bindings', () => {
     await expect(exportRun(run.dir)).rejects.toThrow(
       /BANK\/bindings\.json is not a frozen bindings file/,
     );
+  });
+});
+
+describe('export - the method a run was made with', () => {
+  const methodDocument = (files: ReadonlyMap<string, Buffer>) => {
+    return z
+      .looseObject({
+        stagePrompts: z.record(z.string(), z.string()),
+        stageVersions: z.record(z.string(), z.number()),
+        stageMethodFrom: z.string(),
+        runMethod: z.unknown(),
+      })
+      .parse(
+        parseBundleJson(
+          (files.get(bundlePaths.method) ?? Buffer.alloc(0)).toString('utf8'),
+        ),
+      );
+  };
+  const exportedFrom = async (dir: string) => {
+    return readArchive(await readFile((await exportRun(dir)).archive));
+  };
+
+  it("should state the stage prompts and versions the run directory saved, never the exporting engine's", async () => {
+    const run = await createSyntheticRun(path.join(root, 'run'));
+    const bank = path.join(run.dir, 'BANK');
+
+    await mkdir(bank);
+    await resolveRunMethod(run.dir, bank, { startedBefore: false });
+    // As another release would have left them.
+    await writeFile(
+      path.join(bank, methodFile),
+      JSON.stringify({
+        ...currentMethod(),
+        stageVersions: { analyze: 1 },
+        toolVersion: '0.4.0',
+      }),
+    );
+    await writeFile(
+      path.join(bank, stagePromptsFile),
+      JSON.stringify({ version: 1, stagePrompts: { analyze: 'As it was.' } }),
+    );
+
+    const method = methodDocument(await exportedFrom(run.dir));
+
+    expect(method).toMatchObject({
+      stagePrompts: { analyze: 'As it was.' },
+      stageVersions: { analyze: 1 },
+      stageMethodFrom: 'run_directory',
+      runMethod: { toolVersion: '0.4.0', stageVersions: { analyze: 1 } },
+    });
+  });
+
+  it("should say when the stage method is the exporting engine's, for a work directory that saves none", async () => {
+    const { files } = await exportSynthetic();
+
+    expect(methodDocument(files)).toMatchObject({
+      stageMethodFrom: 'exporting_engine',
+      runMethod: null,
+    });
+  });
+
+  it('should refuse to export a local run from before methods were saved, naming the release that can', async () => {
+    const run = await createSyntheticRun(path.join(root, 'run'));
+
+    // As 0.3.0 left a run directory: a frozen budget, no saved method.
+    await resolveRunBudget(run.dir, budgetPolicySchema.parse({}), {
+      model: 'anthropic/claude-opus-5.5',
+      maxUsd: 5,
+    });
+
+    const refused = exportRun(run.dir);
+
+    await expect(refused).rejects.toBeInstanceOf(ExportBlockedError);
+    await expect(refused).rejects.toThrow(
+      new RegExp(`npx literally-aeo@0\\.3\\.0 export ${run.dir}`),
+    );
+  });
+
+  it('should reuse the revision the release that ran such a directory finalized, without projecting it again', async () => {
+    const run = await createSyntheticRun(path.join(root, 'run'));
+    // The revision as that release finalized it.
+    const earlier = await finalizeRevision(run.dir);
+
+    await resolveRunBudget(run.dir, budgetPolicySchema.parse({}), {
+      model: 'anthropic/claude-opus-5.5',
+      maxUsd: 5,
+    });
+
+    const again = await finalizeRevision(run.dir);
+
+    expect(again.reused).toBe(true);
+    expect(again.manifest.bundleDigest).toBe(earlier.manifest.bundleDigest);
   });
 });
