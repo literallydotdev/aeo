@@ -3,6 +3,9 @@ dist/
 resources/
 audit-run/
 *.aeo.zip
+# Bundles exported by earlier releases from the fictional synthetic run:
+# the verifier's fixtures for reading old bundles (README beside them).
+!src/bundle/__fixtures__/frozen/*.aeo.zip
 *.tgz
 .env
 .env.*
