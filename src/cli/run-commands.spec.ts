@@ -4,6 +4,8 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { auditFileSchema, localReportKey } from '../engine/audit-file';
 import { budgetPolicySchema, resolveRunBudget } from '../engine/budget';
+import { resolveRunBindings } from '../engine/run-bindings';
+import { resolveRunMethod } from '../engine/run-method';
 import { planLocalRun } from '../engine/local-run';
 import { exampleAuditFile } from '../engine/templates';
 import { resolveSupportedModel } from '../models/supported-models';
@@ -231,6 +233,64 @@ describe('run-commands - runRun()', () => {
     expect(fetch).not.toHaveBeenCalled();
     await expect(readdir(path.join(runDir, 'BANK'))).resolves.toEqual([
       'bindings.json',
+    ]);
+  });
+
+  it('should refuse a resume under another report model before pricing it, and freeze no price for it', async () => {
+    for (const name of [
+      'AI_GATEWAY_API_KEY',
+      'DATAFORSEO_LOGIN',
+      'DATAFORSEO_PASSWORD',
+    ]) {
+      vi.stubEnv(name, undefined);
+    }
+
+    vi.stubEnv('AEO_CODEX_BIN', process.execPath);
+    vi.stubEnv('PATH', path.join(root, 'no-agent-clis'));
+    vi.stubEnv(
+      'AEO_MODEL_CATALOG',
+      path.join(
+        import.meta.dirname,
+        '..',
+        'models',
+        '__fixtures__',
+        'gateway-models.json',
+      ),
+    );
+    const flags = await flagsFor(['--max-usd', '5']);
+    const runDir = path.join(root, 'run');
+    const bank = path.join(runDir, 'BANK');
+
+    await writeFile(
+      path.join(root, 'audit.json'),
+      JSON.stringify({
+        ...exampleAuditFile,
+        model: 'anthropic/claude-sonnet-5',
+      }),
+    );
+    await writeFile(
+      path.join(root, 'empty.env'),
+      'AI_GATEWAY_API_KEY=fake-gateway-key\nDATAFORSEO_LOGIN=fake-login\nDATAFORSEO_PASSWORD=fake-password\n',
+    );
+    // A run this release started, on the recommended model.
+    await mkdir(bank, { recursive: true });
+    await resolveRunMethod(runDir, bank, { startedBefore: false });
+    await resolveRunBindings(bank, { startedBefore: false });
+    await resolveRunBudget(runDir, budgetPolicySchema.parse({}), {
+      model: resolveSupportedModel().id,
+      maxUsd: 5,
+    });
+    const stderr = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+
+    const code = await runRun(flags);
+
+    const message = stderr.mock.calls.map(([text]) => String(text)).join('');
+
+    expect(message).toContain('audit.json now names anthropic/claude-sonnet-5');
+    expect(code).toBe(1);
+    await expect(readdir(bank)).resolves.toEqual([
+      'bindings.json',
+      'method.json',
     ]);
   });
 

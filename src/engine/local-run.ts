@@ -34,7 +34,10 @@ import {
   type ModelCallAccounting,
 } from '../models/accounting';
 import type { ModelCatalogSource } from '../models/catalog';
-import type { SupportedModel } from '../models/supported-models';
+import {
+  recommendedModelId,
+  type SupportedModel,
+} from '../models/supported-models';
 import { chargedProbeTrace } from '../probes/charged-trace';
 import { catalogPricedModels, probeDependenciesOf } from '../probes/bindings';
 import type { InternalModelContext } from '../models/context';
@@ -270,9 +273,18 @@ const openLockedLocalRun = async (
   // not them started before they were frozen. Frozen after the budget, an
   // attempt stopped between the two (a refused plan, a crash) would read as
   // one. The method comes first, so a refused directory gains no file.
-  const startedBefore = (await readFrozenBudget(dir)) !== undefined;
+  const frozenBudget = await readFrozenBudget(dir);
+  const startedBefore = frozenBudget !== undefined;
 
   await resolveRunMethod(dir, bank, { startedBefore });
+
+  // A resume under another report model is the budget's to refuse. It is
+  // asked first, so the refused directory gains no price for that model.
+  const namedModel = file.model ?? recommendedModelId;
+
+  if (frozenBudget?.model !== undefined && frozenBudget.model !== namedModel) {
+    await resolveRunBudget(dir, file.runPolicy.budget, { model: namedModel });
+  }
 
   const bindings = await resolveRunBindings(bank, {
     startedBefore,
