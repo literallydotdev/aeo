@@ -12,7 +12,11 @@ import {
 import { tokenCostUsd } from '../models/pricing';
 import type { SupportedModel } from '../models/supported-models';
 import type { CatalogModel } from '../models/catalog';
-import { probeEstimateUsd, type RunBindings } from '../probes/bindings';
+import {
+  bindingOf,
+  probeEstimateUsd,
+  type RunBindings,
+} from '../probes/bindings';
 import type { RunPlan } from '../runner';
 
 // ============================================================================
@@ -110,7 +114,7 @@ export const estimateRunCost = ({
 
   const probes = sumOf(
     [...plan.probesBySurface].map(([surface, count]) => {
-      const usd = probeEstimateUsd(bindings[surface], probeModels);
+      const usd = probeEstimateUsd(bindingOf(bindings, surface), probeModels);
 
       return rangeOf(usd.low * count, usd.high * count);
     }),

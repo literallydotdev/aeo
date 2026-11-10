@@ -164,6 +164,72 @@ export const extractAnthropicRetrieval = (
 };
 
 // ---------------------------------------------------------------------------
+// The gateway's own search tool (`perplexity_search`) — `full`
+// ---------------------------------------------------------------------------
+// `tool-call` parts carry the query in `input.query`, a string or a list of
+// strings; the matching `tool-result` part (by toolCallId) carries
+// `output.results: Array<{ title, url, snippet }>`, every result the tool
+// returned. Read from the pinned SDK's declared types (PerplexitySearchInput
+// and PerplexitySearchResponse in @ai-sdk/gateway): no real stream has been
+// captured yet, because one costs a paid call. A shape that differs yields
+// no calls, which the caller stores as "not captured", never as an answer
+// from memory.
+export const gatewaySearchToolName = 'perplexity_search';
+
+export const extractGatewaySearchRetrieval = (
+  steps: ReadonlyArray<RetrievalStep>,
+): RetrievalLog => {
+  const calls: RetrievalCall[] = [];
+  const callIndexById = new Map<string, number>();
+
+  for (const part of partsOf(steps)) {
+    if (part.toolName !== gatewaySearchToolName) {
+      continue;
+    }
+
+    const callId = stringOr(part.toolCallId, '');
+
+    if (part.type === 'tool-call') {
+      const input = isRecord(part.input) ? part.input : {};
+      const queries = (
+        Array.isArray(input.query) ? input.query : [input.query]
+      ).filter((query): query is string => typeof query === 'string');
+
+      // One call searched every query, and its results are not split by
+      // query: the first carries them, the others say "not known".
+      for (const [position, query] of queries.entries()) {
+        const index =
+          calls.push({
+            kind: 'search',
+            query,
+            url: null,
+            resultUrls: null,
+            resultsComplete: true,
+          }) - 1;
+
+        if (position === 0 && callId) {
+          callIndexById.set(callId, index);
+        }
+      }
+    } else if (part.type === 'tool-result') {
+      const call = calls[callIndexById.get(callId) ?? -1];
+      const output = isRecord(part.output) ? part.output : {};
+
+      // An output without a result list is the tool's error object.
+      if (call && Array.isArray(output.results)) {
+        call.resultUrls = output.results.flatMap((result) =>
+          isRecord(result) && typeof result.url === 'string'
+            ? [result.url]
+            : [],
+        );
+      }
+    }
+  }
+
+  return { exposure: 'full', calls };
+};
+
+// ---------------------------------------------------------------------------
 // Gemini (Google Search grounding) — `partial`
 // ---------------------------------------------------------------------------
 // `providerMetadata.<google|vertex>.groundingMetadata.webSearchQueries[]`

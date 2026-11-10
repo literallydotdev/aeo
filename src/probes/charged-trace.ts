@@ -5,7 +5,12 @@ import {
 } from '../models/accounting';
 import { createLog } from '../lib/log';
 import type { CatalogModel } from '../models/catalog';
-import { probeEstimateUsd, profileOf, type RunBindings } from './bindings';
+import {
+  bindingOf,
+  probeEstimateUsd,
+  profileOf,
+  type RunBindings,
+} from './bindings';
 import type { ProbeTrace } from './probe-trace';
 
 // ============================================================================
@@ -42,7 +47,7 @@ export const chargedProbeTrace = (
 
   const charged: ProbeTrace = {
     start: async (attempt) => {
-      const binding = bindings[attempt.surface];
+      const binding = bindingOf(bindings, attempt.surface);
       const profile = profileOf(binding);
       const estimateUsd = probeEstimateUsd(binding, priced).high;
       const callId = `probe:${attempt.surface}:${attempt.promptId}:${attempt.runIndex}:${attempt.attempt}:${randomUUID()}`;

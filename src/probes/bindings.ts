@@ -3,6 +3,7 @@ import { toolVersion } from '../bundle/contracts';
 import type { CapturedUnitRecord } from '../stores/ports';
 import type { CatalogModel } from '../models/catalog';
 import {
+  gatewaySearchUsd,
   probeSearchUsd,
   probeUsage,
   type Range,
@@ -10,7 +11,13 @@ import {
 import {
   allSurfaces,
   surfaceLabels,
+  customSurfacePrefix,
+  isBuiltInSurface,
+  isCustomSurface,
+  type AeoApiSurface,
+  type AeoBuiltInSurface,
   type AeoChatSurface,
+  type AeoCustomSurface,
   type AeoSurface,
 } from '../surfaces';
 import {
@@ -50,8 +57,35 @@ import { legacyProbeBindings, type ProbeBinding } from './legacy-bindings';
 
 export type { ProbeBinding };
 
-/** A run's frozen bindings: one per surface. */
-export type RunBindings = Readonly<Record<AeoSurface, ProbeBinding>>;
+/** A run's frozen bindings: one per built-in surface, and one per custom
+ * surface the audit declares. */
+export type RunBindings = Readonly<Record<AeoBuiltInSurface, ProbeBinding>> & {
+  readonly [custom: AeoCustomSurface]: ProbeBinding;
+};
+
+/** The binding a run froze for `surface`. A custom surface the bindings do
+ * not hold was never declared: the plan would not contain it. */
+export const bindingOf = (
+  bindings: RunBindings,
+  surface: AeoSurface,
+): ProbeBinding => {
+  const binding = bindings[surface];
+
+  if (!binding) {
+    throw new RunBindingsError(
+      `This run's bindings name no adapter for ${surface}. A custom surface is measured only when audit.json declares it in customSurfaces.`,
+    );
+  }
+
+  return binding;
+};
+
+/** A surface's binding as of 0.2.0; a custom surface has none. */
+export const legacyBindingOf = (
+  surface: AeoSurface,
+): ProbeBinding | undefined => {
+  return isCustomSurface(surface) ? undefined : legacyProbeBindings[surface];
+};
 
 /**
  * Thrown before any dispatch when a run's frozen bindings cannot be
@@ -88,7 +122,7 @@ export type ProbeDependencies = {
 /** An adapter for `surface` under `binding`, or undefined to leave it to
  * the engine's own adapters. */
 export type ChatAdapterRegistry = (
-  surface: AeoChatSurface,
+  surface: AeoApiSurface,
   binding: ProbeBinding,
 ) => ProbeAdapter | undefined;
 
@@ -172,6 +206,8 @@ export const probeAdapterProfiles: Readonly<
 > = {
   [ProbeAdapterId.GATEWAY_OPENAI]:
     gatewayChatProfiles[ProbeAdapterId.GATEWAY_OPENAI],
+  [ProbeAdapterId.GATEWAY_SEARCH]:
+    gatewayChatProfiles[ProbeAdapterId.GATEWAY_SEARCH],
   [ProbeAdapterId.GATEWAY_GOOGLE]:
     gatewayChatProfiles[ProbeAdapterId.GATEWAY_GOOGLE],
   [ProbeAdapterId.GATEWAY_ANTHROPIC]:
@@ -205,6 +241,7 @@ export const modelAdapterIds = [
   ProbeAdapterId.GATEWAY_GOOGLE,
   ProbeAdapterId.GATEWAY_ANTHROPIC,
   ProbeAdapterId.GATEWAY_PERPLEXITY,
+  ProbeAdapterId.GATEWAY_SEARCH,
 ] as const;
 
 type ModelAdapterId = (typeof modelAdapterIds)[number];
@@ -227,15 +264,26 @@ export type ProbeOverride = { model: string; adapter?: ModelAdapterId };
 
 export type ProbeOverrides = Partial<Record<ModelBoundSurface, ProbeOverride>>;
 
+/** A custom surface as audit.json declares it. */
+export type CustomSurfaceDeclaration = ProbeOverride & { key: string };
+
+/** The ID of the custom surface declared under `key`. */
+export const customSurfaceId = (key: string): AeoCustomSurface => {
+  return `${customSurfacePrefix}${key}`;
+};
+
 /**
  * requestedBindingsOf is the bindings a new run freezes: the defaults, with
- * each override's model behind its surface. The adapter is the one the
- * override names, or the one of the model's provider.
+ * each override's model behind its surface, and one binding per declared
+ * custom surface. A built-in surface's adapter is the one the override
+ * names, or its provider's own search; a model of another provider, and
+ * every custom surface, searches through the gateway's own tool.
  */
 export const requestedBindingsOf = (
   overrides: ProbeOverrides = {},
+  custom: readonly CustomSurfaceDeclaration[] = [],
 ): RunBindings => {
-  const bound = Object.fromEntries(
+  const swapped = Object.fromEntries(
     modelBoundSurfaces.flatMap((surface) => {
       const override = overrides[surface];
 
@@ -244,19 +292,24 @@ export const requestedBindingsOf = (
       }
 
       const provider = override.model.split('/')[0] ?? '';
-      const adapter = override.adapter ?? adapterByProvider[provider];
-
-      if (!adapter) {
-        throw new RunBindingsError(
-          `audit.json asks ${surface} of ${override.model}, and no search adapter is known for the provider "${provider}". Please name one in probes.${surface}.adapter: ${modelAdapterIds.join(', ')}.`,
-        );
-      }
+      const adapter =
+        override.adapter ??
+        adapterByProvider[provider] ??
+        ProbeAdapterId.GATEWAY_SEARCH;
 
       return [[surface, { adapter, model: override.model }]];
     }),
   );
+  const declared: Record<AeoCustomSurface, ProbeBinding> = {};
 
-  return { ...defaultProbeBindings, ...bound };
+  for (const { key, model, adapter } of custom) {
+    declared[customSurfaceId(key)] = {
+      adapter: adapter ?? ProbeAdapterId.GATEWAY_SEARCH,
+      model,
+    };
+  }
+
+  return { ...defaultProbeBindings, ...swapped, ...declared };
 };
 
 /** Whether the engine has its own cost figure for a binding: one of its
@@ -278,7 +331,7 @@ export const catalogPricedModels = (
   return [
     ...new Set(
       surfaces.flatMap((surface) => {
-        const binding = bindings[surface];
+        const binding = bindingOf(bindings, surface);
 
         return binding.model !== undefined && !isOwnBinding(binding)
           ? [binding.model]
@@ -312,7 +365,12 @@ export const probeEstimateUsd = (
   }
 
   const { input, output } = model.pricingUsdPerMillion;
-  const search = model.webSearchUsdPerRequest ?? probeSearchUsd;
+  // The gateway's tool has its own fee; a provider's own search is priced
+  // by the model's catalog entry.
+  const search =
+    binding.adapter === ProbeAdapterId.GATEWAY_SEARCH
+      ? gatewaySearchUsd
+      : (model.webSearchUsdPerRequest ?? probeSearchUsd);
   const costOf = (end: 'low' | 'high') => {
     return (
       (probeUsage.input[end] * input + probeUsage.output[end] * output) / 1e6 +
@@ -330,6 +388,13 @@ const availableBinding = (
   surface: AeoSurface,
   binding: { adapter: string; model?: string },
 ): ProbeBinding | undefined => {
+  // A custom surface is always a model behind a model adapter.
+  if (isCustomSurface(surface)) {
+    return isModelAdapterId(binding.adapter) && binding.model !== undefined
+      ? { adapter: binding.adapter, model: binding.model }
+      : undefined;
+  }
+
   const own: ProbeBinding = defaultProbeBindings[surface];
 
   if (isModelAdapterId(binding.adapter)) {
@@ -352,7 +417,7 @@ export const availableBindings = (
   frozen: Readonly<Record<string, { adapter: string; model?: string }>>,
 ): RunBindings => {
   const unknown = Object.keys(frozen).filter(
-    (surface) => !allSurfaces.some((known) => known === surface),
+    (surface) => !isBuiltInSurface(surface) && !isCustomSurface(surface),
   );
 
   if (unknown.length > 0) {
@@ -361,7 +426,7 @@ export const availableBindings = (
     );
   }
 
-  const entries = allSurfaces.map((surface) => {
+  const available = (surface: AeoSurface): ProbeBinding => {
     const binding = frozen[surface];
 
     if (!binding) {
@@ -370,9 +435,9 @@ export const availableBindings = (
       );
     }
 
-    const available = availableBinding(surface, binding);
+    const built = availableBinding(surface, binding);
 
-    if (!available) {
+    if (!built) {
       const named =
         binding.model === undefined
           ? binding.adapter
@@ -383,84 +448,92 @@ export const availableBindings = (
       );
     }
 
-    return [surface, available] as const;
-  });
+    return built;
+  };
+  const custom: Record<AeoCustomSurface, ProbeBinding> = {};
+
+  for (const surface of Object.keys(frozen).filter(isCustomSurface)) {
+    custom[surface] = available(surface);
+  }
 
   const bindings: RunBindings = {
-    chatgpt: requireEntry(entries, 'chatgpt'),
-    gemini: requireEntry(entries, 'gemini'),
-    claude: requireEntry(entries, 'claude'),
-    perplexity: requireEntry(entries, 'perplexity'),
-    google_ai_overview: requireEntry(entries, 'google_ai_overview'),
-    claude_code: requireEntry(entries, 'claude_code'),
-    codex: requireEntry(entries, 'codex'),
-    cursor: requireEntry(entries, 'cursor'),
+    chatgpt: available('chatgpt'),
+    gemini: available('gemini'),
+    claude: available('claude'),
+    perplexity: available('perplexity'),
+    google_ai_overview: available('google_ai_overview'),
+    claude_code: available('claude_code'),
+    codex: available('codex'),
+    cursor: available('cursor'),
+    ...custom,
   };
 
   return bindings;
 };
 
-const requireEntry = (
-  entries: ReadonlyArray<readonly [AeoSurface, ProbeBinding]>,
-  surface: AeoSurface,
-): ProbeBinding => {
-  const entry = entries.find(([key]) => key === surface);
-
-  if (!entry) {
-    throw new Error(`No binding was resolved for ${surface}.`);
-  }
-
-  return entry[1];
-};
-
 /** The adapter a banked answer was captured with: the one its capture
  * metadata names, or, when it names none, its surface's legacy adapter. */
-export const capturedAdapterOf = (record: CapturedUnitRecord): string => {
+export const capturedAdapterOf = (
+  record: CapturedUnitRecord,
+): string | undefined => {
   return (
-    record.captureMetadata?.adapter ??
-    legacyProbeBindings[record.surface].adapter
+    record.captureMetadata?.adapter ?? legacyBindingOf(record.surface)?.adapter
   );
 };
 
 /** The model a banked answer was asked of: the one its capture metadata
  * records, or, without metadata, its surface's legacy model. */
 const capturedModelOf = (record: CapturedUnitRecord): string | undefined => {
-  const legacy: ProbeBinding = legacyProbeBindings[record.surface];
-
   return record.captureMetadata
     ? (record.captureMetadata.requestedModel ?? undefined)
-    : legacy.model;
+    : legacyBindingOf(record.surface)?.model;
 };
 
 /**
  * surfaceLabelOverrides names the model in the label of every surface whose
  * captured answers were not asked of its default model (open models spec
- * §4): the default label claims the free-tier pin. Empty for a run on the
- * defaults, whose snapshot then carries no labels at all.
+ * §4): the default label claims the free-tier pin. Every declared custom
+ * surface gets its own label. Empty for a run on the defaults, whose
+ * snapshot then carries no labels at all.
  */
 export const surfaceLabelOverrides = (
   captured: readonly CapturedUnitRecord[],
+  /** The custom surfaces the config declares, with their labels. */
+  declared: readonly { key: string; label: string }[] = [],
 ): Record<string, string> => {
-  return Object.fromEntries(
-    modelBoundSurfaces.flatMap((surface) => {
-      const own: ProbeBinding = defaultProbeBindings[surface];
-      const asked = [
-        ...new Set(
-          captured
-            .filter((record) => record.surface === surface)
-            .flatMap((record) => capturedModelOf(record) ?? []),
-        ),
-      ].sort();
+  const askedOn = (surface: AeoSurface): string[] => {
+    return [
+      ...new Set(
+        captured
+          .filter((record) => record.surface === surface)
+          .flatMap((record) => capturedModelOf(record) ?? []),
+      ),
+    ].sort();
+  };
+  const labels: Record<string, string> = {};
 
-      if (asked.length === 0 || asked.every((model) => model === own.model)) {
-        return [];
-      }
+  for (const surface of modelBoundSurfaces) {
+    const own: ProbeBinding = defaultProbeBindings[surface];
+    const asked = askedOn(surface);
 
-      const label = surfaceLabels[surface] ?? surface;
+    if (asked.length > 0 && asked.some((model) => model !== own.model)) {
+      labels[surface] = (surfaceLabels[surface] ?? surface).replace(
+        /\)$/,
+        `, ${asked.join(', ')})`,
+      );
+    }
+  }
 
-      return [[surface, label.replace(/\)$/, `, ${asked.join(', ')})`)]];
-    }),
-  );
+  // A custom surface is always labelled: the audit's own label, and the
+  // model its captured answers were asked of.
+  for (const { key, label } of declared) {
+    const asked = askedOn(customSurfaceId(key));
+
+    labels[customSurfaceId(key)] =
+      asked.length === 0 ? label : `${label} (${asked.join(', ')})`;
+  }
+
+  return labels;
 };
 
 /**
@@ -475,7 +548,7 @@ export const bankBindingMismatches = (
   bindings: RunBindings,
 ): CapturedUnitRecord[] => {
   return records.filter((record) => {
-    const binding = bindings[record.surface];
+    const binding = bindingOf(bindings, record.surface);
 
     return (
       capturedAdapterOf(record) !== binding.adapter ||
@@ -487,14 +560,14 @@ export const bankBindingMismatches = (
 /** createChatAdapter is the adapter `surface` is bound to by default, asking
  * in the run's market. */
 export const createChatAdapter = (
-  surface: AeoChatSurface,
+  surface: AeoApiSurface,
   {
     geography,
     language,
     dependencies,
   }: { geography: string; language: string; dependencies: ProbeDependencies },
 ): ProbeAdapter => {
-  const binding = dependencies.bindings[surface];
+  const binding = bindingOf(dependencies.bindings, surface);
   const registered = dependencies.registry?.(surface, binding);
 
   if (registered) {
@@ -518,10 +591,12 @@ export const createChatAdapter = (
     case ProbeAdapterId.GATEWAY_OPENAI:
     case ProbeAdapterId.GATEWAY_GOOGLE:
     case ProbeAdapterId.GATEWAY_ANTHROPIC:
+    case ProbeAdapterId.GATEWAY_SEARCH:
       return createGatewayChatAdapter(binding.adapter, {
         surface,
         gateway: dependencies.gateway,
         model: requireModel(binding, surface),
+        market: { geography, language },
       });
 
     case ProbeAdapterId.GATEWAY_PERPLEXITY:

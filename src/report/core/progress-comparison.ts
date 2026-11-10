@@ -1,4 +1,8 @@
-import { isAgentSurface, type AeoSurface } from './surfaces';
+import {
+  surfaceFamilyOf,
+  type AeoSurface,
+  type SurfaceFamily,
+} from './surfaces';
 import type { ProgressMeasurement, ProgressSlot } from './progress-schema';
 import {
   hasRetainedCaptureIdentity,
@@ -78,13 +82,15 @@ export type ProgressComparison = {
   groups: {
     chat: ProgressGroupComparison | null;
     agents: ProgressGroupComparison | null;
+    /** The custom surfaces both audits measured (open models spec §5.3). */
+    custom: ProgressGroupComparison | null;
   };
 };
 
 export type ProgressSelection = {
   sectionKey?: string;
   surface?: AeoSurface;
-  scope?: 'all' | 'chat' | 'agents';
+  scope?: 'all' | SurfaceFamily;
 };
 
 const isSlotSelected = (
@@ -99,11 +105,11 @@ const isSlotSelected = (
     return false;
   }
 
-  if (selection.scope === 'chat' && isAgentSurface(slot.surface)) {
-    return false;
-  }
-
-  if (selection.scope === 'agents' && !isAgentSurface(slot.surface)) {
+  if (
+    selection.scope !== undefined &&
+    selection.scope !== 'all' &&
+    surfaceFamilyOf(slot.surface) !== selection.scope
+  ) {
     return false;
   }
 
@@ -198,7 +204,7 @@ export const deriveProgressComparison = (
       baselineExcludedSlots: 0,
       currentExcludedSlots: 0,
     },
-    groups: { chat: null, agents: null },
+    groups: { chat: null, agents: null, custom: null },
   };
 
   if (
@@ -399,10 +405,9 @@ export const deriveProgressComparison = (
         };
   };
 
-  for (const scope of ['chat', 'agents'] as const) {
+  for (const scope of ['chat', 'agents', 'custom'] as const) {
     const group = matched.filter(
-      ({ baseline: slot }) =>
-        isAgentSurface(slot.surface) === (scope === 'agents'),
+      ({ baseline: slot }) => surfaceFamilyOf(slot.surface) === scope,
     );
 
     if (!group.length) {

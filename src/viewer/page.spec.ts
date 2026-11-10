@@ -390,6 +390,34 @@ describe('viewer - viewerPage()', () => {
     ]);
   });
 
+  it("should show a surface by the snapshot's own label when it has one, as text", async () => {
+    const source = await exportedFiles(2);
+    const snapshot = z
+      .looseObject({ meta: z.looseObject({}) })
+      .parse(JSON.parse(String(source.files.get(snapshotPath))));
+
+    // A model override names the model; a label is never markup.
+    snapshot.meta['surfaceLabels'] = {
+      chatgpt: 'ChatGPT (API, openai/gpt-test-1)',
+      perplexity: '<b>Sonar</b>',
+    };
+    const files = new Map(source.files).set(
+      snapshotPath,
+      Buffer.from(JSON.stringify(snapshot)),
+    );
+    const page = await renderPage(await viewerFor({ ...source, files }));
+
+    expect(modelRowsOf(page)[0]?.map((cells) => cells[0]?.text)).toEqual([
+      'ChatGPT (API, openai/gpt-test-1)',
+      '<b>Sonar</b>',
+    ]);
+    expect(
+      elementsOf(page.root).some(
+        (element) => element.tag === 'b' && visibleTextOf(element) === 'Sonar',
+      ),
+    ).toBe(false);
+  });
+
   it('should open the counts on hover, focus and tap, keep them open while either lasts, and close them with Escape', async () => {
     const page = await renderPage(await viewerFor(await exportedFiles(2)));
     const interval = elementsOf(page.root).find(

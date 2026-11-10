@@ -26,7 +26,7 @@ export const syntheticRunId = '01M2SYNTHET1CRVNAAAAAAAAAA';
 export const syntheticReportKey = 'synthetic-bundle';
 export const oddSectionKey = 'Märkte/../Éditeurs';
 
-const surfaces: AeoSurface[] = ['chatgpt', 'perplexity'];
+const builtInSurfaces: AeoSurface[] = ['chatgpt', 'perplexity'];
 
 export const syntheticConfig = aeoAuditConfigSchema.parse({
   reportKey: syntheticReportKey,
@@ -92,18 +92,26 @@ export const createSyntheticRun = async (
     answerOverride,
     chatProbes,
     calculationVersion,
+    customSurface,
   }: {
     answerOverride?: string;
     chatProbes?: ChatProbeConfig;
+    /** A custom surface the run also measures (open models spec §5). */
+    customSurface?: { key: string; label: string };
     // The version an earlier release aggregated with; the engine's own
     // when absent.
     calculationVersion?: CalculationVersion;
   } = {},
 ): Promise<SyntheticRun> => {
-  const config: AeoAuditConfig =
-    chatProbes === undefined
-      ? syntheticConfig
-      : { ...syntheticConfig, chatProbes };
+  const config: AeoAuditConfig = {
+    ...syntheticConfig,
+    ...(chatProbes !== undefined && { chatProbes }),
+    ...(customSurface && { customSurfaces: [customSurface] }),
+  };
+  const surfaces: AeoSurface[] = [
+    ...builtInSurfaces,
+    ...(customSurface ? [`custom:${customSurface.key}` as const] : []),
+  ];
   const plan = capturePlan(config, surfaces);
   const [failedUnit, ...capturedUnits] = plan.units;
 

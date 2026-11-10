@@ -20,11 +20,60 @@ export const chatSurfaces = [
 
 export const agentSurfaces = ['claude_code', 'codex', 'cursor'] as const;
 
+/** The engine's own surfaces. A run may add custom ones (below). */
 export const allSurfaces = [...chatSurfaces, ...agentSurfaces] as const;
 
 export type AeoChatSurface = (typeof chatSurfaces)[number];
 export type AeoAgentSurface = (typeof agentSurfaces)[number];
-export type AeoSurface = (typeof allSurfaces)[number];
+export type AeoBuiltInSurface = (typeof allSurfaces)[number];
+
+// A custom surface (open models spec §5): any gateway model an audit
+// declares, measured as a surface of its own. The prefix keeps its ID apart
+// from every built-in one, present and future.
+export const customSurfacePrefix = 'custom:';
+export const customSurfaceKeyPattern = /^[a-z][a-z0-9_]{0,31}$/;
+
+export type AeoCustomSurface = `custom:${string}`;
+export type AeoSurface = AeoBuiltInSurface | AeoCustomSurface;
+/** A surface asked through a model API or a search API: every surface that
+ * is not a coding agent's CLI. */
+export type AeoApiSurface = AeoChatSurface | AeoCustomSurface;
+
+/** How many times a custom surface is asked each prompt, like the chat
+ * surfaces, when the audit sets no chat depth. */
+export const customSurfaceRunCount = 2;
+
+export const isCustomSurface = (
+  surface: string,
+): surface is AeoCustomSurface => {
+  return (
+    surface.startsWith(customSurfacePrefix) &&
+    customSurfaceKeyPattern.test(surface.slice(customSurfacePrefix.length))
+  );
+};
+
+export const isBuiltInSurface = (
+  surface: string,
+): surface is AeoBuiltInSurface => {
+  return allSurfaces.some((builtIn) => builtIn === surface);
+};
+
+/** The three scopes a surface is scored and compared in. */
+export type SurfaceFamily = 'chat' | 'agents' | 'custom';
+
+export const surfaceFamilyOf = (surface: string): SurfaceFamily => {
+  if (isAgentSurface(surface)) {
+    return 'agents';
+  }
+
+  return isCustomSurface(surface) ? 'custom' : 'chat';
+};
+
+/** The built-in chat and search surfaces: the ones the chat headline pair
+ * is scored over. A custom surface is in neither pair. */
+export const isChatSurface = (surface: string): surface is AeoChatSurface => {
+  return chatSurfaces.some((chatSurface) => chatSurface === surface);
+};
 
 /** Shared display names for audit facts and report evidence. The four
  * chat surfaces ask each provider's API with web search, not its consumer
@@ -51,7 +100,7 @@ export const isAgentSurface = (surface: string): surface is AeoAgentSurface => {
 // runsPerPromptOn (schema.ts) is the rule every planned-run denominator
 // reads, so a captured-answer shortfall lowers share of voice instead of
 // hiding.
-export const surfaceRunCounts: Readonly<Record<AeoSurface, number>> = {
+export const surfaceRunCounts: Readonly<Record<AeoBuiltInSurface, number>> = {
   chatgpt: 2,
   gemini: 2,
   claude: 2,

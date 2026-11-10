@@ -101,6 +101,9 @@ export const probeUsd: Readonly<Record<ProbeAdapterId, Range<number>>> = {
   [ProbeAdapterId.GATEWAY_GOOGLE]: { low: 0.02, high: 0.06 },
   [ProbeAdapterId.GATEWAY_ANTHROPIC]: { low: 0.02, high: 0.08 },
   [ProbeAdapterId.GATEWAY_PERPLEXITY]: { low: 0.01, high: 0.03 },
+  // Never read: the engine binds no model of its own to this adapter, so a
+  // probe through it is always priced from the catalog (probeEstimateUsd).
+  [ProbeAdapterId.GATEWAY_SEARCH]: { low: 0.02, high: 0.1 },
   [ProbeAdapterId.DATAFORSEO_AI_OVERVIEW]: { low: 0.002, high: 0.006 },
   [ProbeAdapterId.CLI_CLAUDE_CODE]: { low: 0, high: 0 },
   [ProbeAdapterId.CLI_CODEX]: { low: 0, high: 0 },
@@ -120,6 +123,11 @@ export const probeUsage = {
 /** The search fee per request assumed for a model whose catalog entry
  * lists none. */
 export const probeSearchUsd = 0.01;
+
+/** What the gateway charges for one request of its own search tool: "$5
+ * per 1,000 requests" (vercel.com/docs/ai-gateway/web-search, read
+ * 2026-11-10). */
+export const gatewaySearchUsd = 0.005;
 
 /** The calibrated workload a Codex session is: a batch of answer files
  * (analyze, qualify, review), the whole report (write) or a brief

@@ -21,6 +21,8 @@ export const ProbeAdapterId = {
   GATEWAY_GOOGLE: 'gateway.google@1',
   GATEWAY_ANTHROPIC: 'gateway.anthropic@1',
   GATEWAY_PERPLEXITY: 'gateway.perplexity@1',
+  // Any gateway model, searching through the gateway's own search tool.
+  GATEWAY_SEARCH: 'gateway.search@1',
   DATAFORSEO_AI_OVERVIEW: 'dataforseo.ai_overview@1',
   CLI_CLAUDE_CODE: 'cli.claude_code@1',
   CLI_CODEX: 'cli.codex@1',

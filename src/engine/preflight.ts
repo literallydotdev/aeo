@@ -8,6 +8,7 @@ import {
   versionForSurface,
 } from '../probes/agent-clis';
 import {
+  bindingOf,
   probeAdapterProfiles,
   profileOf,
   type ProbeBinding,
@@ -347,7 +348,7 @@ export const runPreflight = async (args: {
   const required = new Set<string>([
     gatewaySetting,
     ...chatSurfaces.flatMap((surface) =>
-      profileOf(bindings[surface])
+      profileOf(bindingOf(bindings, surface))
         .settings.filter((setting) => setting.group === undefined)
         .map((setting) => setting.name),
     ),
@@ -357,7 +358,7 @@ export const runPreflight = async (args: {
   checks.push(
     ...[...required].map((name) => settingCheck(name, settings)),
     ...chatSurfaces.map((surface) =>
-      chatBindingCheck(surface, bindings[surface], settings),
+      chatBindingCheck(surface, bindingOf(bindings, surface), settings),
     ),
   );
 

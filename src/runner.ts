@@ -12,7 +12,9 @@ import {
   allSurfaces,
   chatSurfaces,
   aeoSnapshotSchema,
+  customSurfacePrefix,
   isAgentSurface,
+  isCustomSurface,
 } from './schema';
 import { createLog } from './lib/log';
 import type { AgentCliVersions } from './probes/agent-clis';
@@ -118,9 +120,24 @@ export const planRun = (
   // The request's surfaces are the operator's override (a narrowed
   // re-probe); otherwise the config decides whether the coding agents are
   // measured (specs/aeo-surface-selection-spec.md §3.2).
-  const surfaces: readonly AeoSurface[] =
-    request.surfaces ??
-    (config.surfaces.codingAgents === 'skip' ? chatSurfaces : allSurfaces);
+  const declared = (config.customSurfaces ?? []).map(
+    ({ key }): AeoSurface => `${customSurfacePrefix}${key}`,
+  );
+  const surfaces: readonly AeoSurface[] = request.surfaces ?? [
+    ...(config.surfaces.codingAgents === 'skip' ? chatSurfaces : allSurfaces),
+    ...declared,
+  ];
+  // A custom surface has a label and a binding only when the config
+  // declares it: one the plan merely names would be measured as nothing.
+  const undeclared = surfaces.filter(
+    (surface) => isCustomSurface(surface) && !declared.includes(surface),
+  );
+
+  if (undeclared.length > 0) {
+    throw new RunRequestError(
+      `The run names ${undeclared.join(', ')}, which the config's customSurfaces does not declare. Please declare each custom surface, or leave it out of the run.`,
+    );
+  }
 
   const units = sections.flatMap((section) =>
     plannedProbeUnitsForSection({

@@ -147,10 +147,11 @@ const rateFigure = (rate, recorded, subject, counted) => {
 const rateStat = (label, rate, recorded, counted) =>
   el('div', { class: 'stat' }, ...rateFigure(rate, recorded, label.toLowerCase(), counted), label);
 // Every surface that ran, each with its own pair of rates.
-const modelTable = (byModel) => {
+const modelTable = (byModel, labelOf) => {
   const rows = Object.entries(byModel && typeof byModel === 'object' ? byModel : {})
-    .map(([model, rates]) => {
+    .map(([surface, rates]) => {
       const { shareOfVoice, citationRate, shareOfVoiceEvidence, citationRateEvidence } = rates || {};
+      const model = labelOf(surface);
       return el('tr', {},
         el('td', {}, model),
         el('td', {}, ...rateFigure(shareOfVoice, shareOfVoiceEvidence, model + ' share of voice', 'Mentioned')),
@@ -222,6 +223,13 @@ const render = async () => {
     promptIds.set(configured.key, configured.prompts.map((prompt) => prompt.id));
   }
 
+  // A surface asked of another model than its default, and every custom
+  // surface, carries its own label in the snapshot; any other is shown by
+  // its ID. Like every string of a bundle, a label is inserted as text.
+  const labels = (snapshot.meta && snapshot.meta.surfaceLabels) || {};
+  const labelOf = (surface) =>
+    typeof labels[surface] === 'string' && labels[surface] ? labels[surface] : surface;
+
   for (const section of snapshot.sections) {
     const { summary, matrix, prompts } = section.visibility;
     root.append(el('h2', {}, 'Section ' + section.key));
@@ -238,7 +246,7 @@ const render = async () => {
     ));
     root.append(el('p', { class: 'muted' },
       'Share of voice is how often the measured answers name the product, not market share.'));
-    root.append(...modelTable(summary.byModel));
+    root.append(...modelTable(summary.byModel, labelOf));
     const drawer = el('div', { class: 'drawer', hidden: '' });
     const body = el('tbody');
     for (const row of matrix) {
@@ -248,7 +256,7 @@ const render = async () => {
       const open = () => {
         drawer.removeAttribute('hidden');
         drawer.replaceChildren(
-          el('h3', {}, row.surface + ', run ' + (row.runIndex || 0)),
+          el('h3', {}, labelOf(row.surface) + ', run ' + (row.runIndex || 0)),
           el('p', {}, prompt.text),
           record ? el('pre', {}, record.probe.text)
                  : el('p', { class: 'limited' }, 'The answer is not in this bundle.'),
@@ -261,7 +269,7 @@ const render = async () => {
       body.append(el('tr', { class: 'row', tabindex: '0', onclick: open,
         onkeydown: (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } } },
         el('td', {}, prompt.text),
-        el('td', {}, row.surface),
+        el('td', {}, labelOf(row.surface)),
         el('td', {}, String(row.runIndex || 0)),
         el('td', {}, row.prospectMentioned ? 'mentioned' + (row.prospectPosition ? ' (' + row.prospectPosition + ')' : '') : 'not mentioned'),
         el('td', {}, (row.qualifiedCompetitors || []).map((entry) => entry.name).join(', ')),

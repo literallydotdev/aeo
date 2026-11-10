@@ -42,7 +42,7 @@ import {
   type RunBindings,
 } from '../probes/bindings';
 import { estimateBindingsOf } from '../engine/run-bindings';
-import { requestedBindings } from '../engine/audit-file';
+import { measuredSurfaces, requestedBindings } from '../engine/audit-file';
 import {
   readAuthorEvidence,
   readBrief,
@@ -111,7 +111,7 @@ const probesFor = async (
   );
   const priced = await resolveRunModels(
     bank,
-    catalogPricedModels(bindings, file.surfaces),
+    catalogPricedModels(bindings, measuredSurfaces(file)),
     { source: catalogOf(settings), now: new Date(), freeze: false },
   );
 

@@ -1,25 +1,43 @@
 import { plannedProbeUnitsForSection } from '../lib/checkpoint';
 import type { AeoAuditConfig, AeoSnapshot, AeoSurface } from '../schema';
-import { allSurfaces, isAgentSurface, surfaceLabels } from '../surfaces';
+import {
+  allSurfaces,
+  isCustomSurface,
+  surfaceFamilyOf,
+  surfaceLabels,
+  type SurfaceFamily,
+} from '../surfaces';
 import type { ReportFact } from './facts';
 import { pendingReportCopy } from './copy-schema';
+
+const groupNames: Readonly<Record<SurfaceFamily, string>> = {
+  chat: 'chat and search assistants',
+  agents: 'coding agents',
+  custom: 'custom models',
+};
 
 const capturedSurfaceNames = (
   surfaces: ReadonlySet<AeoSurface>,
   /** The snapshot's own labels, for surfaces asked of another model. */
   labels: Readonly<Record<string, string>>,
 ): string => {
-  const captured = allSurfaces.filter((surface) => surfaces.has(surface));
-  const names = (agents: boolean) => {
+  const captured = [
+    ...allSurfaces.filter((surface) => surfaces.has(surface)),
+    ...[...surfaces].filter(isCustomSurface).sort(),
+  ];
+  const names = (family: SurfaceFamily) => {
     const joined = captured
-      .filter((surface) => isAgentSurface(surface) === agents)
-      .map((surface) => labels[surface] ?? surfaceLabels[surface])
+      .filter((surface) => surfaceFamilyOf(surface) === family)
+      .map((surface) => labels[surface] ?? surfaceLabels[surface] ?? surface)
       .join(', ');
 
     return joined === '' ? 'none' : joined;
   };
+  // Named only when one was captured: every other run's sentence keeps its
+  // bytes (open models spec §5.3).
+  const custom = names('custom');
 
-  return `Captured chat and search assistants: ${names(false)}. Captured coding agents: ${names(true)}.`;
+  return `Captured chat and search assistants: ${names('chat')}. Captured coding agents: ${names('agents')}.${custom === 'none' ? '' : ` Captured custom models: ${custom}.`}`;
 };
 
 /**
@@ -111,9 +129,9 @@ export const buildNarrativeFacts = (
       unit: 'count',
       sentence: `This audit tested ${config.brand.name} in the ${market} section using these questions: ${JSON.stringify(configured.prompts.map(({ text }) => text))}. These are the configured audit questions, not measured search demand or verified customer conversations. Locale: ${config.geography}, language: ${config.language}.`,
     });
-    for (const group of ['chat', 'agents'] as const) {
+    for (const group of ['chat', 'agents', 'custom'] as const) {
       const surfaces = section.visibility.surfaces.filter(
-        (surface) => isAgentSurface(surface) === (group === 'agents'),
+        (surface) => surfaceFamilyOf(surface) === group,
       );
 
       if (!surfaces.length) {
@@ -130,8 +148,7 @@ export const buildNarrativeFacts = (
         agentProbes: config.agentProbes,
         chatProbes: config.chatProbes,
       }).length;
-      const names =
-        group === 'agents' ? 'coding agents' : 'chat and search assistants';
+      const names = groupNames[group];
       const entities = [
         { ...config.brand, prospect: true },
         ...(configured.competitors ?? config.competitors).map((brand) => ({

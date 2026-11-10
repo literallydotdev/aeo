@@ -254,7 +254,10 @@ export const finishRun = async (args: {
     partialFailures,
     generatedAt: createdAt,
     analyzer: codexAnalyzer(args.stageModelId),
-    surfaceLabels: surfaceLabelOverrides(source.captured),
+    surfaceLabels: surfaceLabelOverrides(
+      source.captured,
+      config.customSurfaces,
+    ),
   });
 
   const snapshotFile = path.join(dir, 'OUT', 'snapshot.json');

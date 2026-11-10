@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { progressSlotKey } from './progress-slot-key';
-import { allSurfaces } from './surfaces';
+import { aeoSurfaceSchema } from './schema';
+import { isCustomSurface } from './surfaces';
 
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
 const runId = z.string().regex(/^[a-zA-Z0-9_-]{1,180}$/);
@@ -25,7 +26,7 @@ const progressSlotSchema = z
   .object({
     sectionKey: z.string().min(1).max(180),
     questionKey: digest,
-    surface: z.enum(allSurfaces),
+    surface: aeoSurfaceSchema,
     runIndex: z.number().int().positive(),
     captured: z.boolean(),
     analyzed: z.boolean(),
@@ -69,7 +70,10 @@ const progressSlotSchema = z
  * inferred types only; Zod and private input validation remain on the server. */
 export const progressMeasurementSchema = z
   .object({
-    version: z.literal(1),
+    // Version 2 may hold a custom surface (open models spec §5.4), which a
+    // reader of version 1 alone would refuse as an unknown value. A
+    // measurement without one is still written as version 1, byte for byte.
+    version: z.union([z.literal(1), z.literal(2)]),
     runId,
     // Presentation only, and only for consumers before 0.5.0, which label
     // their question-set selector with it. Stored history keeps it.
@@ -111,6 +115,16 @@ export const progressMeasurementSchema = z
       context.addIssue({
         code: 'custom',
         message: 'Progress capture window is inconsistent',
+      });
+    }
+
+    if (
+      point.version === 1 &&
+      point.slots.some((slot) => isCustomSurface(slot.surface))
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'A version 1 progress measurement holds no custom surface',
       });
     }
 

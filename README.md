@@ -76,12 +76,30 @@ in `audit.json`:
 "probes": { "chatgpt": { "model": "openai/gpt-6-sol" } }
 ```
 
-Any model of that provider works, with no further check: it is asked
-through the provider's own web search, priced from the same model list, and
-named in the surface's label ("ChatGPT (API, openai/gpt-6-sol)"). A run
-keeps the models it started with. Swapping a model does not change what the
-run measures (the questions, surfaces and depth), only how; a comparison
-with an earlier run says the collection method changed.
+Any model works, with no further check. A model of the surface's own
+provider is asked through that provider's web search; a model of another
+provider searches through the gateway's own search tool. Either way it is
+priced from the same model list and named in the surface's label ("ChatGPT
+(API, openai/gpt-6-sol)"). A run keeps the models it started with. Swapping
+a model does not change what the run measures (the questions, surfaces and
+depth), only how; a comparison with an earlier run says the collection
+method changed.
+
+To measure a model as a surface of its own, declare it:
+
+```json
+"customSurfaces": [
+  { "key": "mistral", "label": "Mistral Large 4", "model": "mistral/mistral-large-4" }
+]
+```
+
+Up to eight. A custom surface is asked every question, as often as the chat
+surfaces, in the audit's country and language, through the gateway's search
+tool. It is scored on its own line, under its label and its model, and it
+is never part of the headline rates: those stay the four API chat surfaces
+and Google AI Overviews, so they keep meaning the same thing from one
+report to the next. A model that cannot call the search tool fails its
+answers one by one; there is no check before the first paid call.
 
 `literally-aeo plan` estimates what a run costs, as a range per kind of
 work: the assistant answers, the analysis stages, the other model calls and

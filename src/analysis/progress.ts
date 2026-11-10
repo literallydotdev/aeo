@@ -1,4 +1,5 @@
 import type { AeoAuditConfig, AeoSnapshot } from '../schema';
+import { isCustomSurface } from '../surfaces';
 import {
   capturePlan,
   validateCaptureManifest,
@@ -315,7 +316,7 @@ export const projectProgressMeasurement = (
   }
 
   return {
-    version: 1,
+    version: slots.some((slot) => isCustomSurface(slot.surface)) ? 2 : 1,
     runId,
     ...(config.questionSetName
       ? { questionSetName: config.questionSetName }

@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import { retrievalCallKinds, retrievalExposures } from './retrieval';
-import { allSurfaces } from './surfaces';
+import {
+  allSurfaces,
+  isCustomSurface,
+  type AeoCustomSurface,
+} from './surfaces';
 
 export const aeoSnapshotVersion = 2;
 
@@ -21,10 +25,30 @@ export {
   chatSurfaces,
   surfaceRunCounts,
   isAgentSurface,
+  isBuiltInSurface,
+  isChatSurface,
+  isCustomSurface,
+  customSurfacePrefix,
+  customSurfaceKeyPattern,
+  customSurfaceRunCount,
 } from './surfaces';
-export type { AeoAgentSurface, AeoChatSurface, AeoSurface } from './surfaces';
+export type {
+  AeoAgentSurface,
+  AeoApiSurface,
+  AeoBuiltInSurface,
+  AeoChatSurface,
+  AeoCustomSurface,
+  AeoSurface,
+} from './surfaces';
 
-export const aeoSurfaceSchema = z.enum(allSurfaces);
+export const aeoSurfaceSchema = z.union([
+  z.enum(allSurfaces),
+  // The z.custom keeps the template type that z.string() would widen.
+  z.custom<AeoCustomSurface>(
+    (value) => typeof value === 'string' && isCustomSurface(value),
+    { error: 'Expected a built-in surface or a custom surface ID.' },
+  ),
+]);
 
 // ---------------------------------------------------------------------------
 // Retrieval log (retrieval-log spec §4) — the searches and fetches behind one

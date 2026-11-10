@@ -199,7 +199,7 @@ describe('progress-schema - parseProgressMeasurement()', () => {
   );
 
   it.each([
-    ['version', 2],
+    ['version', 3],
     ['runId', '../private'],
     ['measurementId', 'bad-digest'],
     ['brandIdentity', 'bad-digest'],
@@ -215,6 +215,31 @@ describe('progress-schema - parseProgressMeasurement()', () => {
     };
 
     expect(parse).toThrow('Invalid stored progress measurement');
+  });
+
+  it('should hold a custom surface only as version 2', () => {
+    const point = fixture();
+    const [slot] = point.slots;
+    const custom = { ...point, slots: [{ ...slot, surface: 'custom:grok' }] };
+
+    expect(
+      parseProgressMeasurement({ ...custom, version: 2 }, 'run-1').slots[0]
+        ?.surface,
+    ).toBe('custom:grok');
+    expect(() => parseProgressMeasurement(custom, 'run-1')).toThrow(
+      'Invalid stored progress measurement',
+    );
+    // An ID that is neither built in nor a custom one is no surface.
+    expect(() =>
+      parseProgressMeasurement(
+        {
+          ...custom,
+          version: 2,
+          slots: [{ ...slot, surface: 'custom:Not A Key' }],
+        },
+        'run-1',
+      ),
+    ).toThrow('Invalid stored progress measurement');
   });
 
   it.each([

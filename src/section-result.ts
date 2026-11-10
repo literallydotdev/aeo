@@ -1,6 +1,5 @@
 import type {
   AeoAgentSurface,
-  AeoChatSurface,
   AeoEvidenceChunk,
   AeoMatrixRow,
   AeoVisibility,
@@ -12,6 +11,8 @@ import {
   chatSurfaces,
   evidenceChunkFileName,
   isAgentSurface,
+  isChatSurface,
+  isCustomSurface,
 } from './schema';
 import {
   computeAISearchSummary,
@@ -43,6 +44,15 @@ import type {
 
 /** The evidence beside a share of voice and a citation rate (calculation
  * version 2); a rate with nothing planned gets none. */
+/** Orders by UTF-16 code units, independent of the host's locale. */
+const compareCodeUnits = (left: string, right: string): number => {
+  if (left === right) {
+    return 0;
+  }
+
+  return left < right ? -1 : 1;
+};
+
 const evidenceOf = (
   counts: ScoringCounts,
 ): { shareOfVoice: RateEvidence | null; citationRate: RateEvidence | null } => {
@@ -75,13 +85,15 @@ export const assembleSectionResult = (
   analyses: readonly PromptAnalysisResult[],
 ): SectionRunResult => {
   const withEvidence = args.calculationVersion >= 2;
-  const selectedChatSurfaces = args.surfaces.filter(
-    (s): s is AeoChatSurface => !isAgentSurface(s),
-  );
+  const selectedChatSurfaces = args.surfaces.filter(isChatSurface);
 
   const selectedAgentSurfaces = args.surfaces.filter(
     (s): s is AeoAgentSurface => isAgentSurface(s),
   );
+  // In ID order: a custom surface has no canonical position of its own.
+  const selectedCustomSurfaces = args.surfaces
+    .filter(isCustomSurface)
+    .sort(compareCodeUnits);
 
   const depth = { agentProbes: args.agentProbes, chatProbes: args.chatProbes };
   const agentPrompts = agentProbedPrompts(args.prompts, args.agentProbes);
@@ -138,9 +150,25 @@ export const assembleSectionResult = (
           competitorDomains,
           prompts: promptsForScoring,
           results: allResults
-            .filter((r) => !isAgentSurface(r.surface))
+            .filter((r) => isChatSurface(r.surface))
             .map(toScoringInput),
           surfaces: selectedChatSurfaces,
+          depth,
+        })
+      : null;
+  // Custom surfaces (open models spec §5.3) are in neither headline pair:
+  // a set of models the audit chose has no single meaning. They are scored
+  // only for their own lines in byModel.
+  const customSummary =
+    selectedCustomSurfaces.length > 0 && promptsForScoring.length > 0
+      ? computeAISearchSummary({
+          clientDomain: args.brand.domain,
+          competitorDomains,
+          prompts: promptsForScoring,
+          results: allResults
+            .filter((r) => isCustomSurface(r.surface))
+            .map(toScoringInput),
+          surfaces: selectedCustomSurfaces,
           depth,
         })
       : null;
@@ -164,7 +192,7 @@ export const assembleSectionResult = (
   // (0-1 rates). byModel spans every surface that ran.
   const byModel: AeoVisibility['summary']['byModel'] = {};
 
-  for (const summary of [chatSummary, agentSummary]) {
+  for (const summary of [chatSummary, agentSummary, customSummary]) {
     if (!summary) {
       continue;
     }
@@ -187,9 +215,10 @@ export const assembleSectionResult = (
   }
 
   // Competitor scores come from whichever scope was measured — chat when it
-  // ran (the v1-comparable set), otherwise the agent runs. They split the
-  // captured answers, so version 2 adds their counts, not an interval.
-  const competitorSummary = chatSummary ?? agentSummary;
+  // ran (the v1-comparable set), otherwise the agent runs, otherwise the
+  // custom surfaces. They split the captured answers, so version 2 adds
+  // their counts, not an interval.
+  const competitorSummary = chatSummary ?? agentSummary ?? customSummary;
   const byCompetitor = (competitorSummary?.competitorScores ?? []).map(
     (c, index) => {
       const counts = withEvidence
@@ -299,6 +328,7 @@ export const assembleSectionResult = (
     surfaces: [
       ...chatSurfaces.filter((s) => selectedChatSurfaces.includes(s)),
       ...agentSurfaces.filter((s) => selectedAgentSurfaces.includes(s)),
+      ...selectedCustomSurfaces,
     ],
     matrix,
     summary: {
@@ -364,10 +394,16 @@ const surfaceOrder = new Map<string, number>(
   allSurfaces.map((surface, index) => [surface, index]),
 );
 
+// A custom surface comes after every built-in one, in ID order.
+const positionOf = (surface: string): number => {
+  return surfaceOrder.get(surface) ?? allSurfaces.length;
+};
+
 const compareRuns = (a: AnalyzedRun, b: AnalyzedRun): number => {
   return (
     a.promptIdx - b.promptIdx ||
-    (surfaceOrder.get(a.surface) ?? 0) - (surfaceOrder.get(b.surface) ?? 0) ||
+    positionOf(a.surface) - positionOf(b.surface) ||
+    compareCodeUnits(a.surface, b.surface) ||
     a.runIndex - b.runIndex
   );
 };

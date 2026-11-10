@@ -589,7 +589,11 @@ describe('progress - projectProgressMeasurement()', () => {
     ]);
     expect(comparison.status).toBe('unavailable');
     expect(comparison.reasons).toContain('same_measurement');
-    expect(comparison.groups).toEqual({ chat: null, agents: null });
+    expect(comparison.groups).toEqual({
+      chat: null,
+      agents: null,
+      custom: null,
+    });
   });
 
   it.each(['measurement', 'window', 'capture', 'empty'] as const)(
@@ -829,7 +833,11 @@ describe('progress - deriveProgressComparison()', () => {
     expect(result.status).toBe('unavailable');
     expect(result.reasons).toEqual(['scope_changed']);
     expect(result.matched).toMatchObject({ slots: 3, currentExcludedSlots: 2 });
-    expect(result.groups).toEqual({ chat: null, agents: null });
+    expect(result.groups).toEqual({
+      chat: null,
+      agents: null,
+      custom: null,
+    });
     expect(chat.status).toBe('comparable');
     expect(chat.groups.chat).toMatchObject({
       baseline: { planned: 1, mentionRate: 0 },
@@ -1034,6 +1042,50 @@ describe('progress - deriveProgressComparison()', () => {
     expect(getFirst(point.slots).requestedModel).toBe(
       'observed/google_ai_overview',
     );
+  });
+});
+
+describe('progress - deriveProgressComparison() with a custom surface', () => {
+  it('should compare the custom surfaces both audits measured as their own group, outside chat and agents', () => {
+    const cfg = aeoAuditConfigSchema.parse({
+      ...config(),
+      customSurfaces: [{ key: 'grok', label: 'Grok 5' }],
+    });
+    const audit = (runId: string, mentioned: number[]) => {
+      return projectProgressMeasurement(
+        fixture({
+          runId,
+          config: cfg,
+          surfaces: ['google_ai_overview', 'custom:grok'],
+          mentioned,
+        }),
+      );
+    };
+    // Unit 0 is AI Overview's one run; units 1 and 2 are the custom
+    // surface's two.
+    const baseline = audit('baseline', []);
+    const current = audit('current', [1, 2]);
+
+    const result = deriveProgressComparison({ baseline, current });
+    const customOnly = deriveProgressComparison(
+      { baseline, current },
+      { scope: 'custom' },
+    );
+
+    expect(current.version).toBe(2);
+    expect(result.status).toBe('comparable');
+    expect(result.groups.chat).toMatchObject({
+      current: { planned: 1, mentioned: 0 },
+      mentionDeltaPp: 0,
+    });
+    expect(result.groups.custom).toMatchObject({
+      baseline: { planned: 2, mentioned: 0 },
+      current: { planned: 2, mentioned: 2 },
+      mentionDeltaPp: 100,
+    });
+    expect(result.groups.agents).toBeNull();
+    expect(customOnly.groups).toMatchObject({ chat: null, agents: null });
+    expect(customOnly.groups.custom?.current.planned).toBe(2);
   });
 });
 

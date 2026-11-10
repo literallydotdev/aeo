@@ -17,6 +17,7 @@ import { isAgentSurface, type AeoAgentSurface } from '../surfaces';
 import type { ProbeTrace } from '../probes/probe-trace';
 import {
   bankBindingMismatches,
+  bindingOf,
   RunBindingsError,
   type ProbeDependencies,
   type RunBindings,
@@ -142,7 +143,7 @@ export const assertBankUsable = async (
     const surfaces = [...new Set(mismatched.map((record) => record.surface))];
     const bound = surfaces
       .map((surface) => {
-        const { adapter, model } = bindings[surface];
+        const { adapter, model } = bindingOf(bindings, surface);
 
         return `${surface} (${model === undefined ? adapter : `${adapter}, ${model}`})`;
       })

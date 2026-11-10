@@ -1,7 +1,7 @@
 import { streamText } from 'ai';
 import { gatewayCostUsd } from '../../models/gateway-cost';
 import { probeUsd } from '../../models/cost-coefficients';
-import type { AeoChatSurface } from '../../surfaces';
+import type { AeoApiSurface } from '../../surfaces';
 import {
   ProbeAdapterId,
   type ChatModelProvider,
@@ -43,7 +43,7 @@ export const createGatewayPerplexityAdapter = ({
   gateway,
   model,
 }: {
-  surface: AeoChatSurface;
+  surface: AeoApiSurface;
   gateway: ChatModelProvider;
   model: string;
 }): ProbeAdapter => {

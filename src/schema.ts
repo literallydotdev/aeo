@@ -4,11 +4,14 @@ import {
   brandSchema,
   aeoPromptSchema,
   aeoSurfaceSchema,
+  customSurfaceKeyPattern,
+  customSurfaceRunCount,
   isAgentSurface,
+  isCustomSurface,
   sourceCategorySchema,
   surfaceRunCounts,
-  type AeoChatSurface,
   type AeoSurface,
+  type AeoApiSurface,
 } from './report/core/schema';
 import { coverageThresholdsSchema } from './coverage-schema';
 import { groundingBundleSchema } from './grounding/schema';
@@ -74,10 +77,15 @@ export type ChatProbeConfig = z.infer<typeof chatProbeConfigSchema>;
 /** chatRunsPerPrompt is how many times each prompt is asked on a chat
  * surface. */
 export const chatRunsPerPrompt = (
-  surface: AeoChatSurface,
+  surface: AeoApiSurface,
   chatProbes: ChatProbeConfig | undefined,
 ): number => {
-  return chatProbes?.runsPerPrompt ?? surfaceRunCounts[surface];
+  return (
+    chatProbes?.runsPerPrompt ??
+    (isCustomSurface(surface)
+      ? customSurfaceRunCount
+      : surfaceRunCounts[surface])
+  );
 };
 
 export type ProbeDepth = {
@@ -106,6 +114,9 @@ const ownedCompetitorDomainSchema = z
     /^(?=.{1,253}$)(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.?$/,
     'Expected a domain name without a URL, path or port',
   );
+
+/** How many custom surfaces one audit may declare. */
+export const maxCustomSurfaces = 8;
 
 export const aeoAuditConfigSchema = z.object({
   reportKey: z.string().min(1),
@@ -136,6 +147,23 @@ export const aeoAuditConfigSchema = z.object({
   // Grounds accuracy flagging (§7.2): claims contradicting this brief are
   // flagged for human verification.
   productBrief: z.string().min(1),
+  // The custom surfaces the audit declares (open models spec §5): the plan
+  // needs their IDs and the facts their labels. Their models are bindings,
+  // never configuration: a model is how a surface is asked, not what is
+  // measured. Absent when none is declared, so a config without them
+  // parses, and digests, exactly as before.
+  customSurfaces: z
+    .array(
+      z
+        .object({
+          key: z.string().regex(customSurfaceKeyPattern),
+          label: z.string().trim().min(1).max(60),
+        })
+        .strict(),
+    )
+    .min(1)
+    .max(maxCustomSurfaces)
+    .optional(),
   // Whether the coding agents are measured (specs/aeo-surface-selection-spec
   // §3.1): the author decides from who the buyers are, with the reason the
   // config gate shows. The default keeps every stored config measuring all

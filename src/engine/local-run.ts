@@ -49,6 +49,7 @@ import { openFileStores } from '../stores/files';
 import type { CapturedUnitRecord } from '../stores/ports';
 import { getEnvironment } from '../lib/env';
 import {
+  measuredSurfaces,
   requestedBindings,
   toAuditConfig,
   toRunRequest,
@@ -302,7 +303,7 @@ const openLockedLocalRun = async (
     (
       await resolveRunModels(
         bank,
-        catalogPricedModels(bindings, file.surfaces),
+        catalogPricedModels(bindings, measuredSurfaces(file)),
         pricing,
       )
     ).map((entry) => [entry.model.id, entry.model]),

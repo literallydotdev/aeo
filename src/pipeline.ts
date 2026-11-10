@@ -1,7 +1,7 @@
 import type {
   AeoAgentSurface,
   AeoBrand,
-  AeoChatSurface,
+  AeoApiSurface,
   AeoEvidenceChunk,
   AeoPrompt,
   AeoSurface,
@@ -24,8 +24,12 @@ import type { ProbeFailureKind } from './probes/failure';
 import type { ProbeLimiter } from './probes/limits';
 import { withSection, type ProbeTrace } from './probes/probe-trace';
 import { requestedModelOf } from './probes/attempt';
-import type { ProbeDependencies, RunBindings } from './probes/bindings';
-import { legacyProbeBindings } from './probes/legacy-bindings';
+import {
+  bindingOf,
+  legacyBindingOf,
+  type ProbeDependencies,
+  type RunBindings,
+} from './probes/bindings';
 import {
   plannedProbeUnitsForSection,
   probeUnitKey,
@@ -216,7 +220,7 @@ const capturedRequestedModel = (
   bindings: RunBindings,
 ): string | null => {
   return requestedModelOf(
-    bindings[probe.modelName],
+    bindingOf(bindings, probe.modelName),
     'requestedModel' in probe ? probe.requestedModel : undefined,
   );
 };
@@ -229,9 +233,10 @@ const recordedAdapterOf = (
   surface: AeoSurface,
   bindings: RunBindings,
 ): { adapter?: string } => {
-  const { adapter } = bindings[surface];
+  const { adapter } = bindingOf(bindings, surface);
 
-  return adapter === legacyProbeBindings[surface].adapter ? {} : { adapter };
+  // A custom surface has no legacy adapter: its capture always names one.
+  return adapter === legacyBindingOf(surface)?.adapter ? {} : { adapter };
 };
 
 const isAgentProbe = (probe: Probe): probe is AgentProbeResult => {
@@ -241,8 +246,10 @@ const isAgentProbe = (probe: Probe): probe is AgentProbeResult => {
 export const captureSectionProbes = async (
   args: SectionRunArgs,
 ): Promise<SectionCapture> => {
+  // Every surface asked through an API: the chat surfaces and the custom
+  // ones, which share the chat batch and its depth.
   const selectedChatSurfaces = args.surfaces.filter(
-    (s): s is AeoChatSurface => !isAgentSurface(s),
+    (s): s is AeoApiSurface => !isAgentSurface(s),
   );
 
   const selectedAgentSurfaces = args.surfaces.filter(

@@ -17,6 +17,7 @@ import {
 } from '../models/supported-models';
 import { resolveDataForSeoLocale } from '../probes/dataforseo-locale';
 import {
+  customSurfaceId,
   modelAdapterIds,
   modelBoundSurfaces,
   requestedBindingsOf,
@@ -30,10 +31,14 @@ import {
   brandSchema,
   chatProbeConfigSchema,
   coverageThresholdsSchema,
+  customSurfaceKeyPattern,
   defaultMaxPlannedUnits,
   isAgentSurface,
+  isCustomSurface,
+  maxCustomSurfaces,
   runRequestSchema,
   type AeoAuditConfig,
+  type AeoSurface,
   type RunRequest,
 } from '../schema';
 import type { RequestedBindings } from './run-bindings';
@@ -160,6 +165,17 @@ const probeOverridesSchema = z
   })
   .strict();
 
+const customSurfaceSchema = probeOverrideSchema
+  .extend({
+    key: z.string().regex(customSurfaceKeyPattern, {
+      error:
+        'A custom surface key is 1 to 32 lowercase letters, digits or underscores, starting with a letter.',
+    }),
+    // Shown in the report; inserted as text, never as markup.
+    label: z.string().trim().min(1).max(60),
+  })
+  .strict();
+
 export const auditFileSchema = z
   .object({
     version: z.literal(auditFileVersion),
@@ -173,6 +189,14 @@ export const auditFileSchema = z
     // surface's pinned free-tier model. Never part of the measurement
     // digest: a model is how a surface was asked, not what was measured.
     probes: probeOverridesSchema.optional(),
+    // Any gateway model as a surface of its own (open models spec §5),
+    // asked every question at the chat depth and scored on its own line,
+    // outside the headline rates. Every declared one is measured.
+    customSurfaces: z
+      .array(customSurfaceSchema)
+      .min(1)
+      .max(maxCustomSurfaces)
+      .optional(),
     brand: brandSchema,
     competitors: z.array(brandSchema).min(1),
     ownedDomains: z.array(z.string().min(1)).max(20).optional(),
@@ -199,6 +223,31 @@ export const auditFileSchema = z
   })
   .strict()
   .superRefine((file, context) => {
+    const declared = (file.customSurfaces ?? []).map(({ key }) => key);
+
+    for (const [index, key] of declared.entries()) {
+      if (declared.indexOf(key) !== index) {
+        context.addIssue({
+          code: 'custom',
+          message: `Two custom surfaces share the key ${JSON.stringify(key)}; each needs its own.`,
+          path: ['customSurfaces', index, 'key'],
+        });
+      }
+    }
+
+    for (const [index, surface] of file.surfaces.entries()) {
+      if (
+        isCustomSurface(surface) &&
+        !declared.some((key) => customSurfaceId(key) === surface)
+      ) {
+        context.addIssue({
+          code: 'custom',
+          message: `surfaces names ${surface}, which customSurfaces does not declare.`,
+          path: ['surfaces', index],
+        });
+      }
+    }
+
     // Never a silent fallback to the US: AI Overviews and grounding search
     // are placed in this market or the config is refused.
     if (!resolveDataForSeoLocale(file.geography, file.language)) {
@@ -330,6 +379,12 @@ export const toAuditConfig = (file: AuditFile): AeoAuditConfig => {
       codingAgents: measuresAgents ? 'measure' : 'skip',
       because: 'Selected by the operator in audit.json.',
     },
+    ...(file.customSurfaces && {
+      customSurfaces: file.customSurfaces.map(({ key, label }) => ({
+        key,
+        label,
+      })),
+    }),
     geography: file.geography,
     language: file.language,
   });
@@ -341,13 +396,27 @@ export const toAuditConfig = (file: AuditFile): AeoAuditConfig => {
  * defaults with its model overrides, and which surfaces it overrides. */
 export const requestedBindings = (file: AuditFile): RequestedBindings => {
   const overrides = file.probes ?? {};
+  const custom = file.customSurfaces ?? [];
 
   return {
-    bindings: requestedBindingsOf(overrides),
-    overridden: modelBoundSurfaces.filter(
-      (surface) => overrides[surface] !== undefined,
-    ),
+    bindings: requestedBindingsOf(overrides, custom),
+    overridden: [
+      ...modelBoundSurfaces.filter(
+        (surface) => overrides[surface] !== undefined,
+      ),
+      ...custom.map(({ key }) => customSurfaceId(key)),
+    ],
   };
+};
+
+/** measuredSurfaces is every surface an audit file measures: the ones it
+ * selects, and every custom surface it declares. */
+export const measuredSurfaces = (file: AuditFile): AeoSurface[] => {
+  const custom = (file.customSurfaces ?? []).map(({ key }) =>
+    customSurfaceId(key),
+  );
+
+  return [...new Set([...file.surfaces, ...custom])];
 };
 
 /** toRunRequest is the request a local run executes under. The budget is
@@ -374,7 +443,7 @@ export const toRunRequest = (
         file.grounding === 'full' ? 'dataforseo-google-organic-v1' : 'disabled',
     }),
     ...(modelBudget && { modelBudget }),
-    surfaces: file.surfaces,
+    surfaces: measuredSurfaces(file),
     maxPlannedUnits: file.runPolicy.maxPlannedUnits,
     limits: file.runPolicy.limits,
     coverageThresholds: file.runPolicy.coverageThresholds,

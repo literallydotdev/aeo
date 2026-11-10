@@ -183,11 +183,64 @@ describe('run-bindings - resolveRunBindings()', () => {
     expect(unnamed.chatgpt.model).toBe('openai/gpt-test-1');
   });
 
-  it('should refuse an override whose provider has no search adapter, naming the adapters', () => {
-    expect(() =>
-      requestedBindingsOf({ chatgpt: { model: 'acme/model-1' } }),
-    ).toThrow(
-      /no search adapter is known for the provider "acme".*gateway\.openai@1/,
+  it("should search through the gateway's own tool for a model of another provider, and for every custom surface", () => {
+    const bindings = requestedBindingsOf(
+      { chatgpt: { model: 'acme/model-1' } },
+      [
+        { key: 'grok', model: 'acme/model-2' },
+        {
+          key: 'native',
+          model: 'openai/gpt-test-1',
+          adapter: 'gateway.openai@1',
+        },
+      ],
+    );
+
+    expect(bindings.chatgpt).toEqual({
+      adapter: 'gateway.search@1',
+      model: 'acme/model-1',
+    });
+    expect(bindings['custom:grok']).toEqual({
+      adapter: 'gateway.search@1',
+      model: 'acme/model-2',
+    });
+    expect(bindings['custom:native']).toEqual({
+      adapter: 'gateway.openai@1',
+      model: 'openai/gpt-test-1',
+    });
+  });
+
+  it('should keep a declared custom surface on a resume, and refuse one the run did not start with', async () => {
+    const declared = (keys: readonly string[]) => {
+      return {
+        bindings: requestedBindingsOf(
+          {},
+          keys.map((key) => ({ key, model: `acme/${key}` })),
+        ),
+        overridden: keys.map((key) => `custom:${key}` as const),
+      };
+    };
+
+    await resolveRunBindings(bank, {
+      startedBefore: false,
+      requested: declared(['grok']),
+    });
+
+    const resumed = await resolveRunBindings(bank, {
+      startedBefore: true,
+      requested: declared(['grok']),
+    });
+    const widened = resolveRunBindings(bank, {
+      startedBefore: true,
+      requested: declared(['grok', 'other']),
+    });
+
+    expect(resumed['custom:grok']).toEqual({
+      adapter: 'gateway.search@1',
+      model: 'acme/grok',
+    });
+    await expect(widened).rejects.toThrow(
+      /audit\.json now declares custom:other, which this run directory did not start with/,
     );
   });
 

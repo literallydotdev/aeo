@@ -2,12 +2,13 @@ import { streamText, type ToolSet } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
 import { anthropic } from '@ai-sdk/anthropic';
+import { gateway as gatewaySdk } from '@ai-sdk/gateway';
 import { createLog } from '../../lib/log';
 import { isRecord } from '../../lib/type-guards';
 import { gatewayCostUsd } from '../../models/gateway-cost';
 import { probeUsd } from '../../models/cost-coefficients';
 import type { RetrievalLog } from '../../schema';
-import type { AeoChatSurface } from '../../surfaces';
+import type { AeoApiSurface } from '../../surfaces';
 import {
   ProbeAdapterId,
   type ChatModelProvider,
@@ -19,7 +20,9 @@ import {
 } from '../adapter';
 import {
   extractAnthropicRetrieval,
+  extractGatewaySearchRetrieval,
   extractGeminiRetrieval,
+  gatewaySearchToolName,
   extractOpenAiRetrieval,
   type RetrievalStep,
 } from '../chat-retrieval';
@@ -86,10 +89,14 @@ export const describeTools = (tools: Record<string, unknown>) => {
   }));
 };
 
+/** The market an adapter's search tool is asked to search, when the tool
+ * takes one. The providers' own tools take none. */
+export type SearchMarket = { geography: string; language: string };
+
 type GatewayChatMethod = {
   profile: ProbeAdapterProfile;
   /** Built per call, as the request carries it. */
-  tools: () => Record<string, unknown>;
+  tools: (market: SearchMarket | undefined) => Record<string, unknown>;
   extractRetrieval: (result: SearchProbeResult) => RetrievalLog;
 };
 
@@ -115,14 +122,17 @@ const searchProbe = async ({
   model,
   promptText,
   method,
+  tools: toolsOf,
 }: {
-  surface: AeoChatSurface;
+  surface: AeoApiSurface;
   gateway: ChatModelProvider;
   model: string;
   promptText: string;
   method: GatewayChatMethod;
+  /** The method's tools, in the adapter's market. */
+  tools: () => Record<string, unknown>;
 }): Promise<ProbeAnswer> => {
-  const tools = method.tools();
+  const tools = toolsOf();
   const { prompt } = searchRequest(model, promptText, tools);
   // Streamed like every other non-trivial response: the gateway abandons a
   // non-streaming request at 340 seconds whatever the caller's own timeout.
@@ -226,7 +236,7 @@ const searchProbe = async ({
       },
     ],
     maxOutputTokens: probeMaxOutputTokens,
-    tools: toProviderToolSet(method.tools()),
+    tools: toProviderToolSet(toolsOf()),
     toolChoice: 'none',
     maxRetries: 0,
     abortSignal: AbortSignal.timeout(chatProbeTimeoutMs),
@@ -281,7 +291,22 @@ const gatewayChatProfile = (
 export type GatewayChatAdapterId =
   | typeof ProbeAdapterId.GATEWAY_OPENAI
   | typeof ProbeAdapterId.GATEWAY_GOOGLE
-  | typeof ProbeAdapterId.GATEWAY_ANTHROPIC;
+  | typeof ProbeAdapterId.GATEWAY_ANTHROPIC
+  | typeof ProbeAdapterId.GATEWAY_SEARCH;
+
+// The gateway's search tool, in the audit's market: results for the
+// country, in the language. Both are two-letter codes there; anything else
+// is left out, never guessed.
+const gatewaySearchTool = (market: SearchMarket | undefined) => {
+  const country = market?.geography.toUpperCase();
+  const language = market?.language.toLowerCase();
+
+  return gatewaySdk.tools.perplexitySearch({
+    ...(country !== undefined && /^[A-Z]{2}$/.test(country) && { country }),
+    ...(language !== undefined &&
+      /^[a-z]{2}$/.test(language) && { searchLanguageFilter: [language] }),
+  });
+};
 
 const gatewayChatMethods: Record<GatewayChatAdapterId, GatewayChatMethod> = {
   [ProbeAdapterId.GATEWAY_OPENAI]: {
@@ -302,6 +327,13 @@ const gatewayChatMethods: Record<GatewayChatAdapterId, GatewayChatMethod> = {
     }),
     extractRetrieval: (result) => extractAnthropicRetrieval(result.steps),
   },
+  // Any gateway model (open models spec §5.2): the search is the gateway's
+  // own tool, so it does not depend on the model's provider.
+  [ProbeAdapterId.GATEWAY_SEARCH]: {
+    profile: gatewayChatProfile(ProbeAdapterId.GATEWAY_SEARCH, 'full'),
+    tools: (market) => ({ [gatewaySearchToolName]: gatewaySearchTool(market) }),
+    extractRetrieval: (result) => extractGatewaySearchRetrieval(result.steps),
+  },
 };
 
 export const gatewayChatProfiles = {
@@ -311,6 +343,8 @@ export const gatewayChatProfiles = {
     gatewayChatMethods[ProbeAdapterId.GATEWAY_GOOGLE].profile,
   [ProbeAdapterId.GATEWAY_ANTHROPIC]:
     gatewayChatMethods[ProbeAdapterId.GATEWAY_ANTHROPIC].profile,
+  [ProbeAdapterId.GATEWAY_SEARCH]:
+    gatewayChatMethods[ProbeAdapterId.GATEWAY_SEARCH].profile,
 } satisfies Record<GatewayChatAdapterId, ProbeAdapterProfile>;
 
 /** createGatewayChatAdapter is one search-required chat adapter, asking
@@ -321,17 +355,24 @@ export const createGatewayChatAdapter = (
     surface,
     gateway,
     model,
-  }: { surface: AeoChatSurface; gateway: ChatModelProvider; model: string },
+    market,
+  }: {
+    surface: AeoApiSurface;
+    gateway: ChatModelProvider;
+    model: string;
+    market?: SearchMarket;
+  },
 ): ProbeAdapter => {
   const method: GatewayChatMethod = gatewayChatMethods[id];
+  const tools = () => method.tools(market);
 
   const adapter: ProbeAdapter = {
     ...method.profile,
     surface,
     model,
-    request: (promptText) => searchRequest(model, promptText, method.tools()),
+    request: (promptText) => searchRequest(model, promptText, tools()),
     probe: (promptText) =>
-      searchProbe({ surface, gateway, model, promptText, method }),
+      searchProbe({ surface, gateway, model, promptText, method, tools }),
     classifyError: classifyGatewayFailure,
   };
 

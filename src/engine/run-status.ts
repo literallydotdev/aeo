@@ -11,7 +11,12 @@ import { chargedCall } from '../models/accounting';
 import { hasErrorCode } from '../stores/fs-errors';
 import { FileProbeStore } from '../stores/files';
 import { capturePlan } from '../capture-manifest';
-import { localReportKey, readAuditFile, toAuditConfig } from './audit-file';
+import {
+  localReportKey,
+  measuredSurfaces,
+  readAuditFile,
+  toAuditConfig,
+} from './audit-file';
 import { budgetFile } from './budget';
 import { runDirectoryState } from './local-run';
 import { auditCopyFile, bankDir } from './run-configuration';
@@ -340,7 +345,7 @@ const plannedUnitsOf = async (
       const file = await readAuditFile(auditCopy);
       // The capture plan alone: what a run measures, independent of the
       // model and budget it runs under.
-      const plan = capturePlan(toAuditConfig(file), file.surfaces);
+      const plan = capturePlan(toAuditConfig(file), measuredSurfaces(file));
 
       return {
         reportKey: localReportKey(file),

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { writeFileAtomically } from '../codex-workflow/pending';
 import {
   availableBindings,
+  bindingOf,
   defaultProbeBindings,
   RunBindingsError,
   type RunBindings,
@@ -128,8 +129,14 @@ export const resolveRunBindings = async (
     // Only what the file names itself is compared: a surface it leaves to
     // the defaults keeps whatever the run froze, as a rejudgment needs.
     for (const surface of requested.overridden) {
-      const asked = requested.bindings[surface];
+      const asked = bindingOf(requested.bindings, surface);
       const kept = bindings[surface];
+
+      if (!kept) {
+        throw new RunBindingsError(
+          `audit.json now declares ${surface}, which this run directory did not start with. A run never changes what it measures: measure it in a new run directory.`,
+        );
+      }
 
       if (asked.adapter !== kept.adapter || asked.model !== kept.model) {
         throw new RunBindingsError(
