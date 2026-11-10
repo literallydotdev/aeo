@@ -4,7 +4,13 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ModelCatalogError, type ModelCatalogSource } from '../models/catalog';
 import { recommendedModelId } from '../models/supported-models';
-import { modelsFile, resolveReportModel, resolveRunModels } from './run-models';
+import type { ExecutionRecorder } from '../bundle/recorder';
+import {
+  modelsFile,
+  recordedCatalogSource,
+  resolveReportModel,
+  resolveRunModels,
+} from './run-models';
 
 let bank: string;
 
@@ -208,5 +214,78 @@ describe('run-models - resolveReportModel()', () => {
     ).rejects.toThrow(
       /acme\/model must be priced from the gateway's model list/,
     );
+  });
+});
+
+describe('run-models - recordedCatalogSource()', () => {
+  const journal = () => {
+    const events: unknown[] = [];
+    const recorder: ExecutionRecorder = {
+      start: (operation) => {
+        events.push({ started: operation });
+
+        return Promise.resolve({
+          id: 'operation-1',
+          finish: (result) => {
+            events.push({ finished: result });
+
+            return Promise.resolve();
+          },
+        });
+      },
+      record: () => Promise.resolve(),
+    };
+
+    return { events, recorder };
+  };
+
+  it('should record a read of the catalog before it is made, with the size and digest of what came back', async () => {
+    const { events, recorder } = journal();
+    const list = vi.fn(() => {
+      // Started before the request is made.
+      expect(events).toHaveLength(1);
+
+      return Promise.resolve('{"data":[]}');
+    });
+    const source = recordedCatalogSource(
+      { origin: 'gateway', list, endpoints: () => Promise.resolve('{}') },
+      recorder,
+    );
+
+    expect(await source.list()).toBe('{"data":[]}');
+    expect(events).toEqual([
+      {
+        started: {
+          kind: 'model_catalog',
+          role: 'list',
+          details: { origin: 'gateway' },
+        },
+      },
+      {
+        finished: {
+          outcome: 'succeeded',
+          details: {
+            bytes: 11,
+            sha256:
+              '8fe32e407a1038ee38753b70e5374b3a46d6ae9d5f16cd5b73c53abaca8f5ed0',
+          },
+        },
+      },
+    ]);
+  });
+
+  it('should record a failed read as failed, and rethrow it', async () => {
+    const { events, recorder } = journal();
+    const source = recordedCatalogSource(
+      {
+        origin: 'gateway',
+        list: () => Promise.reject(new Error('the gateway answered 503')),
+        endpoints: () => Promise.resolve('{}'),
+      },
+      recorder,
+    );
+
+    await expect(source.list()).rejects.toThrow('the gateway answered 503');
+    expect(events[1]).toMatchObject({ finished: { outcome: 'failed' } });
   });
 });

@@ -556,7 +556,7 @@ describe('verify - verifyBundle()', () => {
     expect(verification.checks[0]?.code).toBe('bundle_version_unsupported');
   });
 
-  it('should verify a version 1 bundle as it verifies the version 2 bundles it writes', async () => {
+  it('should verify a version 1 bundle as it verifies the version 3 bundles it writes', async () => {
     const { files } = await exportSynthetic();
     const manifest = bundleManifestSchema.parse(
       parseBundleJson(
@@ -575,9 +575,9 @@ describe('verify - verifyBundle()', () => {
       return verification.checks.map(({ id, outcome }) => [id, outcome]);
     };
 
-    expect(manifest.bundleSchemaVersion).toBe(2);
+    expect(manifest.bundleSchemaVersion).toBe(3);
     expect(outcomes(verifyBundle(versionOne, 'version 1'))).toEqual(
-      outcomes(verifyBundle(files, 'version 2')),
+      outcomes(verifyBundle(files, 'version 3')),
     );
   });
 

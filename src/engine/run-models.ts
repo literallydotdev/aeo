@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
+import { sha256Hex } from '../bundle/json';
+import { recorded, type ExecutionRecorder } from '../bundle/recorder';
 import { writeFileAtomically } from '../codex-workflow/pending';
 import {
   catalogModelSchema,
@@ -86,6 +88,48 @@ const readMissing = async (
   }
 
   return readCatalogModels(missing, source);
+};
+
+/**
+ * recordedCatalogSource records each read of the catalog in the run's
+ * journal as a `model_catalog` operation, started before the request: a
+ * network read, though a free one (open models spec §8). The operation
+ * keeps the document's size and digest; the entries the run uses are in
+ * BANK/models.json.
+ */
+export const recordedCatalogSource = (
+  source: ModelCatalogSource,
+  recorder: ExecutionRecorder | undefined,
+): ModelCatalogSource => {
+  const reading = (
+    role: 'list' | 'endpoints',
+    details: Record<string, unknown>,
+    read: () => Promise<string>,
+  ) => {
+    return recorded({
+      recorder,
+      start: {
+        kind: 'model_catalog',
+        role,
+        details: { origin: source.origin, ...details },
+      },
+      run: read,
+      finish: (document) => ({
+        outcome: 'succeeded',
+        details: {
+          bytes: Buffer.byteLength(document, 'utf8'),
+          sha256: sha256Hex(document),
+        },
+      }),
+    });
+  };
+
+  return {
+    origin: source.origin,
+    list: () => reading('list', {}, source.list),
+    endpoints: (id) =>
+      reading('endpoints', { model: id }, () => source.endpoints(id)),
+  };
 };
 
 /** One model's catalog entry as a run froze it. */

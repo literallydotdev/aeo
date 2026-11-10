@@ -52,7 +52,11 @@ import {
   type AuditFile,
 } from './audit-file';
 import { resolveRunBindings } from './run-bindings';
-import { resolveReportModel, resolveRunModels } from './run-models';
+import {
+  recordedCatalogSource,
+  resolveReportModel,
+  resolveRunModels,
+} from './run-models';
 import { bankDir } from './run-configuration';
 import { resolveRunMethod } from './run-method';
 import {
@@ -274,7 +278,11 @@ const openLockedLocalRun = async (
     startedBefore,
     requested: requestedBindings(file),
   });
-  const pricing = { source: catalog, now: new Date(), freeze: true };
+  const pricing = {
+    source: catalog && recordedCatalogSource(catalog, recorder),
+    now: new Date(),
+    freeze: true,
+  };
   const model = await resolveReportModel(file.model, bank, pricing);
   // A bound model the engine has no flat figure for is reserved at its
   // catalog price, frozen here with the report model's.

@@ -17,9 +17,13 @@ export const toolVersion = '0.3.0';
 // Version 2: config.json may set chatProbes, and agentProbes.runsPerPrompt
 // above 2. A verifier that reads only version 1 then refuses the bundle as
 // unsupported instead of dropping its depth and failing it.
-export const bundleSchemaVersion = 2;
+// Version 3 (open models spec §8): a run may record `model_catalog`
+// operations, and its coverage is assessed over seven operation kinds. A
+// verifier that reads only version 2 refuses the bundle as unsupported
+// instead of calling the new kind unknown.
+export const bundleSchemaVersion = 3;
 // A version 1 bundle reads as version 2 at the standard depth.
-export const readableBundleSchemaVersions: readonly number[] = [1, 2];
+export const readableBundleSchemaVersions: readonly number[] = [1, 2, 3];
 export const traceSchemaVersion = 1;
 export const canonicalization = 'literally-aeo-canonical-json-v1';
 // Bump when the arithmetic the verifier recomputes changes
@@ -81,9 +85,30 @@ export const operationKinds = [
   'canary',
   'research_tool',
   'technical_check',
+  // A read of the gateway's model list, to price a model (bundle schema 3).
+  'model_catalog',
 ] as const;
 
 export type OperationKind = (typeof operationKinds)[number];
+
+// The kinds bundle schemas 1 and 2 were written with: a bundle is held to
+// the kinds of its own schema version, never to one added after it.
+const operationKindsBeforeSchema3: readonly OperationKind[] = [
+  'codex_session',
+  'host_model_call',
+  'probe',
+  'canary',
+  'research_tool',
+  'technical_check',
+];
+
+/** The operation kinds a bundle of `schemaVersion` must have observed for
+ * its coverage to be `declared`. */
+export const operationKindsOf = (
+  schemaVersion: number,
+): readonly OperationKind[] => {
+  return schemaVersion < 3 ? operationKindsBeforeSchema3 : operationKinds;
+};
 
 /** One line of events.jsonl. `digest` covers the canonical event without
  * itself; `previousDigest` chains it to the line before (null first). */

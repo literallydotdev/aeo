@@ -300,6 +300,7 @@ export const checkTraceCoverage = (
     events,
     captured,
     derived: manifest.run.derivedFrom !== undefined,
+    bundleSchema: manifest.bundleSchemaVersion,
   });
 
   if (assessment.gaps.length > 0) {
