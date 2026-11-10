@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { defaultProbeBindings, RunBindingsError } from '../probes/bindings';
+import {
+  defaultProbeBindings,
+  RunBindingsError,
+  type RunBindings,
+} from '../probes/bindings';
+import { legacyProbeBindings } from '../probes/legacy-bindings';
 import { unlimited } from '../probes/limits';
 import { planRun } from '../runner';
 import { aeoAuditConfigSchema, runRequestSchema } from '../schema';
@@ -9,8 +14,9 @@ import { captureForRun } from './capture';
 
 // ============================================================================
 // The bank matched against the bindings (probe adapters spec §4.5): a banked
-// answer is reused only when the adapter that captured it is the unit's
-// frozen binding. A mismatch stops the run before any dispatch; the unit is
+// answer is reused only when the adapter that captured it, and the model it
+// asked when the binding names one, are the unit's frozen binding (open
+// models spec §8). A mismatch stops the run before any dispatch; the unit is
 // never probed again silently under another binding.
 // ============================================================================
 
@@ -36,7 +42,15 @@ const request = runRequestSchema.parse({
 });
 const plan = planRun(config, request);
 
-const bankedWith = (adapter: string | undefined): CapturedUnitRecord => {
+const bankedWith = ({
+  adapter,
+  requestedModel = 'openai/gpt-5.4-mini',
+  metadata = true,
+}: {
+  adapter?: string;
+  requestedModel?: string;
+  metadata?: boolean;
+}): CapturedUnitRecord => {
   const [unit] = plan.units;
 
   if (!unit) {
@@ -56,16 +70,18 @@ const bankedWith = (adapter: string | undefined): CapturedUnitRecord => {
       runIndex: unit.runIndex,
       text: 'Acme Files.',
     },
-    captureMetadata: {
-      requestedModel: 'openai/gpt-5.4-mini',
-      reportedModel: null,
-      parameters: {},
-      ...(adapter === undefined ? {} : { adapter }),
-    },
+    ...(metadata && {
+      captureMetadata: {
+        requestedModel,
+        reportedModel: null,
+        parameters: {},
+        ...(adapter === undefined ? {} : { adapter }),
+      },
+    }),
   };
 };
 
-const capture = (record: CapturedUnitRecord) => {
+const capture = (record: CapturedUnitRecord, bindings: RunBindings) => {
   const captureSection = vi.fn(() => Promise.reject(new Error('dispatched')));
 
   const result = captureForRun({
@@ -76,7 +92,7 @@ const capture = (record: CapturedUnitRecord) => {
     agentCliVersions: { claudeCode: null, codex: null, cursor: null },
     limiter: unlimited(),
     probeDependencies: {
-      bindings: defaultProbeBindings,
+      bindings,
       gateway: () => 'unused',
     },
     logContext: {},
@@ -88,19 +104,56 @@ const capture = (record: CapturedUnitRecord) => {
 
 describe('capture - captureForRun() and the frozen bindings', () => {
   it('should stop before any dispatch when a banked answer was captured with another adapter', async () => {
-    const { result, captureSection } = capture(bankedWith('gateway.openai@2'));
+    const { result, captureSection } = capture(
+      bankedWith({ adapter: 'gateway.openai@2' }),
+      legacyProbeBindings,
+    );
 
     await expect(result).rejects.toBeInstanceOf(RunBindingsError);
-    await expect(result).rejects.toThrow(/chatgpt \(gateway\.openai@1\)/);
+    await expect(result).rejects.toThrow(
+      /chatgpt \(gateway\.openai@1, openai\/gpt-5\.4-mini\)/,
+    );
+    expect(captureSection).not.toHaveBeenCalled();
+  });
+
+  it('should stop before any dispatch when a banked answer asked another model through the same adapter', async () => {
+    // Captured under 0.3.0's model; this run is bound to the 0.4.0 pin.
+    const { result, captureSection } = capture(
+      bankedWith({}),
+      defaultProbeBindings,
+    );
+
+    await expect(result).rejects.toBeInstanceOf(RunBindingsError);
+    await expect(result).rejects.toThrow(
+      /chatgpt \(gateway\.openai@1, openai\/gpt-6-luna\)/,
+    );
     expect(captureSection).not.toHaveBeenCalled();
   });
 
   it('should reuse a banked answer that names no adapter, as captured with the legacy one', async () => {
-    const { result, captureSection } = capture(bankedWith(undefined));
+    const { result, captureSection } = capture(
+      bankedWith({}),
+      legacyProbeBindings,
+    );
 
     // The capture itself is refused by the fake section; what matters is
     // that the bank check let the run reach it.
     await expect(result).rejects.not.toBeInstanceOf(RunBindingsError);
     expect(captureSection).toHaveBeenCalled();
+  });
+
+  it('should take a banked answer without capture metadata as asked of its legacy model', async () => {
+    const legacy = capture(
+      bankedWith({ metadata: false }),
+      legacyProbeBindings,
+    );
+    const pinned = capture(
+      bankedWith({ metadata: false }),
+      defaultProbeBindings,
+    );
+
+    await expect(legacy.result).rejects.not.toBeInstanceOf(RunBindingsError);
+    await expect(pinned.result).rejects.toBeInstanceOf(RunBindingsError);
+    expect(pinned.captureSection).not.toHaveBeenCalled();
   });
 });

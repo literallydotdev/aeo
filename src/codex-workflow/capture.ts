@@ -127,8 +127,8 @@ export const assertBankUsable = async (
     parseUnitRecord(record, unitRecordKey(record));
   }
 
-  // A banked answer is reused only under the binding that captured it; a
-  // mismatch stops the run, never re-probed silently.
+  // A banked answer is reused only under the binding that captured it, its
+  // model included; a mismatch stops the run, never re-probed silently.
   const plannedKeys = new Set(plan.units.map(unitRecordKey));
   const mismatched = bankBindingMismatches(
     banked.filter(
@@ -141,11 +141,15 @@ export const assertBankUsable = async (
   if (mismatched.length > 0) {
     const surfaces = [...new Set(mismatched.map((record) => record.surface))];
     const bound = surfaces
-      .map((surface) => `${surface} (${bindings[surface].adapter})`)
+      .map((surface) => {
+        const { adapter, model } = bindings[surface];
+
+        return `${surface} (${model === undefined ? adapter : `${adapter}, ${model}`})`;
+      })
       .join(', ');
 
     throw new RunBindingsError(
-      `${mismatched.length} banked answers were captured with another adapter than this run's binding of ${bound}. A banked answer is never probed again under another binding: start a fresh run (a new run directory, or mode fresh) to measure them this way.`,
+      `${mismatched.length} banked answers were captured with another adapter or model than this run's binding of ${bound}. A banked answer is never probed again under another binding: start a fresh run (a new run directory, or mode fresh) to measure them this way.`,
     );
   }
 };

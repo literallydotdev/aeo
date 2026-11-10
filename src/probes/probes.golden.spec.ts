@@ -32,7 +32,7 @@ import {
 import type { ProbeTrace } from './probe-trace';
 import { createDataForSeoProbeClient } from './dataforseo';
 import { runProbesForPrompts, type ProbeResult } from './probes';
-import { defaultProbeBindings } from './bindings';
+import { legacyProbeBindings } from './legacy-bindings';
 
 // ============================================================================
 // Golden pins of every chat probe path (probe adapters spec §7, phase 1):
@@ -41,7 +41,8 @@ import { defaultProbeBindings } from './bindings';
 // carries and every network request. The expected values in
 // __fixtures__/golden/chat-probes.json record 0.2.2. A refactor that is
 // meant to preserve behaviour passes them unchanged; a failing pin is a
-// behaviour change to find, never a file to regenerate.
+// behaviour change to find, never a file to regenerate. 0.2.2 probed with
+// the legacy bindings, so the pins run on them.
 // ============================================================================
 
 type StreamOptions = {
@@ -184,7 +185,7 @@ const runCase = async ({ surface, stream, network, onResult }: ChatCase) => {
       filter: (unit) => unit.runIndex === 1,
       trace: spy.trace,
       dependencies: {
-        bindings: defaultProbeBindings,
+        bindings: legacyProbeBindings,
         gateway: fakeGateway,
         dataForSeo: createDataForSeoProbeClient({
           login: 'golden-login',
@@ -591,7 +592,7 @@ describe('probes - runProbesForPrompts() golden pins', () => {
         chatProbes: undefined,
         filter: (u) => u.runIndex === 1,
         trace,
-        dependencies: { bindings: defaultProbeBindings, gateway: fakeGateway },
+        dependencies: { bindings: legacyProbeBindings, gateway: fakeGateway },
       });
     };
 

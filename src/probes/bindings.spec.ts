@@ -23,8 +23,25 @@ import { legacyProbeBindings } from './legacy-bindings';
 // ============================================================================
 
 describe('bindings - defaultProbeBindings', () => {
-  it('should bind every surface to the legacy binding until a method release changes it', () => {
-    expect(defaultProbeBindings).toEqual(legacyProbeBindings);
+  it('should pin each API chat surface to its free-tier model and keep every other legacy binding', () => {
+    // The method: changing a row is a method release (method release
+    // spec §4), never a refactor.
+    expect(defaultProbeBindings).toEqual({
+      ...legacyProbeBindings,
+      chatgpt: { adapter: 'gateway.openai@1', model: 'openai/gpt-6-luna' },
+      claude: {
+        adapter: 'gateway.anthropic@1',
+        model: 'anthropic/claude-sonnet-5',
+      },
+      gemini: {
+        adapter: 'gateway.google@1',
+        model: 'google/gemini-3.5-flash-lite',
+      },
+      perplexity: {
+        adapter: 'gateway.perplexity@1',
+        model: 'perplexity/sonar',
+      },
+    });
     expect(Object.keys(defaultProbeBindings).sort()).toEqual(
       [...allSurfaces].sort(),
     );

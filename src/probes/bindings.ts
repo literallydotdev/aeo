@@ -115,7 +115,45 @@ export const probeDependenciesOf = (
   return dependencies;
 };
 
-export const defaultProbeBindings: RunBindings = legacyProbeBindings;
+/**
+ * The bindings a new run freezes (method release spec §4): each API chat
+ * surface asks the gateway model closest to what its consumer product
+ * serves the free tier by default, as each vendor's own pages said on
+ * 10 November 2026. Where a vendor names no model or no version, the
+ * comment says so. The methodology section names each as the nearest match,
+ * not the same product. The other surfaces keep their legacy binding.
+ */
+export const defaultProbeBindings: RunBindings = {
+  ...legacyProbeBindings,
+  // The Free plan's chat model is GPT-6 Luna (chatgpt.com/pricing). It
+  // became the Free and Go default about 8 October 2026, a date read from
+  // reposts of OpenAI's release notes, not from the notes themselves.
+  chatgpt: {
+    adapter: ProbeAdapterId.GATEWAY_OPENAI,
+    model: 'openai/gpt-6-luna',
+  },
+  // "The default model for Free and Pro plans" since 30 June 2026
+  // (anthropic.com/news/claude-sonnet-5). Anthropic has not said that
+  // Sonnet 5.5 replaced it on the Free plan.
+  claude: {
+    adapter: ProbeAdapterId.GATEWAY_ANTHROPIC,
+    model: 'anthropic/claude-sonnet-5',
+  },
+  // Without a plan, "Auto" sends "most prompts" to Flash-Lite, a change
+  // announced for 9 October 2026 (support.google.com/gemini/answer/17004136).
+  // Google names no version; 3.5 is the newest Flash-Lite the gateway lists.
+  gemini: {
+    adapter: ProbeAdapterId.GATEWAY_GOOGLE,
+    model: 'google/gemini-3.5-flash-lite',
+  },
+  // The free default ("Best") names no model. Sonar is the only Perplexity
+  // chat model the gateway lists, and the gateway reported it as the
+  // served model for requests to sonar-pro (November 2026).
+  perplexity: {
+    adapter: ProbeAdapterId.GATEWAY_PERPLEXITY,
+    model: 'perplexity/sonar',
+  },
+};
 
 /** Every registered adapter's profile, by ID. */
 export const probeAdapterProfiles: Readonly<
@@ -139,11 +177,11 @@ export const profileOf = (binding: ProbeBinding): ProbeAdapterProfile => {
   return probeAdapterProfiles[binding.adapter];
 };
 
-// The bindings the engine runs: its defaults, and the legacy table a
-// directory from before bindings is frozen with. Until a method release
-// they are the same table and the only bindings a run can have (probe
-// adapters spec §4.5): a frozen file naming any other adapter, surface or
-// model is refused, never measured.
+// The bindings the engine runs: its defaults, and the legacy table that a
+// directory from before bindings, or one an earlier release froze, is
+// measured with. They are the only bindings a run can have (probe adapters
+// spec §4.5): a frozen file naming any other adapter, surface or model is
+// refused, never measured.
 const availableBinding = (
   surface: AeoSurface,
   binding: { adapter: string; model?: string },
@@ -239,19 +277,35 @@ export const capturedAdapterOf = (record: CapturedUnitRecord): string => {
   );
 };
 
+/** The model a banked answer was asked of: the one its capture metadata
+ * records, or, without metadata, its surface's legacy model. */
+const capturedModelOf = (record: CapturedUnitRecord): string | undefined => {
+  const legacy: ProbeBinding = legacyProbeBindings[record.surface];
+
+  return record.captureMetadata
+    ? (record.captureMetadata.requestedModel ?? undefined)
+    : legacy.model;
+};
+
 /**
  * bankBindingMismatches lists the banked answers a run cannot reuse: those
- * taken with another adapter than the surface's frozen binding. Unit keys
- * do not carry the adapter, so without this check a changed binding would
- * reuse answers measured another way.
+ * taken with another adapter than the surface's frozen binding, or asked of
+ * another model when the binding names one. Unit keys carry neither, so
+ * without this check a changed binding would reuse answers measured
+ * another way.
  */
 export const bankBindingMismatches = (
   records: readonly CapturedUnitRecord[],
   bindings: RunBindings,
 ): CapturedUnitRecord[] => {
-  return records.filter(
-    (record) => capturedAdapterOf(record) !== bindings[record.surface].adapter,
-  );
+  return records.filter((record) => {
+    const binding = bindings[record.surface];
+
+    return (
+      capturedAdapterOf(record) !== binding.adapter ||
+      (binding.model !== undefined && capturedModelOf(record) !== binding.model)
+    );
+  });
 };
 
 /** createChatAdapter is the adapter `surface` is bound to by default, asking

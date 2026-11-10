@@ -333,7 +333,7 @@ describe('preflight - runPreflight()', () => {
       name: 'chatgpt probes',
       ok: true,
       detail:
-        'gateway.openai@1 with openai/gpt-5.4-mini; AI_GATEWAY_API_KEY from the env file',
+        'gateway.openai@1 with openai/gpt-6-luna; AI_GATEWAY_API_KEY from the env file',
     });
     expect(
       checks.find((check) => check.name === 'google_ai_overview probes'),

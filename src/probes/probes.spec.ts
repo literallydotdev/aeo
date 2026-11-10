@@ -193,7 +193,7 @@ describe('probes - runProbesForPrompts()', () => {
         answered({
           text: 'Acme is a good agency.',
           sources: [],
-          response: { modelId: 'perplexity/sonar-pro-2026-10' },
+          response: { modelId: 'perplexity/sonar-2026-10' },
         }),
       );
       const { trace, starts, ends } = fakeTrace();
@@ -205,19 +205,19 @@ describe('probes - runProbesForPrompts()', () => {
           surface: 'perplexity',
           promptId: 'p1',
           attempt: 1,
-          requestedModel: 'perplexity/sonar-pro',
+          requestedModel: 'perplexity/sonar',
         }),
       ]);
       expect(ends).toEqual([
         expect.objectContaining({
           outcome: 'succeeded',
           text: 'Acme is a good agency.',
-          reportedModel: 'perplexity/sonar-pro-2026-10',
+          reportedModel: 'perplexity/sonar-2026-10',
         }),
       ]);
       expect(outcome).toMatchObject({
         status: 'captured',
-        probe: { reportedModel: 'perplexity/sonar-pro-2026-10' },
+        probe: { reportedModel: 'perplexity/sonar-2026-10' },
       });
     });
 
