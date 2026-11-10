@@ -57,6 +57,8 @@ pre { white-space: pre-wrap; word-break: break-word; font: 13px/1.5 ui-monospace
 button.link { background: none; border: 0; color: var(--accent); padding: 0;
   font: inherit; cursor: pointer; text-decoration: underline; }
 .table-wrap { overflow-x: auto; }
+ul.methodology { padding-left: 20px; color: var(--muted); font-size: 14px; }
+ul.methodology li { margin: 6px 0; }
 footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
 `;
 
@@ -279,6 +281,14 @@ const render = async () => {
       el('thead', {}, el('tr', {}, el('th', {}, 'Question'), el('th', {}, 'Surface'),
         el('th', {}, 'Run'), el('th', {}, 'Product'), el('th', {}, 'Alternatives named'))),
       body)), drawer);
+  }
+  const methodology = snapshot.meta && Array.isArray(snapshot.meta.methodology)
+    ? snapshot.meta.methodology.filter((sentence) => typeof sentence === 'string')
+    : [];
+  if (methodology.length) {
+    root.append(el('h2', {}, 'Methodology'),
+      el('ul', { class: 'methodology' },
+        ...methodology.map((sentence) => el('li', {}, sentence))));
   }
   root.append(el('footer', {},
     'Generated with Literally.dev AEO, an open-source AI visibility audit tool. ',

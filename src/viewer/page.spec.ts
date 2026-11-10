@@ -418,6 +418,34 @@ describe('viewer - viewerPage()', () => {
     ).toBe(false);
   });
 
+  it('should show the methodology the snapshot carries, as a list of plain sentences', async () => {
+    const source = await exportedFiles(2);
+    const snapshot = z
+      .looseObject({ meta: z.looseObject({}) })
+      .parse(JSON.parse(String(source.files.get(snapshotPath))));
+
+    snapshot.meta['methodology'] = [
+      'A rate is a share of the planned answers.',
+      '<i>Never markup.</i>',
+    ];
+    const files = new Map(source.files).set(
+      snapshotPath,
+      Buffer.from(JSON.stringify(snapshot)),
+    );
+    const page = await renderPage(await viewerFor({ ...source, files }));
+    const items = elementsOf(page.root)
+      .filter((element) => element.tag === 'li')
+      .map(visibleTextOf);
+
+    expect(items).toEqual([
+      'A rate is a share of the planned answers.',
+      '<i>Never markup.</i>',
+    ]);
+    expect(elementsOf(page.root).some((element) => element.tag === 'i')).toBe(
+      false,
+    );
+  });
+
   it('should open the counts on hover, focus and tap, keep them open while either lasts, and close them with Escape', async () => {
     const page = await renderPage(await viewerFor(await exportedFiles(2)));
     const interval = elementsOf(page.root).find(

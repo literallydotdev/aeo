@@ -295,6 +295,8 @@ export const assembleSnapshot = (args: {
   /** Labels of the surfaces asked of another model than their default
    * (surfaceLabelOverrides); empty on the defaults. */
   surfaceLabels?: Record<string, string>;
+  /** The methodology section's sentences (buildMethodology). */
+  methodology?: readonly string[];
 }): AeoSnapshot => {
   const { config, request, plan, enriched, resumed } = args;
 
@@ -330,6 +332,7 @@ export const assembleSnapshot = (args: {
       ...(args.surfaceLabels && Object.keys(args.surfaceLabels).length > 0
         ? { surfaceLabels: args.surfaceLabels }
         : {}),
+      ...(args.methodology && { methodology: [...args.methodology] }),
       agentClis: args.agentCliVersions,
       analyzerVersion: args.analyzer.version,
       domainClassifierVersion,

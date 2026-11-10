@@ -478,6 +478,10 @@ export const aeoSnapshotSchema = z.object({
     surfaceLabels: z
       .record(z.string().min(1).max(60), z.string().min(1).max(300))
       .optional(),
+    // How the run measured, as fixed sentences the host built from what it
+    // observed (method release spec §8): never written by a model. Absent
+    // on a snapshot from before 0.4.0.
+    methodology: z.array(z.string().min(1).max(1500)).max(20).optional(),
     // Which agent CLIs answered, for the methodology note. Null = not run.
     agentClis: z
       .object({

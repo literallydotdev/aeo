@@ -16,7 +16,14 @@ import {
   type GroundingBundle,
 } from '../grounding/schema';
 import type { SectionRunResult } from '../pipeline';
-import { surfaceLabelOverrides } from '../probes/bindings';
+import { buildMethodology } from '../agents/methodology';
+import {
+  askedModelsOn,
+  defaultBindingsChosenOn,
+  defaultProbeBindings,
+  modelBoundSurfaces,
+  surfaceLabelOverrides,
+} from '../probes/bindings';
 import { ProbeLimiter } from '../probes/limits';
 import {
   checkRetrievalCapture,
@@ -236,6 +243,10 @@ export const finishRun = async (args: {
     });
   }
 
+  const surfaceLabels = surfaceLabelOverrides(
+    source.captured,
+    config.customSurfaces,
+  );
   const snapshot = assembleSnapshot({
     config,
     request,
@@ -254,10 +265,29 @@ export const finishRun = async (args: {
     partialFailures,
     generatedAt: createdAt,
     analyzer: codexAnalyzer(args.stageModelId),
-    surfaceLabels: surfaceLabelOverrides(
-      source.captured,
-      config.customSurfaces,
-    ),
+    surfaceLabels,
+    methodology: buildMethodology({
+      surfaces: plan.surfaces,
+      askedModels: Object.fromEntries(
+        modelBoundSurfaces.map((surface) => [
+          surface,
+          askedModelsOn(source.captured, surface),
+        ]),
+      ),
+      defaults: {
+        models: {
+          chatgpt: defaultProbeBindings.chatgpt.model,
+          gemini: defaultProbeBindings.gemini.model,
+          claude: defaultProbeBindings.claude.model,
+          perplexity: defaultProbeBindings.perplexity.model,
+        },
+        chosenOn: defaultBindingsChosenOn,
+      },
+      labels: surfaceLabels,
+      sections: completedSections.map(({ result }) => ({
+        visibility: result.visibility,
+      })),
+    }),
   });
 
   const snapshotFile = path.join(dir, 'OUT', 'snapshot.json');

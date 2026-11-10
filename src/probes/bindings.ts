@@ -168,6 +168,8 @@ export const probeDependenciesOf = (
  * comment says so. The methodology section names each as the nearest match,
  * not the same product. The other surfaces keep their legacy binding.
  */
+export const defaultBindingsChosenOn = '2026-11-10';
+
 export const defaultProbeBindings: RunBindings = {
   ...legacyProbeBindings,
   // The Free plan's chat model is GPT-6 Luna (chatgpt.com/pricing). It
@@ -489,6 +491,20 @@ const capturedModelOf = (record: CapturedUnitRecord): string | undefined => {
     : legacyBindingOf(record.surface)?.model;
 };
 
+/** The models `surface`'s captured answers were asked of, in ID order. */
+export const askedModelsOn = (
+  captured: readonly CapturedUnitRecord[],
+  surface: AeoSurface,
+): string[] => {
+  return [
+    ...new Set(
+      captured
+        .filter((record) => record.surface === surface)
+        .flatMap((record) => capturedModelOf(record) ?? []),
+    ),
+  ].sort();
+};
+
 /**
  * surfaceLabelOverrides names the model in the label of every surface whose
  * captured answers were not asked of its default model (open models spec
@@ -501,15 +517,7 @@ export const surfaceLabelOverrides = (
   /** The custom surfaces the config declares, with their labels. */
   declared: readonly { key: string; label: string }[] = [],
 ): Record<string, string> => {
-  const askedOn = (surface: AeoSurface): string[] => {
-    return [
-      ...new Set(
-        captured
-          .filter((record) => record.surface === surface)
-          .flatMap((record) => capturedModelOf(record) ?? []),
-      ),
-    ].sort();
-  };
+  const askedOn = (surface: AeoSurface) => askedModelsOn(captured, surface);
   const labels: Record<string, string> = {};
 
   for (const surface of modelBoundSurfaces) {
