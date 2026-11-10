@@ -1,9 +1,18 @@
-import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
+import { resolveRunBindings } from '../engine/run-bindings';
 import { canonicalJson, strictCanonicalJson } from '../lib/canonical-json';
+import { defaultProbeBindings } from '../probes/bindings';
 import { aeoVisibilitySchema } from '../report/core/schema';
 import {
   bundleManifestSchema,
@@ -889,5 +898,56 @@ describe('export - calculation versions', () => {
 
     expect(check?.outcome).toBe('unsupported');
     expect(check?.code).toBe('calculation_version_unsupported');
+  });
+});
+
+describe('export - probe bindings', () => {
+  const methodOf = (files: ReadonlyMap<string, Buffer>) => {
+    return z
+      .looseObject({ probeBindings: z.unknown() })
+      .parse(
+        parseBundleJson(
+          (files.get(bundlePaths.method) ?? Buffer.alloc(0)).toString('utf8'),
+        ),
+      );
+  };
+
+  it("should name each planned surface's frozen binding in the method, under the method digest", async () => {
+    const run = await createSyntheticRun(path.join(root, 'run'));
+    const bank = path.join(run.dir, 'BANK');
+
+    await mkdir(bank);
+    await resolveRunBindings(bank, { startedBefore: false });
+    const files = readArchive(
+      await readFile((await exportRun(run.dir)).archive),
+    );
+
+    // The synthetic run plans ChatGPT and Perplexity: no other surface's
+    // binding enters its method.
+    expect(methodOf(files).probeBindings).toEqual({
+      chatgpt: defaultProbeBindings.chatgpt,
+      perplexity: defaultProbeBindings.perplexity,
+    });
+    expect(
+      outcomeOf(verifyBundle(files, 'bindings'), 'plan.accounted')?.outcome,
+    ).toBe('pass');
+  });
+
+  it('should record no bindings for a directory that froze none', async () => {
+    const { files } = await exportSynthetic();
+
+    expect(methodOf(files).probeBindings).toBeNull();
+  });
+
+  it('should refuse a damaged bindings file, naming it, rather than guess', async () => {
+    const run = await createSyntheticRun(path.join(root, 'run'));
+    const bank = path.join(run.dir, 'BANK');
+
+    await mkdir(bank);
+    await writeFile(path.join(bank, 'bindings.json'), '{"version":1}\n');
+
+    await expect(exportRun(run.dir)).rejects.toThrow(
+      /BANK\/bindings\.json is not a frozen bindings file/,
+    );
   });
 });

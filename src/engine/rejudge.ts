@@ -10,7 +10,8 @@ import {
 import { readRunInputs } from '../codex-workflow/run-inputs';
 import { hasErrorCode } from '../stores/fs-errors';
 import { localReportKey, type AuditFile } from './audit-file';
-import { bankDir, planLocalRun, runDirectoryState } from './local-run';
+import { planLocalRun, runDirectoryState } from './local-run';
+import { bankDir } from './run-configuration';
 import { carryFrozenBindings } from './run-bindings';
 
 const technicalFile = 'TECHNICAL.json';

@@ -13,8 +13,8 @@ import { FileProbeStore } from '../stores/files';
 import { capturePlan } from '../capture-manifest';
 import { localReportKey, readAuditFile, toAuditConfig } from './audit-file';
 import { budgetFile } from './budget';
-import { bankDir, runDirectoryState } from './local-run';
-import { auditCopyFile } from './run-configuration';
+import { runDirectoryState } from './local-run';
+import { auditCopyFile, bankDir } from './run-configuration';
 
 // ============================================================================
 // `literally-aeo status` (specs/aeo-claude-operator-spec.md §4.5): a

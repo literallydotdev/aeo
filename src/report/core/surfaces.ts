@@ -26,12 +26,15 @@ export type AeoChatSurface = (typeof chatSurfaces)[number];
 export type AeoAgentSurface = (typeof agentSurfaces)[number];
 export type AeoSurface = (typeof allSurfaces)[number];
 
-/** Shared display names for audit facts and report evidence. */
+/** Shared display names for audit facts and report evidence. The four
+ * chat surfaces ask each provider's API with web search, not its consumer
+ * app, and say so (method release spec §4.3). Their IDs stay: every unit
+ * key, digest, bundle and stored snapshot names them. */
 export const surfaceLabels: Record<string, string> = {
-  chatgpt: 'ChatGPT',
-  gemini: 'Gemini',
-  claude: 'Claude',
-  perplexity: 'Perplexity',
+  chatgpt: 'ChatGPT (API)',
+  gemini: 'Gemini (API)',
+  claude: 'Claude (API)',
+  perplexity: 'Perplexity (API)',
   google_ai_overview: 'AI Overview',
   claude_code: 'Claude Code',
   codex: 'Codex',

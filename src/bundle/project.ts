@@ -7,10 +7,12 @@ import { stagePrompts } from '../codex-workflow/prompts';
 import { readRunInputs, type RunInputs } from '../codex-workflow/run-inputs';
 import { stageVersions } from '../codex-workflow/schemas';
 import { hasErrorCode } from '../stores/fs-errors';
+import { readFrozenBindings } from '../engine/run-bindings';
 import {
   auditCopyFile,
   authorEvidenceFile,
   authorEvidenceSchema,
+  bankDir,
 } from '../engine/run-configuration';
 import { recordedCalculationVersion } from '../codex-workflow/aggregate';
 import {
@@ -153,6 +155,7 @@ const methodOf = async (
     );
   }
 
+  const frozenBindings = await readFrozenBindings(path.join(dir, bankDir));
   const method = {
     version: 1,
     calculationVersion: numbersMadeWith,
@@ -173,6 +176,18 @@ const methodOf = async (
     stagePrompts,
     stageVersions,
     codexModel: stageModelOf(inputs),
+    // How each planned surface was asked, so the method digest names the
+    // probe models (method release spec §3.2): the run's frozen bindings,
+    // or null for a directory that froze none.
+    probeBindings:
+      frozenBindings === undefined
+        ? null
+        : Object.fromEntries(
+            inputs.surfaces.map((surface) => [
+              surface,
+              frozenBindings[surface] ?? null,
+            ]),
+          ),
   };
 
   return method;

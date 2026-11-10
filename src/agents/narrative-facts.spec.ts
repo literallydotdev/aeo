@@ -41,7 +41,7 @@ describe('narrative-facts - buildNarrativeFacts()', () => {
       denominator: null,
     });
     expect(aggregate.sentence).toContain(
-      'Captured chat and search assistants: ChatGPT.',
+      'Captured chat and search assistants: ChatGPT (API).',
     );
     expect(aggregate.sentence).toContain('Captured coding agents: Codex.');
     expect(aggregate.sentence).not.toContain('Claude');

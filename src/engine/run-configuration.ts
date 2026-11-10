@@ -12,6 +12,10 @@ import { isRecord } from '../lib/type-guards';
 // ============================================================================
 
 export const auditCopyFile = 'AUDIT.json';
+/** Inside a run directory: the probe bank, the analysis cache, the report
+ * store, and what the run froze before its first paid call (budget, method,
+ * bindings). */
+export const bankDir = 'BANK';
 export const authorEvidenceFile = 'AUTHOR-EVIDENCE.json';
 
 const referenceSchema = z.looseObject({

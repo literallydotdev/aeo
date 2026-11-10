@@ -36,6 +36,39 @@ const frozenBindingsSchema = z
   })
   .strict();
 
+/** A run's frozen bindings as its file records them, adapter IDs unchecked. */
+export type FrozenBindings = z.infer<typeof frozenBindingsSchema>['bindings'];
+
+/**
+ * readFrozenBindings returns the bindings a run directory froze, or
+ * undefined when it froze none: a directory no engine since 0.3.0 has run.
+ * A file that is not a frozen bindings file is refused, never guessed.
+ */
+export const readFrozenBindings = async (
+  bankPath: string,
+): Promise<FrozenBindings | undefined> => {
+  const file = path.join(bankPath, bindingsFile);
+  const text = await readFile(file, 'utf8').catch((err: unknown) => {
+    if (hasErrorCode(err, 'ENOENT')) {
+      return undefined;
+    }
+
+    throw err;
+  });
+
+  if (text === undefined) {
+    return undefined;
+  }
+
+  try {
+    return frozenBindingsSchema.parse(JSON.parse(text)).bindings;
+  } catch (error) {
+    throw new RunBindingsError(
+      `${file} is not a frozen bindings file (${error instanceof Error ? error.message.slice(0, 200) : String(error)}). Please restore it; a run never re-chooses how it measures.`,
+    );
+  }
+};
+
 /**
  * estimateBindingsOf is the bindings a run directory's estimate prices: its
  * frozen bindings once it has usable ones, else the defaults a new run
@@ -45,27 +78,19 @@ const frozenBindingsSchema = z
 export const estimateBindingsOf = async (
   bankPath: string,
 ): Promise<RunBindings> => {
-  const text = await readFile(path.join(bankPath, bindingsFile), 'utf8').catch(
-    (err: unknown) => {
-      if (hasErrorCode(err, 'ENOENT')) {
-        return undefined;
-      }
-
-      throw err;
-    },
-  );
-
-  if (text === undefined) {
-    return defaultProbeBindings;
-  }
-
   try {
-    return availableBindings(
-      frozenBindingsSchema.parse(JSON.parse(text)).bindings,
-    );
-  } catch {
+    const frozen = await readFrozenBindings(bankPath);
+
+    return frozen === undefined
+      ? defaultProbeBindings
+      : availableBindings(frozen);
+  } catch (error) {
     // Refused with its reason when the run starts.
-    return defaultProbeBindings;
+    if (error instanceof RunBindingsError) {
+      return defaultProbeBindings;
+    }
+
+    throw error;
   }
 };
 
@@ -79,27 +104,10 @@ export const resolveRunBindings = async (
   bankPath: string,
   { startedBefore }: { startedBefore: boolean },
 ): Promise<RunBindings> => {
-  const file = path.join(bankPath, bindingsFile);
-  const text = await readFile(file, 'utf8').catch((err: unknown) => {
-    if (hasErrorCode(err, 'ENOENT')) {
-      return undefined;
-    }
+  const frozen = await readFrozenBindings(bankPath);
 
-    throw err;
-  });
-
-  if (text !== undefined) {
-    let frozen: z.infer<typeof frozenBindingsSchema>;
-
-    try {
-      frozen = frozenBindingsSchema.parse(JSON.parse(text));
-    } catch (error) {
-      throw new RunBindingsError(
-        `${file} is not a frozen bindings file (${error instanceof Error ? error.message.slice(0, 200) : String(error)}). Please restore it; a run never re-chooses how it measures.`,
-      );
-    }
-
-    return availableBindings(frozen.bindings);
+  if (frozen !== undefined) {
+    return availableBindings(frozen);
   }
 
   const bindings = startedBefore ? legacyProbeBindings : defaultProbeBindings;

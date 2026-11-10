@@ -21,7 +21,6 @@ import {
   type RunCostEstimate,
 } from '../engine/cost-estimate';
 import {
-  bankDir,
   openLocalRun,
   planLocalRun,
   PreflightFailedError,
@@ -47,6 +46,7 @@ import {
 } from '../engine/author';
 import {
   auditCopyFile,
+  bankDir,
   readRecordedAuthorEvidence,
   recordRunConfiguration,
   type RecordedAuthorEvidence,

@@ -46,6 +46,7 @@ import type { CapturedUnitRecord } from '../stores/ports';
 import { getEnvironment } from '../lib/env';
 import { toAuditConfig, toRunRequest, type AuditFile } from './audit-file';
 import { resolveRunBindings } from './run-bindings';
+import { bankDir } from './run-configuration';
 import { resolveRunMethod } from './run-method';
 import {
   readFrozenBudget,
@@ -61,8 +62,6 @@ import {
 // the report store. Running again over the same directory resumes it: every
 // banked answer is reused and only a missing unit is probed.
 // ============================================================================
-
-export const bankDir = 'BANK';
 
 export type LocalPlan = {
   config: AeoAuditConfig;

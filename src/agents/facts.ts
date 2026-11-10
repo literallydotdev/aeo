@@ -14,7 +14,9 @@ import type {
 import { validateGroundingBundle } from '../grounding/validation';
 import { buildNarrativeFacts } from './narrative-facts';
 
-export const factCatalogVersion = 2;
+// 3: the chat surfaces' labels say "(API)" (method release spec §4.3), and
+// they enter the captured-surfaces sentence.
+export const factCatalogVersion = 3;
 
 type FactBase = {
   factId: string;

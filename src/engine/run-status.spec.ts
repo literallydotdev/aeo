@@ -7,8 +7,7 @@ import { writerLockFile } from '../bundle/writer-lock';
 import { capturePlan } from '../capture-manifest';
 import { auditFileSchema, localReportKey, toAuditConfig } from './audit-file';
 import { budgetFile } from './budget';
-import { bankDir } from './local-run';
-import { auditCopyFile } from './run-configuration';
+import { auditCopyFile, bankDir } from './run-configuration';
 import { readRunStatus, spendCategoryOf } from './run-status';
 import { exampleAuditFile } from './templates';
 
