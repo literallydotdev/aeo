@@ -12,7 +12,8 @@ import {
 } from './checks';
 import {
   bundlePaths,
-  calculationVersion,
+  isReadableCalculationVersion,
+  readableCalculationVersions,
   type BundleManifest,
 } from './contracts';
 import { canonicalDigest } from './json';
@@ -129,13 +130,17 @@ export const checkMetrics = ({
   const id = 'metrics.recomputed';
   const title = 'Metrics recomputed';
 
-  if (manifest.calculationVersion !== calculationVersion) {
+  // Each readable version is recomputed with its own arithmetic (method
+  // release spec §6.3); a newer one is another method, never guessed at.
+  const version = manifest.calculationVersion;
+
+  if (!isReadableCalculationVersion(version)) {
     return decidedCheck({
       id,
       title,
       outcome: CheckOutcome.UNSUPPORTED,
       code: 'calculation_version_unsupported',
-      explanation: `The bundle uses calculation version ${manifest.calculationVersion}; this verifier implements version ${calculationVersion} only and does not recompute another method.`,
+      explanation: `The bundle uses calculation version ${version}; this verifier recomputes versions ${readableCalculationVersions.join(' and ')} only and does not recompute another method.`,
     });
   }
 
@@ -156,6 +161,7 @@ export const checkMetrics = ({
         captured: inputs.captured,
       },
       judgments,
+      version,
     );
   } catch (err) {
     const problem = {

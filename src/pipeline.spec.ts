@@ -12,6 +12,7 @@ import {
   type SectionRunArgs,
 } from './pipeline';
 import { defaultProbeBindings } from './probes/bindings';
+import { calculationVersion } from './bundle/contracts';
 
 // ============================================================================
 // Pipeline behavior over mocked probe runners (hardening spec §6.3): coverage
@@ -394,20 +395,24 @@ describe('pipeline - assembleSectionResult()', () => {
       freshAgentRetrieval: [],
     };
 
-    const result = assembleSectionResult(baseArgs(), capture, [
-      {
-        promptId: 'p2',
-        runs: runs.filter((r) => r.promptIdx === 1),
-        cached: false,
-        error: null,
-      },
-      {
-        promptId: 'p1',
-        runs: runs.filter((r) => r.promptIdx === 0),
-        cached: false,
-        error: null,
-      },
-    ]);
+    const result = assembleSectionResult(
+      { ...baseArgs(), calculationVersion },
+      capture,
+      [
+        {
+          promptId: 'p2',
+          runs: runs.filter((r) => r.promptIdx === 1),
+          cached: false,
+          error: null,
+        },
+        {
+          promptId: 'p1',
+          runs: runs.filter((r) => r.promptIdx === 0),
+          cached: false,
+          error: null,
+        },
+      ],
+    );
 
     expect(
       result.visibility.matrix.map(
@@ -438,7 +443,11 @@ describe('pipeline - assembleSectionResult()', () => {
       freshAgentRetrieval: [],
     };
 
-    const result = assembleSectionResult(args, capture, []);
+    const result = assembleSectionResult(
+      { ...args, calculationVersion },
+      capture,
+      [],
+    );
 
     expect(result.visibility.surfaces).toEqual([
       'chatgpt',

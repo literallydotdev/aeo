@@ -14,7 +14,6 @@ import {
   bundleManifestSchema,
   bundlePaths,
   bundleSchemaVersion,
-  calculationVersion,
   canonicalization,
   digestManifest,
   toolId,
@@ -272,7 +271,9 @@ const finalizeLockedRevision = async (
     bundleSchemaVersion,
     traceSchemaVersion,
     canonicalization,
-    calculationVersion,
+    // The version the numbers were made with, never the installed one's:
+    // the verifier recomputes them with exactly that arithmetic.
+    calculationVersion: projection.calculationVersion,
     tool: {
       id: toolId,
       version: toolVersion,

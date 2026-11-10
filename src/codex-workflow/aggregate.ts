@@ -13,6 +13,11 @@ import type {
   PromptAnalysisResult,
   SectionRunResult,
 } from '../pipeline';
+import {
+  calculationVersion,
+  readableCalculationVersions,
+  type CalculationVersion,
+} from '../bundle/contracts';
 import { assembleSectionResult } from '../section-result';
 import type { AeoAuditConfig, AeoSurface } from '../schema';
 import type { CapturedUnitRecord } from '../stores/ports';
@@ -42,13 +47,19 @@ export type AggregateInputs = {
   captured: readonly CapturedUnitRecord[];
 };
 
-export type AggregateOutput = {
-  version: 1;
+type AggregateResults = {
   sections: Record<string, SectionRunResult>;
   /** Captured answers with no analysis row: a degraded batch. They stay in
    * the coverage counts and out of the matrix. */
   unjudged: string[];
 };
+
+/** OUT/aggregate.json. Version 1 was computed with calculation version 1
+ * and names none; version 2 records the calculation version its numbers
+ * were made with, which the export stamps (method release spec §6.3). */
+export type AggregateOutput =
+  | ({ version: 1 } & AggregateResults)
+  | ({ version: 2; calculationVersion: CalculationVersion } & AggregateResults);
 
 // A section result has no schema of its own; the aggregate file is written
 // by aggregateWorkdir below, so the check stops at the parts every reader
@@ -60,15 +71,51 @@ const sectionRunResultSchema = z.custom<SectionRunResult>(
     Array.isArray(value.evidenceChunks),
 );
 
-const aggregateOutputSchema = z.object({
-  version: z.literal(1),
+const aggregateResultsShape = {
   sections: z.record(z.string(), sectionRunResultSchema),
   unjudged: z.array(z.string()),
-});
+};
+
+const aggregateOutputSchema = z.discriminatedUnion('version', [
+  z.object({ version: z.literal(1), ...aggregateResultsShape }),
+  z.object({
+    version: z.literal(2),
+    calculationVersion: z.literal([...readableCalculationVersions]),
+    ...aggregateResultsShape,
+  }),
+]);
 
 /** OUT/aggregate.json as written by aggregateWorkdir. */
 export const parseAggregateOutput = (text: string): AggregateOutput => {
   return aggregateOutputSchema.parse(JSON.parse(text));
+};
+
+// Only the version fields: an aggregate whose sections are damaged still
+// names the version its numbers were made with, and the verifier reports
+// the damage.
+const recordedVersionSchema = z.discriminatedUnion('version', [
+  z.looseObject({ version: z.literal(1) }),
+  z.looseObject({
+    version: z.literal(2),
+    calculationVersion: z.literal([...readableCalculationVersions]),
+  }),
+]);
+
+/**
+ * recordedCalculationVersion is the calculation version a stored aggregate
+ * says its numbers were made with; undefined when it names none this
+ * release can read.
+ */
+export const recordedCalculationVersion = (
+  value: unknown,
+): CalculationVersion | undefined => {
+  const recorded = recordedVersionSchema.safeParse(value);
+
+  if (!recorded.success) {
+    return undefined;
+  }
+
+  return recorded.data.version === 1 ? 1 : recorded.data.calculationVersion;
 };
 
 /** A Codex analyze row as the pipeline's analyzed run: the judgment fields
@@ -128,17 +175,25 @@ export const liftAnalyzedRun = (
  * aggregated per section into the runner's section result. */
 export const aggregateWorkdir = async (
   inputs: AggregateInputs,
+  // The engine's own: a run directory is measured by one method throughout
+  // (src/engine/run-method.ts). Only a fixture of an earlier release's
+  // directory passes another.
+  version: CalculationVersion = calculationVersion,
 ): Promise<AggregateOutput> => {
   const { dir, config } = inputs;
 
-  const output = aggregateJudgments(inputs, {
-    analyze: JSON.parse(
-      await readFile(path.join(dir, 'OUT', 'analyze.json'), 'utf8'),
-    ),
-    qualify: JSON.parse(
-      await readFile(path.join(dir, 'OUT', 'qualify.json'), 'utf8'),
-    ),
-  });
+  const output = aggregateJudgments(
+    inputs,
+    {
+      analyze: JSON.parse(
+        await readFile(path.join(dir, 'OUT', 'analyze.json'), 'utf8'),
+      ),
+      qualify: JSON.parse(
+        await readFile(path.join(dir, 'OUT', 'qualify.json'), 'utf8'),
+      ),
+    },
+    version,
+  );
 
   await writeFile(
     path.join(dir, 'OUT', 'aggregate.json'),
@@ -155,11 +210,13 @@ export const aggregateWorkdir = async (
 /**
  * aggregateJudgments is the arithmetic of the aggregate step with no file
  * access, so the offline bundle verifier recomputes the published numbers
- * with the code that produced them (specs/aeo-open-source-cli-spec.md §10).
+ * with the code that produced them (specs/aeo-open-source-cli-spec.md §10),
+ * at the calculation version they were made with.
  */
 export const aggregateJudgments = (
   inputs: Omit<AggregateInputs, 'dir'>,
   judgments: { analyze: unknown; qualify: unknown },
+  version: CalculationVersion,
 ): AggregateOutput => {
   const { config } = inputs;
   // A model batch must cover its answers, but the host may have no accepted
@@ -235,6 +292,7 @@ export const aggregateJudgments = (
         surfaces: inputs.surfaces,
         agentProbes: config.agentProbes,
         chatProbes: config.chatProbes,
+        calculationVersion: version,
       },
       {
         probeCount: sectionCapture.units.length,
@@ -277,7 +335,10 @@ export const aggregateJudgments = (
     sections[section.key] = result;
   }
 
-  const output: AggregateOutput = { version: 1, sections, unjudged };
+  const output: AggregateOutput =
+    version === 1
+      ? { version: 1, sections, unjudged }
+      : { version: 2, calculationVersion: version, sections, unjudged };
 
   return output;
 };
@@ -306,6 +367,22 @@ export const metricsView = (output: AggregateOutput, brandDomain: string) => {
             prospectCitationRate: summary.prospectCitationRate,
             agentShareOfVoice: summary.agentShareOfVoice,
             agentCitationRate: summary.agentCitationRate,
+            // Calculation version 2's evidence; absent from version 1, so
+            // its view keeps its bytes.
+            ...(summary.prospectShareOfVoiceEvidence && {
+              prospectShareOfVoiceEvidence:
+                summary.prospectShareOfVoiceEvidence,
+            }),
+            ...(summary.prospectCitationRateEvidence && {
+              prospectCitationRateEvidence:
+                summary.prospectCitationRateEvidence,
+            }),
+            ...(summary.agentShareOfVoiceEvidence && {
+              agentShareOfVoiceEvidence: summary.agentShareOfVoiceEvidence,
+            }),
+            ...(summary.agentCitationRateEvidence && {
+              agentCitationRateEvidence: summary.agentCitationRateEvidence,
+            }),
             byModel: summary.byModel,
             byCompetitor: summary.byCompetitor,
             topCompetitorDomain: summary.topCompetitorDomain,

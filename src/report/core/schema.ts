@@ -201,6 +201,20 @@ export const aeoMatrixRowSchema = z.object({
 
 export type AeoMatrixRow = z.infer<typeof aeoMatrixRowSchema>;
 
+// Calculation version 2 (specs/aeo-method-release-spec.md §6.2): the counts
+// behind a published rate and its approximate 95% interval over the planned
+// answers. Every field that carries it is optional, so a snapshot made
+// before it and an older reader keep working.
+export const aeoRateEvidenceSchema = z.object({
+  count: z.number().int().nonnegative(),
+  captured: z.number().int().nonnegative(),
+  planned: z.number().int().positive(),
+  low: z.number().min(0).max(1),
+  high: z.number().min(0).max(1),
+});
+
+export type AeoRateEvidence = z.infer<typeof aeoRateEvidenceSchema>;
+
 export const aeoVisibilitySchema = z.object({
   prompts: z.array(
     z.object({ text: z.string(), category: aeoPromptCategorySchema }),
@@ -218,15 +232,30 @@ export const aeoVisibilitySchema = z.object({
     // agent surfaces weren't run.
     agentShareOfVoice: z.number().min(0).max(1).nullable(),
     agentCitationRate: z.number().min(0).max(1).nullable(),
+    // Beside each measured rate from calculation version 2.
+    prospectShareOfVoiceEvidence: aeoRateEvidenceSchema.optional(),
+    prospectCitationRateEvidence: aeoRateEvidenceSchema.optional(),
+    agentShareOfVoiceEvidence: aeoRateEvidenceSchema.optional(),
+    agentCitationRateEvidence: aeoRateEvidenceSchema.optional(),
     byModel: z.record(
       z.string(),
-      z.object({ shareOfVoice: z.number(), citationRate: z.number() }),
+      z.object({
+        shareOfVoice: z.number(),
+        citationRate: z.number(),
+        shareOfVoiceEvidence: aeoRateEvidenceSchema.optional(),
+        citationRateEvidence: aeoRateEvidenceSchema.optional(),
+      }),
     ),
+    // A split of captured answers, not a visibility claim: counts from
+    // calculation version 2, no interval.
     byCompetitor: z.array(
       z.object({
         domain: z.string(),
         shareOfVoice: z.number(),
         citationRate: z.number(),
+        mentionedAnswers: z.number().int().nonnegative().optional(),
+        citedAnswers: z.number().int().nonnegative().optional(),
+        capturedAnswers: z.number().int().nonnegative().optional(),
       }),
     ),
     topCompetitorDomain: z.string().nullable(),

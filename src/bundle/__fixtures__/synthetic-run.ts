@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { buildCaptureManifest, capturePlan } from '../../capture-manifest';
 import { aggregateWorkdir } from '../../codex-workflow/aggregate';
+import type { CalculationVersion } from '../contracts';
 import { runInputsFile, type RunInputs } from '../../codex-workflow/run-inputs';
 import { answerFilePath } from '../../codex-workflow/workdir';
 import type { CaptureArtifact } from '../../harness/report/artifacts';
@@ -90,7 +91,14 @@ export const createSyntheticRun = async (
   {
     answerOverride,
     chatProbes,
-  }: { answerOverride?: string; chatProbes?: ChatProbeConfig } = {},
+    calculationVersion,
+  }: {
+    answerOverride?: string;
+    chatProbes?: ChatProbeConfig;
+    // The version an earlier release aggregated with; the engine's own
+    // when absent.
+    calculationVersion?: CalculationVersion;
+  } = {},
 ): Promise<SyntheticRun> => {
   const config: AeoAuditConfig =
     chatProbes === undefined
@@ -258,13 +266,16 @@ export const createSyntheticRun = async (
     JSON.stringify([]),
   );
 
-  const aggregate = await aggregateWorkdir({
-    dir,
-    config,
-    surfaces,
-    capture,
-    captured,
-  });
+  const aggregate = await aggregateWorkdir(
+    {
+      dir,
+      config,
+      surfaces,
+      capture,
+      captured,
+    },
+    calculationVersion,
+  );
   const chunks = Object.values(aggregate.sections).flatMap(
     (section) => section.evidenceChunks,
   );

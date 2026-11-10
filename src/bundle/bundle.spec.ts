@@ -2,10 +2,13 @@ import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 import { canonicalJson, strictCanonicalJson } from '../lib/canonical-json';
+import { aeoVisibilitySchema } from '../report/core/schema';
 import {
   bundleManifestSchema,
   bundlePaths,
+  calculationVersion,
   digestManifest,
   objectPathPrefix,
   type BundleManifest,
@@ -606,5 +609,285 @@ describe('verify - verifyBundle()', () => {
     const result = readBundleSource(run.dir);
 
     await expect(result).rejects.toThrow(/export it first/);
+  });
+});
+
+// ============================================================================
+// Calculation versions (method release spec §6.3): an export names the
+// version its numbers were made with, the verifier recomputes each readable
+// version with its own arithmetic, and version 2 puts counts and an interval
+// beside every published rate.
+// ============================================================================
+
+// The synthetic snapshot carries the sections the verifier compares, not a
+// full report.
+const sectionsSchema = z.looseObject({
+  sections: z.array(
+    z.looseObject({ key: z.string(), visibility: aeoVisibilitySchema }),
+  ),
+});
+
+const snapshotSummaries = (files: ReadonlyMap<string, Buffer>) => {
+  return sectionsSchema
+    .parse(
+      parseBundleJson(
+        (files.get(bundlePaths.snapshot) ?? Buffer.alloc(0)).toString('utf8'),
+      ),
+    )
+    .sections.map((section) => section.visibility.summary);
+};
+
+const manifestOf = (files: ReadonlyMap<string, Buffer>) => {
+  return bundleManifestSchema.parse(
+    parseBundleJson(
+      (files.get(bundlePaths.manifest) ?? Buffer.alloc(0)).toString('utf8'),
+    ),
+  );
+};
+
+describe('export - calculation versions', () => {
+  it('should export and verify version 2, with counts and an interval beside each rate', async () => {
+    const { files } = await exportSynthetic();
+    const verification = verifyBundle(files, 'synthetic');
+
+    expect(manifestOf(files).calculationVersion).toBe(calculationVersion);
+    expect(outcomeOf(verification, 'metrics.recomputed')?.outcome).toBe('pass');
+
+    for (const summary of snapshotSummaries(files)) {
+      const evidence = summary.prospectShareOfVoiceEvidence;
+
+      // The rate is the count over the planned answers, inside its interval.
+      expect(evidence).toBeDefined();
+      expect(summary.prospectShareOfVoice).toBe(
+        (evidence?.count ?? NaN) / (evidence?.planned ?? NaN),
+      );
+      expect(evidence?.low).toBeLessThanOrEqual(
+        summary.prospectShareOfVoice ?? NaN,
+      );
+      expect(evidence?.high).toBeGreaterThanOrEqual(
+        summary.prospectShareOfVoice ?? NaN,
+      );
+
+      for (const model of Object.values(summary.byModel)) {
+        expect(model.shareOfVoiceEvidence).toBeDefined();
+        expect(model.citationRateEvidence).toBeDefined();
+      }
+
+      for (const competitor of summary.byCompetitor) {
+        expect(competitor.capturedAnswers).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('should export a directory aggregated with version 1 as version 1, which verifies with its own arithmetic', async () => {
+    const run = await createSyntheticRun(path.join(root, 'run'), {
+      calculationVersion: 1,
+    });
+    const files = readArchive(
+      await readFile((await exportRun(run.dir)).archive),
+    );
+
+    expect(manifestOf(files).calculationVersion).toBe(1);
+    expect(
+      outcomeOf(verifyBundle(files, 'version 1'), 'metrics.recomputed')
+        ?.outcome,
+    ).toBe('pass');
+    // Version 1 publishes no evidence: its bytes are what it always wrote.
+    expect(
+      snapshotSummaries(files).every(
+        (summary) => summary.prospectShareOfVoiceEvidence === undefined,
+      ),
+    ).toBe(true);
+  });
+
+  // Loose at every level, so re-encoding keeps every key it does not edit.
+  const intervalPathSchema = z.looseObject({
+    sections: z.array(
+      z.looseObject({
+        visibility: z.looseObject({
+          summary: z.looseObject({
+            prospectShareOfVoiceEvidence: z.looseObject({
+              high: z.number(),
+            }),
+          }),
+        }),
+      }),
+    ),
+  });
+
+  /** The first section's headline interval, its upper bound replaced, in a
+   * re-signed bundle; `replace` keeps the stored value. */
+  const withUpperBound = (
+    files: ReadonlyMap<string, Buffer>,
+    replace: (high: number) => number,
+  ) => {
+    return forge(
+      files,
+      new Map([
+        [
+          bundlePaths.snapshot,
+          editJson(files, bundlePaths.snapshot, (value) => {
+            const snapshot = intervalPathSchema.parse(value);
+            const [first, ...rest] = snapshot.sections;
+
+            if (!first) {
+              return value;
+            }
+
+            const { summary } = first.visibility;
+            const evidence = summary.prospectShareOfVoiceEvidence;
+
+            return {
+              ...snapshot,
+              sections: [
+                {
+                  ...first,
+                  visibility: {
+                    ...first.visibility,
+                    summary: {
+                      ...summary,
+                      prospectShareOfVoiceEvidence: {
+                        ...evidence,
+                        high: replace(evidence.high),
+                      },
+                    },
+                  },
+                },
+                ...rest,
+              ],
+            };
+          }),
+        ],
+      ]),
+    );
+  };
+
+  it('should fail a forged interval in a re-signed bundle', async () => {
+    const { files } = await exportSynthetic();
+    const untouched = verifyBundle(
+      withUpperBound(files, (high) => high),
+      'untouched interval',
+    );
+    const forged = verifyBundle(
+      withUpperBound(files, () => 1),
+      'forged interval',
+    );
+
+    // The same edit keeping the stored bound passes: only the forged number
+    // fails.
+    expect(outcomeOf(untouched, 'metrics.recomputed')?.outcome).toBe('pass');
+    expect(outcomeOf(forged, 'bundle.integrity')?.outcome).toBe('pass');
+    expect(outcomeOf(forged, 'metrics.recomputed')?.code).toBe(
+      'snapshot_metrics_mismatch',
+    );
+  });
+
+  it('should only add evidence in version 2: every number version 1 publishes is unchanged', async () => {
+    const versionOne = await createSyntheticRun(path.join(root, 'one'), {
+      calculationVersion: 1,
+    });
+    const versionTwo = await createSyntheticRun(path.join(root, 'two'));
+    const aggregateOf = async (dir: string): Promise<unknown> => {
+      return JSON.parse(
+        await readFile(path.join(dir, 'OUT', 'aggregate.json'), 'utf8'),
+      );
+    };
+    const evidenceKeys = new Set([
+      'mentionedAnswers',
+      'citedAnswers',
+      'capturedAnswers',
+    ]);
+    const withoutEvidence = (value: unknown): unknown => {
+      if (Array.isArray(value)) {
+        return value.map(withoutEvidence);
+      }
+
+      if (typeof value !== 'object' || value === null) {
+        return value;
+      }
+
+      return Object.fromEntries(
+        Object.entries(value)
+          .filter(
+            ([key]) => !key.endsWith('Evidence') && !evidenceKeys.has(key),
+          )
+          .map(([key, nested]) => [key, withoutEvidence(nested)]),
+      );
+    };
+
+    const one = z
+      .looseObject({ version: z.literal(1), sections: z.unknown() })
+      .parse(await aggregateOf(versionOne.dir));
+    const two = z
+      .looseObject({
+        version: z.literal(2),
+        calculationVersion: z.literal(2),
+        sections: z.unknown(),
+      })
+      .parse(await aggregateOf(versionTwo.dir));
+
+    // Version 1's file names no calculation version, as before.
+    expect(Object.keys(one)).not.toContain('calculationVersion');
+    expect(one.sections).toEqual(withoutEvidence(two.sections));
+  });
+
+  it('should export a damaged aggregate under its recorded version, leaving the damage to the verifier', async () => {
+    const run = await createSyntheticRun(path.join(root, 'run'));
+    const file = path.join(run.dir, 'OUT', 'aggregate.json');
+    const stored = z
+      .looseObject({ version: z.literal(2) })
+      .parse(JSON.parse(await readFile(file, 'utf8')));
+
+    await writeFile(file, JSON.stringify({ ...stored, sections: {} }));
+
+    const files = readArchive(
+      await readFile((await exportRun(run.dir)).archive),
+    );
+
+    expect(manifestOf(files).calculationVersion).toBe(calculationVersion);
+    expect(
+      outcomeOf(verifyBundle(files, 'damaged'), 'metrics.recomputed')?.code,
+    ).toBe('section_metrics_mismatch');
+  });
+
+  it('should refuse to export an aggregate naming a calculation version it cannot read', async () => {
+    const run = await createSyntheticRun(path.join(root, 'run'));
+    const file = path.join(run.dir, 'OUT', 'aggregate.json');
+    const stored = z
+      .looseObject({ version: z.literal(2) })
+      .parse(JSON.parse(await readFile(file, 'utf8')));
+
+    await writeFile(
+      file,
+      JSON.stringify({ ...stored, calculationVersion: 99 }),
+    );
+
+    await expect(exportRun(run.dir)).rejects.toThrow(
+      'names no calculation version this release reads',
+    );
+  });
+
+  it('should report a bundle of an unknown calculation version as unsupported, never recomputing it', async () => {
+    const { files } = await exportSynthetic();
+    const forged = forge(
+      files,
+      new Map([
+        [
+          bundlePaths.manifest,
+          editJson(files, bundlePaths.manifest, (value) => ({
+            ...bundleManifestSchema.parse(value),
+            calculationVersion: 99,
+          })),
+        ],
+      ]),
+    );
+
+    const check = outcomeOf(
+      verifyBundle(forged, 'unknown version'),
+      'metrics.recomputed',
+    );
+
+    expect(check?.outcome).toBe('unsupported');
+    expect(check?.code).toBe('calculation_version_unsupported');
   });
 });

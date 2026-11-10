@@ -24,8 +24,20 @@ export const traceSchemaVersion = 1;
 export const canonicalization = 'literally-aeo-canonical-json-v1';
 // Bump when the arithmetic the verifier recomputes changes
 // (aggregateJudgments, assembleSectionResult, metricsView): a verifier
-// never recomputes an older bundle with a newer method (spec §10).
-export const calculationVersion = 1;
+// never recomputes an older bundle with a newer method (spec §10), but
+// recomputes each readable version with its own arithmetic.
+// Version 2 (method release spec §6.2): every published rate carries its
+// counts and an approximate 95% interval.
+export const calculationVersion = 2;
+export const readableCalculationVersions = [1, 2] as const;
+
+export type CalculationVersion = (typeof readableCalculationVersions)[number];
+
+export const isReadableCalculationVersion = (
+  version: number,
+): version is CalculationVersion => {
+  return readableCalculationVersions.some((readable) => readable === version);
+};
 
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
 const identifier = z.string().regex(/^[0-9A-Z]{26}$/);
