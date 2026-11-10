@@ -7,8 +7,19 @@ import {
   progressQuestionSetKey,
 } from './progress-question-sets';
 import { progressSlotKey } from './progress-slot-key';
+import {
+  progressStatistic,
+  progressStatisticsVersion,
+  type ProgressStatistic,
+  type ProgressStatisticSkip,
+  type ProgressStratum,
+} from './progress-statistics';
 
 export type { ProgressMeasurement, ProgressSlot } from './progress-schema';
+export type {
+  ProgressStatistic,
+  ProgressStatisticSkip,
+} from './progress-statistics';
 export { selectProgressMeasurements } from './progress-question-sets';
 export { progressSlotKey } from './progress-slot-key';
 
@@ -28,6 +39,8 @@ export type ProgressGroupComparison = {
   current: ProgressCounts;
   mentionDeltaPp: number | null;
   citationDeltaPp: number | null;
+  /** Change or noise, per metric (method release spec §7.2). */
+  statistics: { mention: ProgressStatistic; citation: ProgressStatistic };
 };
 
 /** Why a comparison is partial or unavailable; progressNotes words each one. */
@@ -97,14 +110,14 @@ const isSlotSelected = (
   return true;
 };
 
+// A slot's outcome for each metric: an unobserved outcome is not positive.
+const isMentioned = (slot: ProgressSlot) => slot.analyzed && slot.mentioned;
+const isCited = (slot: ProgressSlot) => slot.citationObserved && slot.cited;
+
 const countSlots = (slots: readonly ProgressSlot[]): ProgressCounts => {
   const planned = slots.length;
-  const mentioned = slots.filter(
-    (slot) => slot.analyzed && slot.mentioned,
-  ).length;
-  const cited = slots.filter(
-    (slot) => slot.citationObserved && slot.cited,
-  ).length;
+  const mentioned = slots.filter(isMentioned).length;
+  const cited = slots.filter(isCited).length;
   const analyzed = slots.filter((slot) => slot.analyzed).length;
   const citationObserved = slots.filter((slot) => slot.citationObserved).length;
 
@@ -118,6 +131,51 @@ const countSlots = (slots: readonly ProgressSlot[]): ProgressCounts => {
     mentionRate: planned && analyzed ? mentioned / planned : null,
     citationRate: planned && citationObserved ? cited / planned : null,
   };
+};
+
+type MatchedSlot = { baseline: ProgressSlot; current: ProgressSlot };
+
+/** One stratum per (section, question, surface): matched slots share their
+ * key, so each stratum has the same runs in both audits. */
+const strataOf = (
+  group: readonly MatchedSlot[],
+  isPositive: (slot: ProgressSlot) => boolean,
+): ProgressStratum[] => {
+  const strata = new Map<string, ProgressStratum>();
+
+  for (const { baseline, current } of group) {
+    const key = JSON.stringify([
+      baseline.sectionKey,
+      baseline.questionKey,
+      baseline.surface,
+    ]);
+    const stratum = strata.get(key) ?? { runs: 0, baseline: 0, current: 0 };
+
+    strata.set(key, {
+      runs: stratum.runs + 1,
+      baseline: stratum.baseline + Number(isPositive(baseline)),
+      current: stratum.current + Number(isPositive(current)),
+    });
+  }
+
+  return [...strata.values()];
+};
+
+/** Statistics only for a comparable whole-scope group: a chosen section or
+ * surface would multiply the tests a reader sees (spec §7.2). */
+const statisticsSkipOf = (
+  reasons: readonly ProgressComparisonReason[],
+  selection: ProgressSelection,
+): ProgressStatisticSkip | null => {
+  if (reasons.length) {
+    return 'comparison_partial';
+  }
+
+  if (selection.sectionKey || selection.surface) {
+    return 'section_or_surface_selected';
+  }
+
+  return null;
 };
 
 /** Compare only the questions both audits asked and the selected planned
@@ -327,6 +385,20 @@ export const deriveProgressComparison = (
     result.reasons.push('includes_reused_captures');
   }
 
+  const statisticsSkipped = statisticsSkipOf(result.reasons, selection);
+  const statisticOf = (
+    group: readonly MatchedSlot[],
+    isPositive: (slot: ProgressSlot) => boolean,
+  ): ProgressStatistic => {
+    return statisticsSkipped === null
+      ? progressStatistic(strataOf(group, isPositive))
+      : {
+          version: progressStatisticsVersion,
+          computed: false,
+          reason: statisticsSkipped,
+        };
+  };
+
   for (const scope of ['chat', 'agents'] as const) {
     const group = matched.filter(
       ({ baseline: slot }) =>
@@ -353,6 +425,10 @@ export const deriveProgressComparison = (
         baselineCounts.citationRate !== null
           ? (currentCounts.citationRate - baselineCounts.citationRate) * 100
           : null,
+      statistics: {
+        mention: statisticOf(group, isMentioned),
+        citation: statisticOf(group, isCited),
+      },
     };
   }
 

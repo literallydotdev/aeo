@@ -1036,3 +1036,116 @@ describe('progress - deriveProgressComparison()', () => {
     );
   });
 });
+
+describe('progress - deriveProgressComparison() statistics', () => {
+  // Coding agents ask every question twice; slots 2q and 2q + 1 are
+  // question q's two runs.
+  const agentAudit = (questions: number) => {
+    const cfg = config();
+    const section = getFirst(cfg.sections);
+    const prompt = getFirst(section.prompts);
+
+    section.prompts = Array.from({ length: questions }, (_, index) => ({
+      ...prompt,
+      id: `p${index}`,
+      text: `Which agency writes technical content, part ${index}?`,
+    }));
+
+    return (options: {
+      runId?: string;
+      mentioned?: number[];
+      missing?: number[];
+    }) => {
+      return projectProgressMeasurement(
+        fixture({ ...options, config: cfg, surfaces: ['codex'] }),
+      );
+    };
+  };
+
+  it('should give fixed inputs a fixed p-value, per metric', () => {
+    const audit = agentAudit(3);
+
+    // Question 0: both runs, then one. Question 1: both, then none.
+    // Question 2: neither, both times.
+    const result = deriveProgressComparison({
+      baseline: audit({ mentioned: [0, 1, 2, 3] }),
+      current: audit({ runId: 'current', mentioned: [0] }),
+    });
+
+    expect(result.status).toBe('comparable');
+    expect(result.groups.agents?.statistics).toEqual({
+      // Weights [3, 3] and [1, 4, 1] convolve to [3, 15, 15, 3]; the
+      // observed total is an end: p = 6/36. Question 2 carries nothing.
+      mention: {
+        version: 1,
+        computed: true,
+        method: 'stratified_exact',
+        pValue: 0.166667,
+        largerThanVariation: false,
+      },
+      citation: {
+        version: 1,
+        computed: true,
+        method: 'stratified_exact',
+        pValue: 1,
+        largerThanVariation: false,
+      },
+    });
+  });
+
+  it('should find a total swing over 20 questions at depth 2 larger than variation', () => {
+    const audit = agentAudit(20);
+    const everySlot = Array.from({ length: 40 }, (_, index) => index);
+
+    const result = deriveProgressComparison({
+      baseline: audit({ mentioned: everySlot }),
+      current: audit({ runId: 'current' }),
+    });
+
+    const mention = result.groups.agents?.statistics.mention;
+
+    expect(result.groups.agents?.mentionDeltaPp).toBe(-100);
+    assert(mention?.computed, 'Expected a computed statistic.');
+    expect(mention.pValue).toBeLessThan(0.001);
+    expect(mention.largerThanVariation).toBe(true);
+  });
+
+  it('should NOT test a partial comparison', () => {
+    const audit = agentAudit(2);
+
+    const result = deriveProgressComparison({
+      baseline: audit({ mentioned: [0, 1] }),
+      current: audit({ runId: 'current', missing: [1] }),
+    });
+
+    expect(result.status).toBe('partial');
+    expect(result.groups.agents?.statistics).toEqual({
+      mention: { version: 1, computed: false, reason: 'comparison_partial' },
+      citation: { version: 1, computed: false, reason: 'comparison_partial' },
+    });
+  });
+
+  it('should NOT test a chosen section or surface, only a whole scope', () => {
+    const audit = agentAudit(2);
+    const pair = {
+      baseline: audit({ mentioned: [0, 1] }),
+      current: audit({ runId: 'current' }),
+    };
+    const skipped = {
+      version: 1,
+      computed: false,
+      reason: 'section_or_surface_selected',
+    };
+
+    const bySurface = deriveProgressComparison(pair, { surface: 'codex' });
+    const bySection = deriveProgressComparison(pair, { sectionKey: 'content' });
+    const byScope = deriveProgressComparison(pair, { scope: 'agents' });
+
+    expect(bySurface.status).toBe('comparable');
+    expect(bySurface.groups.agents?.statistics.mention).toEqual(skipped);
+    expect(bySection.groups.agents?.statistics.citation).toEqual(skipped);
+    expect(byScope.groups.agents?.statistics.mention).toMatchObject({
+      computed: true,
+    });
+  });
+});
