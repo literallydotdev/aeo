@@ -3,6 +3,7 @@ import type {
   SectionCaptureArtifact,
 } from '../harness/report/artifacts';
 import { captureCoverageIssues } from '../harness/report/capture-coverage';
+import { compareCodeUnits } from '../lib/compare';
 import { unitRecordKey } from '../lib/checkpoint';
 import type { InternalModelContext } from '../models/context';
 import { captureSectionProbes, type SectionRunArgs } from '../pipeline';
@@ -153,15 +154,6 @@ export const assertBankUsable = async (
       `${mismatched.length} banked answers were captured with another adapter or model than this run's binding of ${bound}. A banked answer is never probed again under another binding: start a fresh run (a new run directory, or mode fresh) to measure them this way.`,
     );
   }
-};
-
-/** Orders by UTF-16 code units, independent of the host's locale. */
-const compareCodeUnits = (left: string, right: string) => {
-  if (left === right) {
-    return 0;
-  }
-
-  return left < right ? -1 : 1;
 };
 
 export const captureForRun = async (

@@ -116,7 +116,13 @@ sections, the buyer questions in each, the competitors, and the surfaces
 that judges and writes the report; leave it out to use the recommended
 one. It may be any language model ID on the gateway: `literally-aeo doctor`
 lists the models the engine ships verified settings for, and says of any
-other what it was priced at and that it is unverified. If the
+other what it was priced at and that it is unverified. To measure another
+model behind an API chat surface, set
+`"probes": { "chatgpt": { "model": "<gateway model ID>" } }`; to measure a
+model as a surface of its own, add
+`"customSurfaces": [{ "key": "…", "label": "…", "model": "<gateway model ID>" }]`.
+Leave both out unless the user asks: the defaults are what the report's
+headline means. If the
 user would rather measure fewer questions more deeply, set
 `chatProbes.runsPerPrompt` and `agentProbes.runsPerPrompt` (1 to 25 runs
 of each question per assistant); left out, each question is asked twice

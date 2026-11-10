@@ -96,6 +96,9 @@ const evidenceOf = (evidence) =>
 // Outward to whole percents, so the range shown always contains the computed
 // interval. The bounds are stored to 6 decimals; scaling them to an integer
 // first keeps a bound of 0.07 (7.000000000000001 once multiplied) at 7%.
+// The rule of report/core/rate-interval.ts, repeated here because this page
+// is one self-contained script; page.spec.ts holds the two to the same
+// answers.
 const intervalText = (evidence) =>
   Math.floor(Math.round(evidence.low * 1e6) / 1e4) + '–'
     + Math.ceil(Math.round(evidence.high * 1e6) / 1e4) + '%';

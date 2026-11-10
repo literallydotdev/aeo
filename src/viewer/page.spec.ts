@@ -8,6 +8,7 @@ import type { CalculationVersion } from '../bundle/contracts';
 import { exportRun } from '../bundle/export';
 import { readBundleSource } from '../bundle/read';
 import { createSyntheticRun } from '../bundle/__fixtures__/synthetic-run';
+import { intervalPercents } from '../report/core/rate-interval';
 import { viewerPage } from './page';
 import { startViewer, type ViewerServer } from './server';
 
@@ -348,6 +349,45 @@ describe('viewer - viewerPage()', () => {
         { text: '25%', counts: undefined },
       ],
     ]);
+  });
+
+  it("should round an interval as the report's own rule does", async () => {
+    // The page is one self-contained script and carries its own copy of the
+    // rounding rule: held here to the answers of the shared one.
+    const bounds = [
+      { low: 0.07, high: 0.93 },
+      { low: 0.071494, high: 0.591181 },
+      { low: 0, high: 1 },
+      { low: 0.29, high: 0.57 },
+    ];
+    const source = await exportedFiles(2);
+    const snapshot = editableSnapshotSchema.parse(
+      JSON.parse(String(source.files.get(snapshotPath))),
+    );
+    const summary = snapshot.sections[0]?.visibility.summary;
+
+    if (summary === undefined) {
+      throw new Error('The synthetic snapshot has no section.');
+    }
+
+    for (const bound of bounds) {
+      summary['prospectShareOfVoiceEvidence'] = {
+        count: 2,
+        captured: 20,
+        planned: 20,
+        ...bound,
+      };
+      const files = new Map(source.files).set(
+        snapshotPath,
+        Buffer.from(JSON.stringify(snapshot)),
+      );
+      const page = await renderPage(await viewerFor({ ...source, files }));
+      const { low, high } = intervalPercents(bound);
+
+      expect(statsOf(page)[0]?.text).toContain(
+        `approx. 95% interval ${low}–${high}%`,
+      );
+    }
   });
 
   it('should round an interval outward to whole percents, and drop malformed evidence', async () => {

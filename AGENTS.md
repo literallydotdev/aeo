@@ -49,12 +49,18 @@ memory guard where one is installed; anything narrower (`npx vitest run <file>`,
   package root; `src/codex-workflow/` the Codex stages; `src/bundle/` the
   journal, export and offline verifier; `src/report/` the report and
   measurement contracts (`literally-aeo/contracts`).
-- `src/models/` the model profile schema, the supported-model list
-  (`supported-models.ts`, a release changes it), the local profile a run
-  builds from `audit.json`'s `model`, and the cost coefficients the
-  estimate and the ledger's reservations use (`cost-coefficients.ts`,
-  recalibrated from recorded runs each release). The engine never names a
-  hosted service's profile: a host passes its own.
+- `src/models/` the model profile schema, the list of models the engine
+  ships verified settings for (`supported-models.ts`, a release changes
+  it), the catalog that prices any other gateway model (`catalog.ts`, read
+  from the gateway's public model list and frozen per run), the local
+  profile a run builds from `audit.json`'s `model`, and the cost
+  coefficients the estimate and the ledger's reservations use
+  (`cost-coefficients.ts`, recalibrated from recorded runs each release).
+  The engine never names a hosted service's profile: a host passes its own.
+- `src/probes/bindings.ts` which adapter and model measures each surface.
+  The defaults are part of the method: each API chat surface asks the
+  gateway model closest to what the product serves its free tier, with the
+  date and source beside it. `legacy-bindings.ts` is frozen forever.
 - `src/author/`, `src/engine/editorial/` and `src/engine/guide/` are
   run-time resources, copied into `resources/` by the build. Code finds them through
   `engineResources()`, never through a path relative to the working
@@ -125,7 +131,9 @@ One body of guidance for Claude Code, Cursor and Codex. Map and sync rules:
 ## Releasing
 
 Bump `version` in `package.json` and `toolVersion`, re-check the list
-prices in `src/models/supported-models.ts`, merge, then tag
+prices in `src/models/supported-models.ts` and the default probe models in
+`src/probes/bindings.ts` (a changed one is a method change, with its date
+and source), merge, then tag
 `vX.Y.Z` and push the tag. `release.yml` checks, packs and publishes through
 npm trusted publishing, with provenance. Nothing waits for approval: pushing
 the tag is the publish, and an npm version can never be reused, so tag only

@@ -20,6 +20,7 @@ import {
   type ScoringCounts,
 } from './analysis/scoring';
 import { rateEvidence, type RateEvidence } from './analysis/rate-evidence';
+import { compareCodeUnits } from './lib/compare';
 import type { CalculationVersion } from './bundle/contracts';
 import {
   attributeCitations,
@@ -44,15 +45,6 @@ import type {
 
 /** The evidence beside a share of voice and a citation rate (calculation
  * version 2); a rate with nothing planned gets none. */
-/** Orders by UTF-16 code units, independent of the host's locale. */
-const compareCodeUnits = (left: string, right: string): number => {
-  if (left === right) {
-    return 0;
-  }
-
-  return left < right ? -1 : 1;
-};
-
 const evidenceOf = (
   counts: ScoringCounts,
 ): { shareOfVoice: RateEvidence | null; citationRate: RateEvidence | null } => {

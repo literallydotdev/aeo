@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { canonicalJson } from '../lib/canonical-json';
 import { isDomainCited } from '../analysis/domain-match';
 import { plannedProbeUnitsForSection } from '../lib/checkpoint';
+import { intervalPercents } from '../report/core/rate-interval';
 import type { AeoRateEvidence } from '../report/core/schema';
 import type { AeoAuditConfig, AeoSnapshot } from '../schema';
 import type {
@@ -93,17 +94,6 @@ export const projectWriterFactCatalog = (
         ? { ...base, kind: fact.kind, assessmentId: fact.assessment.claimId }
         : { ...base, kind: fact.kind };
     }),
-  };
-};
-
-// Outward to whole percents, so the range a sentence states always
-// contains the computed interval. The bounds are stored to 6 decimals;
-// scaling them to an integer first keeps 0.07 (7.000000000000001 once
-// multiplied) at 7%.
-const intervalPercents = ({ low, high }: AeoRateEvidence) => {
-  return {
-    low: Math.floor(Math.round(low * 1e6) / 1e4),
-    high: Math.ceil(Math.round(high * 1e6) / 1e4),
   };
 };
 
