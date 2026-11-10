@@ -12,6 +12,7 @@ import {
   RunModelChangedError,
   type BudgetAmendment,
 } from '../engine/budget';
+import { RunMethodChangedError } from '../engine/run-method';
 import {
   describeCostRange,
   estimateAuthorCost,
@@ -767,7 +768,10 @@ const executeRun = async ({
       return 2;
     }
 
-    if (err instanceof RunModelChangedError) {
+    if (
+      err instanceof RunModelChangedError ||
+      err instanceof RunMethodChangedError
+    ) {
       writeErr(err.message);
 
       return 1;

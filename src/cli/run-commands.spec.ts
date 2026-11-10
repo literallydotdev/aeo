@@ -3,8 +3,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { auditFileSchema, localReportKey } from '../engine/audit-file';
+import { budgetPolicySchema, resolveRunBudget } from '../engine/budget';
 import { planLocalRun } from '../engine/local-run';
 import { exampleAuditFile } from '../engine/templates';
+import { resolveSupportedModel } from '../models/supported-models';
 import { defaultProbeBindings } from '../probes/bindings';
 import type { CapturedUnitRecord } from '../stores/ports';
 import { parseFlags } from './io';
@@ -106,16 +108,65 @@ describe('run-commands - runRun()', () => {
     expect(code).toBe(2);
     expect(message).toContain('chatgpt with gateway.openai@9');
     expect(fetch).not.toHaveBeenCalled();
-    // Nothing was banked: the probe store was never written.
-    await expect(readdir(path.join(root, 'run', 'BANK'))).resolves.toEqual([
-      'bindings.json',
-    ]);
+    // Nothing was banked: the probe store was never written, only the
+    // method and bindings the run froze.
+    await expect(
+      readdir(path.join(root, 'run', 'BANK')).then((files) => files.sort()),
+    ).resolves.toEqual(['bindings.json', 'method.json']);
     // The bindings freeze before the budget: an attempt stopped between
     // the two never leaves a budget without bindings, which only a
     // directory from before bindings were frozen holds.
     await expect(readdir(path.join(root, 'run'))).resolves.not.toContain(
       'BUDGET.json',
     );
+  });
+
+  it('should stop with exit 1 before any dispatch when the run directory was started before 0.4.0', async () => {
+    // Credentials come from the env file only, never the developer's shell.
+    for (const name of [
+      'AI_GATEWAY_API_KEY',
+      'DATAFORSEO_LOGIN',
+      'DATAFORSEO_PASSWORD',
+    ]) {
+      vi.stubEnv(name, undefined);
+    }
+
+    vi.stubEnv('AEO_CODEX_BIN', process.execPath);
+    vi.stubEnv('PATH', path.join(root, 'no-agent-clis'));
+    const fetch = vi.fn(() => Promise.reject(new Error('No network here.')));
+
+    vi.stubGlobal('fetch', fetch);
+    const flags = await flagsFor(['--max-usd', '5']);
+    const runDir = path.join(root, 'run');
+
+    await writeFile(
+      path.join(root, 'empty.env'),
+      'AI_GATEWAY_API_KEY=fake-gateway-key\nDATAFORSEO_LOGIN=fake-login\nDATAFORSEO_PASSWORD=fake-password\n',
+    );
+
+    // As 0.3.0 left it: a frozen budget and bindings, no frozen method.
+    await resolveRunBudget(runDir, budgetPolicySchema.parse({}), {
+      model: resolveSupportedModel(exampleAuditFile.model).id,
+      maxUsd: 5,
+    });
+    await mkdir(path.join(runDir, 'BANK'), { recursive: true });
+    await writeFile(
+      path.join(runDir, 'BANK', 'bindings.json'),
+      JSON.stringify({ version: 1, bindings: defaultProbeBindings }),
+    );
+    const stderr = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+
+    const code = await runRun(flags);
+
+    const message = stderr.mock.calls.map(([text]) => String(text)).join('');
+
+    expect(message).toContain(`npx literally-aeo@0.3.0 run --output ${runDir}`);
+    expect(code).toBe(1);
+    expect(message).toContain(`literally-aeo rejudge ${runDir}`);
+    expect(fetch).not.toHaveBeenCalled();
+    await expect(readdir(path.join(runDir, 'BANK'))).resolves.toEqual([
+      'bindings.json',
+    ]);
   });
 
   it('should stop with exit 2 before the agent canaries when a banked answer was captured with another adapter', async () => {

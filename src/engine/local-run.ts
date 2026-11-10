@@ -46,6 +46,7 @@ import type { CapturedUnitRecord } from '../stores/ports';
 import { getEnvironment } from '../lib/env';
 import { toAuditConfig, toRunRequest, type AuditFile } from './audit-file';
 import { resolveRunBindings } from './run-bindings';
+import { resolveRunMethod } from './run-method';
 import {
   readFrozenBudget,
   resolveRunBudget,
@@ -233,13 +234,16 @@ const openLockedLocalRun = async (
 ): Promise<LocalRun> => {
   const { recorder } = held;
   const bank = path.join(dir, bankDir);
-  // Frozen before the budget and the first canary, then kept on every
-  // resume: a directory that holds a budget but no bindings started before
-  // bindings were frozen. Frozen after the budget, an attempt stopped
-  // between the two (a refused plan, a crash) would read as one.
-  const bindings = await resolveRunBindings(bank, {
-    startedBefore: (await readFrozenBudget(dir)) !== undefined,
-  });
+  // The method and the bindings are frozen before the budget and the first
+  // canary, then kept on every resume: a directory that holds a budget but
+  // not them started before they were frozen. Frozen after the budget, an
+  // attempt stopped between the two (a refused plan, a crash) would read as
+  // one. The method comes first, so a refused directory gains no file.
+  const startedBefore = (await readFrozenBudget(dir)) !== undefined;
+
+  await resolveRunMethod(dir, bank, { startedBefore });
+
+  const bindings = await resolveRunBindings(bank, { startedBefore });
   const budget = await resolveRunBudget(dir, file.runPolicy.budget, {
     model: resolveSupportedModel(file.model).id,
     ...(maxUsd !== undefined && { maxUsd }),
