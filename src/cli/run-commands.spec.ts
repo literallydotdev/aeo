@@ -169,6 +169,71 @@ describe('run-commands - runRun()', () => {
     ]);
   });
 
+  it('should freeze no model price in a run directory it refuses, even for a model priced from the catalog', async () => {
+    for (const name of [
+      'AI_GATEWAY_API_KEY',
+      'DATAFORSEO_LOGIN',
+      'DATAFORSEO_PASSWORD',
+    ]) {
+      vi.stubEnv(name, undefined);
+    }
+
+    vi.stubEnv('AEO_CODEX_BIN', process.execPath);
+    vi.stubEnv('PATH', path.join(root, 'no-agent-clis'));
+    // A saved copy of the gateway's model list: no network is reached.
+    vi.stubEnv(
+      'AEO_MODEL_CATALOG',
+      path.join(
+        import.meta.dirname,
+        '..',
+        'models',
+        '__fixtures__',
+        'gateway-models.json',
+      ),
+    );
+    const fetch = vi.fn(() => Promise.reject(new Error('No network here.')));
+
+    vi.stubGlobal('fetch', fetch);
+    const flags = await flagsFor(['--max-usd', '5']);
+    const runDir = path.join(root, 'run');
+
+    await writeFile(
+      path.join(root, 'audit.json'),
+      JSON.stringify({
+        ...exampleAuditFile,
+        model: 'anthropic/claude-sonnet-5',
+      }),
+    );
+    await writeFile(
+      path.join(root, 'empty.env'),
+      'AI_GATEWAY_API_KEY=fake-gateway-key\nDATAFORSEO_LOGIN=fake-login\nDATAFORSEO_PASSWORD=fake-password\n',
+    );
+    // As 0.3.0 left it: a frozen budget and bindings, no frozen method.
+    await resolveRunBudget(runDir, budgetPolicySchema.parse({}), {
+      model: 'anthropic/claude-sonnet-5',
+      maxUsd: 5,
+    });
+    await mkdir(path.join(runDir, 'BANK'), { recursive: true });
+    await writeFile(
+      path.join(runDir, 'BANK', 'bindings.json'),
+      JSON.stringify({ version: 1, bindings: defaultProbeBindings }),
+    );
+    const stderr = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+
+    const code = await runRun(flags);
+
+    const message = stderr.mock.calls.map(([text]) => String(text)).join('');
+
+    // The model was priced, read-only, for the estimate and the checks; the
+    // refused directory gains no file.
+    expect(message).toContain('started before literally-aeo 0.4.0');
+    expect(code).toBe(1);
+    expect(fetch).not.toHaveBeenCalled();
+    await expect(readdir(path.join(runDir, 'BANK'))).resolves.toEqual([
+      'bindings.json',
+    ]);
+  });
+
   it('should stop with exit 2 before the agent canaries when a banked answer was captured with another adapter', async () => {
     for (const name of [
       'AI_GATEWAY_API_KEY',

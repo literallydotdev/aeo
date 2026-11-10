@@ -89,7 +89,7 @@ export class UnsupportedModelError extends Error {
   constructor(id: string) {
     super(
       [
-        `${id} is not a supported model. Set audit.json's "model" to one of:`,
+        `${id} is not one of the models literally-aeo ships settings for. Any other gateway model is priced from the gateway's model list first (resolveReportModel). Its own models:`,
         ...describeSupportedModels().map((line) => `  ${line}`),
       ].join('\n'),
     );
@@ -97,8 +97,10 @@ export class UnsupportedModelError extends Error {
   }
 }
 
-/** resolveSupportedModel returns the entry a run uses: the named model, or
- * the recommended one when none is named. An unknown ID is refused. */
+/** resolveSupportedModel returns the engine's own entry for the named
+ * model, or for the recommended one when none is named. A model it has no
+ * entry for is refused here: a run resolves one through the catalog
+ * (resolveReportModel). */
 export const resolveSupportedModel = (
   id: string = recommendedModelId,
 ): SupportedModel => {

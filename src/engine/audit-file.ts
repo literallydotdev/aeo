@@ -11,7 +11,10 @@ import {
 } from '../grounding/guarded-request';
 import type { ModelBudgetLimits } from '../models/accounting';
 import { localModelProfile } from '../models/local-profile';
-import { resolveSupportedModel } from '../models/supported-models';
+import {
+  resolveSupportedModel,
+  type SupportedModel,
+} from '../models/supported-models';
 import { resolveDataForSeoLocale } from '../probes/dataforseo-locale';
 import { probeLimitsSchema } from '../probes/limits';
 import {
@@ -135,9 +138,10 @@ const describeMoneyPageProblem = (
 export const auditFileSchema = z
   .object({
     version: z.literal(auditFileVersion),
-    // The gateway model every text role and Codex stage runs on; absent
-    // means the engine's recommended model (src/models/supported-models.ts).
-    // Probe surfaces are what is measured and keep their own pinned models.
+    // The gateway model every text role and Codex stage runs on: any
+    // language model the gateway's model list prices (resolveReportModel).
+    // Absent means the engine's recommended model. Probe surfaces are what
+    // is measured and keep their own pinned models.
     model: z.string().trim().min(1).optional(),
     brand: brandSchema,
     competitors: z.array(brandSchema).min(1),
@@ -303,19 +307,24 @@ export const toAuditConfig = (file: AuditFile): AeoAuditConfig => {
   return config;
 };
 
-/** toRunRequest is the request a local run executes under; the budget is
- * the run's frozen one (resolveRunBudget), absent only for a plan. */
+/** toRunRequest is the request a local run executes under. The budget is
+ * the run's frozen one (resolveRunBudget), absent only for a plan. `model`
+ * is the report model once resolved (resolveReportModel); when absent, the
+ * engine's own entry for the model the file names. */
 export const toRunRequest = (
   file: AuditFile,
   runId: string,
-  modelBudget?: ModelBudgetLimits,
+  {
+    modelBudget,
+    model = resolveSupportedModel(file.model),
+  }: { modelBudget?: ModelBudgetLimits; model?: SupportedModel } = {},
 ): RunRequest => {
   const request = runRequestSchema.parse({
     reportKey: localReportKey(file),
     runId,
     mode: 'resume',
     grounding: file.grounding,
-    modelProfile: localModelProfile(resolveSupportedModel(file.model), {
+    modelProfile: localModelProfile(model, {
       // Pinned by the audit, never inferred from which credentials happen to
       // be set: full grounding searches, and preflight requires its key.
       searchProvider:

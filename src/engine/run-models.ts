@@ -9,6 +9,12 @@ import {
   type CatalogModel,
   type ModelCatalogSource,
 } from '../models/catalog';
+import { reportModelOf } from '../models/open-model';
+import {
+  findSupportedModel,
+  resolveSupportedModel,
+  type SupportedModel,
+} from '../models/supported-models';
 import { hasErrorCode } from '../stores/fs-errors';
 
 // ============================================================================
@@ -67,22 +73,45 @@ const readFrozenModels = async (
 
 const readMissing = async (
   missing: readonly string[],
-  source: ModelCatalogSource,
+  source: ModelCatalogSource | undefined,
 ): Promise<CatalogModel[]> => {
-  return missing.length === 0 ? [] : readCatalogModels(missing, source);
+  if (missing.length === 0) {
+    return [];
+  }
+
+  if (!source) {
+    throw new ModelCatalogError(
+      `${missing.join(', ')} must be priced from the gateway's model list, and this command was given none to read.`,
+    );
+  }
+
+  return readCatalogModels(missing, source);
+};
+
+/** One model's catalog entry as a run froze it. */
+export type FrozenModel = FrozenModels['models'][number];
+
+type ResolveOptions = {
+  /** Absent when the command was given no catalog: a model that needs one
+   * is then refused. */
+  source: ModelCatalogSource | undefined;
+  now: Date;
+  /** False for a read-only command (a plan, an estimate, doctor): what the
+   * catalog says now is used, and nothing is written. */
+  freeze: boolean;
 };
 
 /**
  * resolveRunModels returns the price entry of each named model: the frozen
- * one when the run directory holds it, otherwise read from the catalog and
- * frozen before it is used. The catalog is not read when every model is
- * already frozen, or when none is named.
+ * one when the run directory holds it, otherwise read from the catalog and,
+ * for a run, frozen before it is used. The catalog is not read when every
+ * model is already frozen, or when none is named.
  */
 export const resolveRunModels = async (
   bankPath: string,
   ids: readonly string[],
-  { source, now }: { source: ModelCatalogSource; now: Date },
-): Promise<CatalogModel[]> => {
+  { source, now, freeze }: ResolveOptions,
+): Promise<FrozenModel[]> => {
   const wanted = [...new Set(ids)];
 
   if (wanted.length === 0) {
@@ -95,12 +124,12 @@ export const resolveRunModels = async (
   );
   const added = (await readMissing(missing, source)).map((model) => ({
     readAt: now.toISOString(),
-    origin: source.origin,
+    origin: source?.origin ?? 'gateway',
     model,
   }));
   const models = [...frozen, ...added];
 
-  if (added.length > 0) {
+  if (freeze && added.length > 0) {
     await writeFileAtomically(
       path.join(bankPath, modelsFile),
       `${JSON.stringify({ version: 1, models } satisfies FrozenModels, null, 2)}\n`,
@@ -110,6 +139,36 @@ export const resolveRunModels = async (
   return wanted.flatMap((id) => {
     const entry = models.find((candidate) => candidate.model.id === id);
 
-    return entry ? [entry.model] : [];
+    return entry ? [entry] : [];
   });
+};
+
+/**
+ * resolveReportModel is the model a run judges and writes with: the
+ * engine's own entry when it has one for `id` (or for the recommended model
+ * when none is named), with no catalog read; otherwise the model's catalog
+ * entry, with settings derived from it.
+ */
+export const resolveReportModel = async (
+  id: string | undefined,
+  bankPath: string,
+  options: ResolveOptions,
+): Promise<SupportedModel> => {
+  if (id === undefined) {
+    return resolveSupportedModel();
+  }
+
+  const own = findSupportedModel(id);
+
+  if (own) {
+    return own;
+  }
+
+  const [entry] = await resolveRunModels(bankPath, [id], options);
+
+  if (!entry) {
+    throw new ModelCatalogError(`${id} could not be priced.`);
+  }
+
+  return reportModelOf(entry.model, entry.readAt.slice(0, 10));
 };

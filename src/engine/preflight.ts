@@ -26,7 +26,8 @@ import {
 import {
   describeSupportedModels,
   findSupportedModel,
-  recommendedModelId,
+  resolveSupportedModel,
+  type SupportedModel,
 } from '../models/supported-models';
 import type { Settings } from './env-file';
 
@@ -229,31 +230,51 @@ const chromiumCheck = async (): Promise<PreflightCheck> => {
   }
 };
 
-/** The model audit.json names, or the recommended one: refused when it is
- * not on the supported list, which the detail then prints. */
-export const modelCheck = (model: string | undefined): PreflightCheck => {
-  const id = model ?? recommendedModelId;
-  const supported = findSupportedModel(id);
+/** The report model as a command resolved it (resolveReportModel), or why
+ * it could not be priced. */
+export type PreflightModel =
+  | { outcome: 'resolved'; model: SupportedModel; named: boolean }
+  | { outcome: 'refused'; reason: string };
 
-  if (!supported) {
+const recommendedModel = (): PreflightModel => {
+  return { outcome: 'resolved', model: resolveSupportedModel(), named: false };
+};
+
+/** The model the run judges and writes with. Any gateway model is accepted
+ * once it is priced; one the engine ships no settings for says that it was
+ * never verified on the Codex stage runtime. */
+export const modelCheck = (
+  resolved: PreflightModel = recommendedModel(),
+): PreflightCheck => {
+  if (resolved.outcome === 'refused') {
     return {
       name: 'model',
       ok: false,
       detail: [
-        `${id} is not supported; use one of:`,
+        resolved.reason,
+        'literally-aeo ships verified settings for:',
         ...describeSupportedModels(),
       ].join('\n    '),
     };
   }
 
+  const { model, named } = resolved;
+  const { input, output } = model.pricingUsdPerMillion;
+  const priced = findSupportedModel(model.id)
+    ? []
+    : [
+        `priced from the gateway's model list on ${model.pricingCheckedAt}, at up to ${input} in / ${output} out USD per million tokens`,
+      ];
+
   return {
     name: 'model',
     ok: true,
     detail: [
-      `${supported.id}${model === undefined ? ' (recommended; audit.json names none)' : ''}`,
-      supported.stageRuntimeVerifiedAt === null
+      `${model.id}${named ? '' : ' (recommended; audit.json names none)'}`,
+      ...priced,
+      model.stageRuntimeVerifiedAt === null
         ? 'not yet verified on the Codex stage runtime through the gateway'
-        : `verified on the Codex stage runtime ${supported.stageRuntimeVerifiedAt}`,
+        : `verified on the Codex stage runtime ${model.stageRuntimeVerifiedAt}`,
     ].join('; '),
   };
 };
@@ -290,8 +311,9 @@ export const runPreflight = async (args: {
   surfaces: readonly AeoSurface[];
   settings: Settings;
   dir: string;
-  /** audit.json's `model`; absent means the recommended model. */
-  model?: string;
+  /** The report model as the command resolved it; absent means the
+   * recommended model. */
+  model?: PreflightModel;
   /** Full grounding researches through the pinned search provider. */
   groundingSearch?: boolean;
   /** Money pages are rendered in Chromium by the renderability check. */

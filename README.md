@@ -56,11 +56,17 @@ literally-aeo verify audit-run.aeo.zip   # offline verification
 ## Model and cost
 
 One model judges the answers, researches the claims and writes the report:
-`"model"` in `audit.json`, a gateway model ID. Leave it out to use the
-recommended model, the strongest the engine supports, because judgment and
-writing quality are the report. `literally-aeo doctor` lists the supported
-models with their list prices and refuses any other. The assistants being
-measured keep their own pinned models; they are what the audit observes.
+`"model"` in `audit.json`, any language model ID on the gateway. Leave it
+out to use the recommended model, because judgment and writing quality are
+the report. The engine ships verified settings for the models
+`literally-aeo doctor` lists. Any other model is priced from the gateway's
+public model list, at the highest price the list shows for it, and that
+price is kept for the whole run. Such a model was never verified on the
+analysis stages, which `doctor` says; it is refused only when the list has
+no price for it. Without network access to the list, set
+`AEO_MODEL_CATALOG` to a saved copy of
+`https://ai-gateway.vercel.sh/v1/models`. The assistants being measured
+keep their own pinned models; they are what the audit observes.
 
 `literally-aeo plan` estimates what a run costs, as a range per kind of
 work: the assistant answers, the analysis stages, the other model calls and

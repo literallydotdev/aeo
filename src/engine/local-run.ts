@@ -33,7 +33,8 @@ import {
   createFileModelAccounting,
   type ModelCallAccounting,
 } from '../models/accounting';
-import { resolveSupportedModel } from '../models/supported-models';
+import type { ModelCatalogSource } from '../models/catalog';
+import type { SupportedModel } from '../models/supported-models';
 import { chargedProbeTrace } from '../probes/charged-trace';
 import { probeDependenciesOf } from '../probes/bindings';
 import type { InternalModelContext } from '../models/context';
@@ -46,6 +47,7 @@ import type { CapturedUnitRecord } from '../stores/ports';
 import { getEnvironment } from '../lib/env';
 import { toAuditConfig, toRunRequest, type AuditFile } from './audit-file';
 import { resolveRunBindings } from './run-bindings';
+import { resolveReportModel } from './run-models';
 import { bankDir } from './run-configuration';
 import { resolveRunMethod } from './run-method';
 import {
@@ -71,9 +73,14 @@ export type LocalPlan = {
 };
 
 /** planLocalRun resolves what a run would measure; no I/O, no network. */
-export const planLocalRun = (file: AuditFile, runId = 'planned'): LocalPlan => {
+export const planLocalRun = (
+  file: AuditFile,
+  runId = 'planned',
+  /** The report model once resolved; the engine's own entry when absent. */
+  model?: SupportedModel,
+): LocalPlan => {
   const config = toAuditConfig(file);
-  const request = toRunRequest(file, runId);
+  const request = toRunRequest(file, runId, { ...(model && { model }) });
   const plan = planRun(config, request);
 
   const localPlan: LocalPlan = {
@@ -91,6 +98,15 @@ export const planLocalRun = (file: AuditFile, runId = 'planned'): LocalPlan => {
   };
 
   return localPlan;
+};
+
+/** What a file measures, as digests. They do not depend on the report
+ * model, so none is resolved or priced to compute them. */
+export const localRunDigests = (
+  file: AuditFile,
+  runId = 'planned',
+): LocalPlan['digests'] => {
+  return planLocalRun({ ...file, model: undefined }, runId).digests;
 };
 
 /** Whether full grounding will search through the pinned provider, so its
@@ -170,6 +186,9 @@ export const openLocalRun = async (
     maxUsd?: number;
     amendment?: BudgetAmendment;
     derivedFromRunId?: string;
+    /** Where a report model the engine has no entry for is priced from;
+     * without one, such a model is refused. */
+    catalog?: ModelCatalogSource;
   } = {},
 ): Promise<LocalRun> => {
   await mkdir(dir, { recursive: true });
@@ -179,13 +198,15 @@ export const openLocalRun = async (
 
   try {
     const runId = await persistedRunId(dir);
-    const planned = planLocalRun(file, runId);
+    // The report model is resolved, and its price frozen, only once the
+    // directory's method is known to match (openLockedLocalRun).
+    const digests = localRunDigests(file, runId);
 
     recorder = await openRecorder(dir, {
       origin: RunOrigin.LOCAL,
       runId,
-      measurementDigest: planned.digests.measurement,
-      planDigest: planned.digests.plan,
+      measurementDigest: digests.measurement,
+      planDigest: digests.plan,
       observes: recordedOperationKinds,
       ...(writer.takenOver && { takenOver: writer.takenOver }),
     });
@@ -220,6 +241,7 @@ const openLockedLocalRun = async (
     maxUsd,
     amendment,
     derivedFromRunId,
+    catalog,
     runId,
     held,
   }: {
@@ -227,6 +249,7 @@ const openLockedLocalRun = async (
     maxUsd?: number;
     amendment?: BudgetAmendment;
     derivedFromRunId?: string;
+    catalog?: ModelCatalogSource;
     runId: string;
     held: LocalRun['held'];
   },
@@ -243,14 +266,19 @@ const openLockedLocalRun = async (
   await resolveRunMethod(dir, bank, { startedBefore });
 
   const bindings = await resolveRunBindings(bank, { startedBefore });
+  const model = await resolveReportModel(file.model, bank, {
+    source: catalog,
+    now: new Date(),
+    freeze: true,
+  });
   const budget = await resolveRunBudget(dir, file.runPolicy.budget, {
-    model: resolveSupportedModel(file.model).id,
+    model: model.id,
     ...(maxUsd !== undefined && { maxUsd }),
     ...(amendment && { amendment }),
   });
   const config = toAuditConfig(file);
   const request = {
-    ...toRunRequest(file, runId, budget.limits),
+    ...toRunRequest(file, runId, { modelBudget: budget.limits, model }),
     ...(derivedFromRunId !== undefined && { derivedFromRunId }),
   };
   const plan = planRun(config, request);

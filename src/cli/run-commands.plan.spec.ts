@@ -1,9 +1,10 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { auditFileSchema } from '../engine/audit-file';
 import { exampleAuditFile } from '../engine/templates';
+import { ModelCatalogError } from '../models/catalog';
 import { parseFlags } from './io';
 import { runPlan } from './run-commands';
 
@@ -19,6 +20,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
   await rm(root, { recursive: true, force: true });
 });
 
@@ -55,5 +57,47 @@ describe('run-commands - runPlan()', () => {
       "on its own login, your plan; on OPENAI_API_KEY, that OpenAI account, outside this run's cap",
     );
     expect(output).not.toContain('cursor billing');
+  });
+
+  describe('with a report model the engine has no entry of its own for', () => {
+    // A saved copy of the gateway's model list: no network is reached.
+    const savedCatalog = path.join(
+      import.meta.dirname,
+      '..',
+      'models',
+      '__fixtures__',
+      'gateway-models.json',
+    );
+
+    it('should plan and estimate with any listed gateway model, priced from the catalog, and write nothing', async () => {
+      vi.stubEnv('AEO_MODEL_CATALOG', savedCatalog);
+      const flags = await flagsFor(
+        auditFileSchema.parse({
+          ...exampleAuditFile,
+          model: 'anthropic/claude-sonnet-5',
+        }),
+      );
+      const stdout = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
+
+      expect(await runPlan(flags)).toBe(0);
+
+      const output = stdout.mock.calls.map(([text]) => String(text)).join('');
+
+      expect(output).toContain('anthropic/claude-sonnet-5');
+      // A plan is read-only: the run directory is not even created.
+      await expect(access(path.join(root, 'run'))).rejects.toThrow();
+    });
+
+    it('should refuse a model the catalog does not list, before anything else', async () => {
+      vi.stubEnv('AEO_MODEL_CATALOG', savedCatalog);
+      const flags = await flagsFor(
+        auditFileSchema.parse({ ...exampleAuditFile, model: 'acme/unlisted' }),
+      );
+
+      await expect(runPlan(flags)).rejects.toBeInstanceOf(ModelCatalogError);
+      await expect(runPlan(flags)).rejects.toThrow(
+        /acme\/unlisted is not on the gateway's model list/,
+      );
+    });
   });
 });

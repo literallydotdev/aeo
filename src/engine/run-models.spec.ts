@@ -3,7 +3,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ModelCatalogError, type ModelCatalogSource } from '../models/catalog';
-import { modelsFile, resolveRunModels } from './run-models';
+import { recommendedModelId } from '../models/supported-models';
+import { modelsFile, resolveReportModel, resolveRunModels } from './run-models';
 
 let bank: string;
 
@@ -16,7 +17,16 @@ afterEach(async () => {
 });
 
 const entry = (id: string, input: string) => {
-  return { id, type: 'language', pricing: { input, output: '0.000002' } };
+  return {
+    id,
+    name: 'Acme Model',
+    type: 'language',
+    context_window: 200_000,
+    max_tokens: 16_000,
+    tags: ['reasoning'],
+    reasoning_options: [{ type: 'effort', values: ['low', 'high'] }],
+    pricing: { input, output: '0.000002' },
+  };
 };
 
 /** A catalog whose list holds the given entries, counting its reads. */
@@ -32,6 +42,7 @@ const catalog = (...entries: unknown[]) => {
 };
 
 const now = new Date('2026-11-10T12:00:00.000Z');
+const frozenFile = () => readFile(path.join(bank, modelsFile), 'utf8');
 
 describe('run-models - resolveRunModels()', () => {
   it('should freeze a model at the price it had when the run first read it', async () => {
@@ -41,19 +52,19 @@ describe('run-models - resolveRunModels()', () => {
     const [frozen] = await resolveRunModels(bank, ['acme/model'], {
       source: first.source,
       now,
+      freeze: true,
     });
     const [resumed] = await resolveRunModels(bank, ['acme/model'], {
       source: dearer.source,
       now: new Date('2026-12-01T00:00:00.000Z'),
+      freeze: true,
     });
 
-    expect(frozen?.pricingUsdPerMillion.input).toBe(1);
+    expect(frozen?.model.pricingUsdPerMillion.input).toBe(1);
     expect(resumed).toEqual(frozen);
     // The resume read no catalog at all.
     expect(dearer.list).not.toHaveBeenCalled();
-    expect(
-      JSON.parse(await readFile(path.join(bank, modelsFile), 'utf8')),
-    ).toMatchObject({
+    expect(JSON.parse(await frozenFile())).toMatchObject({
       version: 1,
       models: [
         {
@@ -69,6 +80,7 @@ describe('run-models - resolveRunModels()', () => {
     await resolveRunModels(bank, ['acme/model'], {
       source: catalog(entry('acme/model', '0.000001')).source,
       now,
+      freeze: true,
     });
     const later = catalog(
       entry('acme/model', '0.000009'),
@@ -78,10 +90,11 @@ describe('run-models - resolveRunModels()', () => {
     const models = await resolveRunModels(bank, ['acme/other', 'acme/model'], {
       source: later.source,
       now,
+      freeze: true,
     });
 
     expect(
-      models.map((model) => [model.id, model.pricingUsdPerMillion.input]),
+      models.map(({ model }) => [model.id, model.pricingUsdPerMillion.input]),
     ).toEqual([
       ['acme/other', 3],
       ['acme/model', 1],
@@ -89,21 +102,40 @@ describe('run-models - resolveRunModels()', () => {
     expect(later.list).toHaveBeenCalledTimes(1);
   });
 
+  it('should price without writing anything for a read-only command', async () => {
+    const { source } = catalog(entry('acme/model', '0.000001'));
+
+    const [priced] = await resolveRunModels(bank, ['acme/model'], {
+      source,
+      now,
+      freeze: false,
+    });
+
+    expect(priced?.model.pricingUsdPerMillion.input).toBe(1);
+    await expect(frozenFile()).rejects.toThrow();
+  });
+
   it('should read no catalog and write no file when no model is named', async () => {
     const { source, list } = catalog();
 
-    expect(await resolveRunModels(bank, [], { source, now })).toEqual([]);
+    expect(
+      await resolveRunModels(bank, [], { source, now, freeze: true }),
+    ).toEqual([]);
     expect(list).not.toHaveBeenCalled();
-    await expect(readFile(path.join(bank, modelsFile))).rejects.toThrow();
+    await expect(frozenFile()).rejects.toThrow();
   });
 
   it('should freeze nothing when a model cannot be priced', async () => {
     const { source } = catalog(entry('acme/model', '0.000001'));
 
     await expect(
-      resolveRunModels(bank, ['acme/model', 'acme/unlisted'], { source, now }),
+      resolveRunModels(bank, ['acme/model', 'acme/unlisted'], {
+        source,
+        now,
+        freeze: true,
+      }),
     ).rejects.toBeInstanceOf(ModelCatalogError);
-    await expect(readFile(path.join(bank, modelsFile))).rejects.toThrow();
+    await expect(frozenFile()).rejects.toThrow();
   });
 
   it('should refuse a damaged price file, never price the run again', async () => {
@@ -112,8 +144,69 @@ describe('run-models - resolveRunModels()', () => {
     await writeFile(path.join(bank, modelsFile), '{"version":1}\n');
 
     await expect(
-      resolveRunModels(bank, ['acme/model'], { source, now }),
+      resolveRunModels(bank, ['acme/model'], { source, now, freeze: true }),
     ).rejects.toThrow(/models\.json is not a frozen model price file/);
     expect(list).not.toHaveBeenCalled();
+  });
+});
+
+describe('run-models - resolveReportModel()', () => {
+  it("should use the engine's own entry without reading a catalog, named or not", async () => {
+    const { source, list } = catalog();
+    const options = { source, now, freeze: true };
+
+    const unnamed = await resolveReportModel(undefined, bank, options);
+    const named = await resolveReportModel(
+      'anthropic/claude-sonnet-5.5',
+      bank,
+      options,
+    );
+
+    expect(unnamed.id).toBe(recommendedModelId);
+    expect(named).toMatchObject({
+      id: 'anthropic/claude-sonnet-5.5',
+      stageRuntimeVerifiedAt: '2026-11-04',
+    });
+    expect(list).not.toHaveBeenCalled();
+    await expect(frozenFile()).rejects.toThrow();
+  });
+
+  it('should run any other gateway model on its frozen catalog price and derived settings', async () => {
+    const { source } = catalog(entry('acme/model', '0.000001'));
+
+    const model = await resolveReportModel('acme/model', bank, {
+      source,
+      now,
+      freeze: true,
+    });
+
+    expect(model).toEqual({
+      id: 'acme/model',
+      label: 'Acme Model',
+      pricingUsdPerMillion: { input: 1, output: 2, cachedInput: 1 },
+      pricingCheckedAt: '2026-11-10',
+      contextWindow: 200_000,
+      maxOutputTokens: 16_000,
+      thinkingInOutput: true,
+      providerOptions: { gateway: { reasoning: { effort: 'high' } } },
+      stageReasoningEffort: 'high',
+      // Never run on the Codex stage runtime by the maintainers.
+      stageRuntimeVerifiedAt: null,
+    });
+    expect(JSON.parse(await frozenFile())).toMatchObject({
+      models: [{ model: { id: 'acme/model' } }],
+    });
+  });
+
+  it('should refuse a model outside its own list when the command has no catalog', async () => {
+    await expect(
+      resolveReportModel('acme/model', bank, {
+        source: undefined,
+        now,
+        freeze: true,
+      }),
+    ).rejects.toThrow(
+      /acme\/model must be priced from the gateway's model list/,
+    );
   });
 });

@@ -27,10 +27,11 @@ export const generationBackendSchema = z.enum([
 ]);
 export type GenerationBackend = z.infer<typeof generationBackendSchema>;
 
+// Zero is a price: the gateway lists free models.
 export const modelPricingSchema = z
   .object({
-    input: z.number().positive(),
-    output: z.number().positive(),
+    input: z.number().nonnegative(),
+    output: z.number().nonnegative(),
     cachedInput: z.number().nonnegative(),
   })
   .strict();

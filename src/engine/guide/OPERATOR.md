@@ -114,7 +114,9 @@ sections, the buyer questions in each, the competitors, and the surfaces
 (the assistants that will be asked). Apply the user's edits to
 `draft/audit.json` yourself. The optional `model` field names the model
 that judges and writes the report; leave it out to use the recommended
-one, which `literally-aeo doctor` lists with every supported model. If the
+one. It may be any language model ID on the gateway: `literally-aeo doctor`
+lists the models the engine ships verified settings for, and says of any
+other what it was priced at and that it is unverified. If the
 user would rather measure fewer questions more deeply, set
 `chatProbes.runsPerPrompt` and `agentProbes.runsPerPrompt` (1 to 25 runs
 of each question per assistant); left out, each question is asked twice

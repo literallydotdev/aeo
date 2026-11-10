@@ -31,6 +31,7 @@ import {
   credentialSettingNames,
   runPreflight,
   runSettingNames,
+  type PreflightModel,
 } from '../engine/preflight';
 import { prepareRejudgment } from '../engine/rejudge';
 import {
@@ -56,18 +57,51 @@ import { exampleAuditFile, exampleEnvFile } from '../engine/templates';
 import { getEnvironment, writeEnv } from '../lib/env';
 import { ModelBudgetError } from '../models/accounting';
 import {
-  findSupportedModel,
-  recommendedModelId,
-  resolveSupportedModel,
-} from '../models/supported-models';
+  fileCatalogSource,
+  gatewayCatalogSource,
+  ModelCatalogError,
+  type ModelCatalogSource,
+} from '../models/catalog';
+import type { SupportedModel } from '../models/supported-models';
+import { resolveReportModel } from '../engine/run-models';
 import { hasErrorCode } from '../stores/fs-errors';
 import { formatLine, writeErr, writeOut, type Flags } from './io';
 
 // ============================================================================
 // init, doctor, plan and run (specs/aeo-open-source-cli-spec.md §4.1, §4.3).
-// init, doctor and plan never contact a provider; run is the only command
+// init, doctor and plan never spend: the one thing they may read from the
+// network is the gateway's free public model list, and only to price a
+// model the engine has no entry of its own for. run is the only command
 // that spends money, and it checks what it can before it does.
 // ============================================================================
+
+const modelCatalogSetting = 'AEO_MODEL_CATALOG';
+
+/** Where a model the engine has no entry for is priced from: a saved copy
+ * of the gateway's model list when AEO_MODEL_CATALOG names one, otherwise
+ * the list itself. Nothing is read until such a model is named. */
+const catalogOf = (settings: Settings): ModelCatalogSource => {
+  const [saved] = settings.values([modelCatalogSetting]);
+
+  return saved
+    ? fileCatalogSource(path.resolve(saved))
+    : gatewayCatalogSource({ fetch: globalThis.fetch });
+};
+
+/** The report model a command plans, estimates and checks with. A run
+ * freezes the model's price itself, once its directory is known to be its
+ * own (openLocalRun); everything before that only reads. */
+const reportModelFor = (
+  id: string | undefined,
+  dir: string,
+  settings: Settings,
+): Promise<SupportedModel> => {
+  return resolveReportModel(id, path.join(dir, bankDir), {
+    source: catalogOf(settings),
+    now: new Date(),
+    freeze: false,
+  });
+};
 
 const configPathOf = (flags: Flags) => {
   return path.resolve(flags.options.get('--config') ?? 'audit.json');
@@ -168,22 +202,39 @@ export const runInit = async (flags: Flags) => {
 
 export const runDoctor = async (flags: Flags) => {
   const file = await readAuditFile(configPathOf(flags));
-  // An unsupported model is doctor's finding, not its crash: the rest of
-  // the checks still run, against the plan the recommended model would make.
-  const isSupported =
-    findSupportedModel(file.model ?? recommendedModelId) !== undefined;
-  const { plan, request } = planLocalRun(
-    isSupported ? file : { ...file, model: undefined },
-  );
+  const dir = runDirOf(flags);
   const settings = await readSettings(flags.options.get('--env-file'));
+  // A model that cannot be priced is doctor's finding, not its crash: the
+  // rest of the checks still run, against the plan the recommended model
+  // would make.
+  const model = await reportModelFor(file.model, dir, settings).then(
+    (resolved): PreflightModel => {
+      return {
+        outcome: 'resolved',
+        model: resolved,
+        named: file.model !== undefined,
+      };
+    },
+    (err: unknown): PreflightModel => {
+      if (err instanceof ModelCatalogError) {
+        return { outcome: 'refused', reason: err.message };
+      }
+
+      throw err;
+    },
+  );
+  const { plan, request } =
+    model.outcome === 'resolved'
+      ? planLocalRun(file, 'planned', model.model)
+      : planLocalRun({ ...file, model: undefined });
   const checks = await runPreflight({
     surfaces: plan.surfaces,
     settings,
-    dir: runDirOf(flags),
-    model: file.model,
+    dir,
+    model,
     groundingSearch: usesGroundingSearch(request),
     rendersPages: file.moneyPages.length > 0,
-    bindings: await estimateBindingsOf(path.join(runDirOf(flags), bankDir)),
+    bindings: await estimateBindingsOf(path.join(dir, bankDir)),
   });
   const ok = checks.every((check) => check.ok);
 
@@ -210,11 +261,19 @@ export const runDoctor = async (flags: Flags) => {
 
 export const runPlan = async (flags: Flags) => {
   const file = await readAuditFile(configPathOf(flags));
-  const { config, request, plan, digests } = planLocalRun(file);
   const dir = runDirOf(flags);
+  const model = await reportModelFor(
+    file.model,
+    dir,
+    await readSettings(flags.options.get('--env-file')),
+  );
+  const { config, request, plan, digests } = planLocalRun(
+    file,
+    'planned',
+    model,
+  );
   const state = await runDirectoryState(dir);
   const bySurface = Object.fromEntries(plan.probesBySurface);
-  const model = resolveSupportedModel(file.model);
   const bindings = await estimateBindingsOf(path.join(dir, bankDir));
   const estimate = estimateRunCost({
     plan,
@@ -311,7 +370,8 @@ export const runRun = async (flags: Flags) => {
   const file = await readAuditFile(configPathOf(flags));
   const dir = runDirOf(flags);
   const settings = await readSettings(flags.options.get('--env-file'));
-  const { plan, request } = planLocalRun(file);
+  const model = await reportModelFor(file.model, dir, settings);
+  const { plan, request } = planLocalRun(file, 'planned', model);
   const budgetFile = flags.options.get('--budget-file');
   const amendment = budgetFile
     ? await readBudgetAmendment(path.resolve(budgetFile))
@@ -323,7 +383,7 @@ export const runRun = async (flags: Flags) => {
     maxUsd,
     estimate: estimateRunCost({
       plan,
-      model: resolveSupportedModel(file.model),
+      model,
       grounding: request.grounding,
       bindings: await estimateBindingsOf(path.join(dir, bankDir)),
     }),
@@ -337,7 +397,7 @@ export const runRun = async (flags: Flags) => {
     surfaces: plan.surfaces,
     settings,
     dir,
-    model: file.model,
+    model: { outcome: 'resolved', model, named: file.model !== undefined },
     groundingSearch: usesGroundingSearch(request),
     rendersPages: file.moneyPages.length > 0,
     bindings: await estimateBindingsOf(path.join(dir, bankDir)),
@@ -409,8 +469,12 @@ export const runAuthor = async (flags: Flags, usage: string) => {
   }
 
   const brief = await readBrief(path.resolve(briefFile));
-  const model = resolveSupportedModel(flags.options.get('--model'));
-  const estimate = estimateAuthorCost(model);
+  const dir = path.resolve(flags.options.get('--output') ?? 'audit-draft');
+  const settings = await readSettings(flags.options.get('--env-file'));
+  const modelOption = flags.options.get('--model');
+  const estimate = estimateAuthorCost(
+    await reportModelFor(modelOption, dir, settings),
+  );
   const maxUsd = maxUsdOf(flags);
 
   // --estimate is free: it reads the brief and prints what researching it
@@ -439,14 +503,19 @@ export const runAuthor = async (flags: Flags, usage: string) => {
     return flags.switches.has('--estimate') ? 0 : 2;
   }
 
-  const dir = path.resolve(flags.options.get('--output') ?? 'audit-draft');
-  const settings = await readSettings(flags.options.get('--env-file'));
+  // The draft directory keeps the price it starts with, like a run's.
+  const model = await resolveReportModel(modelOption, path.join(dir, bankDir), {
+    source: catalogOf(settings),
+    now: new Date(),
+    freeze: true,
+  });
   // The author researches through the pinned search provider, so its key
   // is a requirement, never a silent `unavailable`.
   const checks = await runPreflight({
     surfaces: [],
     settings,
     dir,
+    model: { outcome: 'resolved', model, named: modelOption !== undefined },
     groundingSearch: true,
     bindings: defaultProbeBindings,
   });
@@ -560,9 +629,10 @@ export const runRejudge = async (flags: Flags, usage: string) => {
   const file =
     modelOption === undefined
       ? configured
-      : { ...configured, model: resolveSupportedModel(modelOption).id };
+      : { ...configured, model: modelOption };
   const settings = await readSettings(flags.options.get('--env-file'));
-  const { plan, request } = planLocalRun(file);
+  const model = await reportModelFor(file.model, dir, settings);
+  const { plan, request } = planLocalRun(file, 'planned', model);
   const maxUsd = maxUsdOf(flags);
   const refused = await refuseWithoutCap({
     file,
@@ -571,7 +641,7 @@ export const runRejudge = async (flags: Flags, usage: string) => {
     // Nothing is probed again: only the judging and writing are paid.
     estimate: estimateRunCost({
       plan: { units: plan.units, probesBySurface: new Map() },
-      model: resolveSupportedModel(file.model),
+      model,
       grounding: request.grounding,
       bindings: defaultProbeBindings,
     }),
@@ -592,7 +662,7 @@ export const runRejudge = async (flags: Flags, usage: string) => {
     surfaces: plan.surfaces,
     settings,
     dir,
-    model: file.model,
+    model: { outcome: 'resolved', model, named: file.model !== undefined },
     groundingSearch: usesGroundingSearch(request),
     // Nothing is probed again; the settings checked are the same.
     bindings: defaultProbeBindings,
@@ -689,6 +759,7 @@ const executeRun = async ({
       ...(maxUsd !== undefined && { maxUsd }),
       amendment,
       derivedFromRunId,
+      catalog: catalogOf(settings),
     });
 
     if (local.budget.policyDiffers) {

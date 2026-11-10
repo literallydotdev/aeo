@@ -10,7 +10,7 @@ import {
 import { readRunInputs } from '../codex-workflow/run-inputs';
 import { hasErrorCode } from '../stores/fs-errors';
 import { localReportKey, type AuditFile } from './audit-file';
-import { planLocalRun, runDirectoryState } from './local-run';
+import { localRunDigests, runDirectoryState } from './local-run';
 import { bankDir } from './run-configuration';
 import { carryFrozenBindings } from './run-bindings';
 
@@ -67,7 +67,7 @@ export const prepareRejudgment = async ({
   // What is being rejudged must be frozen first: the derived bundle names
   // this exact revision as its predecessor.
   const revision = await finalizeRevision(source, { secrets, acceptFindings });
-  const planned = planLocalRun(file).digests.measurement;
+  const planned = localRunDigests(file).measurement;
 
   if (planned !== revision.manifest.digests.measurement) {
     throw new Error(

@@ -37,11 +37,13 @@ Usage:
 Every command takes --json (a versioned result on stdout) and --quiet.
 
 init writes an example audit.json and .env.example, never over a file.
-doctor checks the model, the CLIs, settings and run directory a run needs,
-offline; settings are named, never shown, and an unsupported model is
-refused with the supported list. plan prints what a run would measure, its
+doctor checks the model, the CLIs, settings and run directory a run needs;
+settings are named, never shown, and a model the gateway's model list has
+no price for is refused. plan prints what a run would measure, its
 estimated cost as a range, and whether the run directory is new, resumable
-or completed, offline. run measures: it captures every planned answer
+or completed. Both are offline, except that a model the engine ships no
+settings for is priced from the gateway's free public model list
+(AEO_MODEL_CATALOG names a saved copy). run measures: it captures every planned answer
 (reusing what the run directory already holds), judges, reviews and writes
 the report; running it again resumes. A new run starts only under an
 approved cap, --max-usd or runPolicy.budget.maxUsd, which covers every

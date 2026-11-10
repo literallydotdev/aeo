@@ -40,11 +40,15 @@ describe('supported-models - resolveSupportedModel()', () => {
 
 describe('preflight - modelCheck()', () => {
   it.each(modelIds)(
-    'should fail doctor for a model not on the list, naming %s',
+    'should fail doctor for a model that could not be priced, with the reason, and name %s',
     (modelId) => {
-      const check = modelCheck('provider/unknown-model');
+      const check = modelCheck({
+        outcome: 'refused',
+        reason: "acme/unlisted is not on the gateway's model list.",
+      });
 
       expect(check.ok).toBe(false);
+      expect(check.detail).toContain('acme/unlisted is not on the gateway');
       expect(check.detail).toContain(modelId);
     },
   );
@@ -54,6 +58,27 @@ describe('preflight - modelCheck()', () => {
 
     expect(check.ok).toBe(true);
     expect(check.detail).toContain('recommended');
+  });
+
+  it('should pass doctor for any priced gateway model, and say where its price came from and that it is unverified', () => {
+    const check = modelCheck({
+      outcome: 'resolved',
+      named: true,
+      model: {
+        ...resolveSupportedModel(),
+        id: 'acme/model',
+        pricingUsdPerMillion: { input: 1.1, output: 2.2, cachedInput: 0.11 },
+        pricingCheckedAt: '2026-11-10',
+        stageRuntimeVerifiedAt: null,
+      },
+    });
+
+    expect(check).toEqual({
+      name: 'model',
+      ok: true,
+      detail:
+        "acme/model; priced from the gateway's model list on 2026-11-10, at up to 1.1 in / 2.2 out USD per million tokens; not yet verified on the Codex stage runtime through the gateway",
+    });
   });
 });
 
