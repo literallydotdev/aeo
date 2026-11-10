@@ -131,6 +131,39 @@ same across the runs you mean to compare: a progress comparison between
 runs at different depths reports that the scope changed, not a change in
 visibility.
 
+## How sure a number is
+
+A rate is a share of the planned answers: "mentioned in 2 of 8". With so few
+answers, a bare "25%" says more than was measured. Every rate therefore
+carries its counts and an approximate 95% interval (a Wilson score
+interval), and the report and the viewer show the interval beside the rate.
+
+- The interval describes answer-to-answer variation for these questions at
+  the time of the audit. It is not a market share and not a forecast.
+- An answer that was planned and not captured counts as "not mentioned" in
+  the rate, and the interval widens to allow for either outcome.
+- It assumes repeated runs of one question are independent. Runs minutes
+  apart can share a search index or a cache; if they return near-duplicate
+  answers, the interval is too narrow.
+- A comparison of two runs says whether each change is larger than
+  answer-to-answer variation, by an exact test, with its p-value. It never
+  says why a number changed, or that the change will last.
+
+Every report carries a methodology section, built by the engine and not
+written by a model: the models asked, what is not measured, and what the
+numbers mean.
+
+## A run keeps its method
+
+A run directory records, before its first paid call, how it measures: the
+calculation and prompt versions, the model behind each surface, and the
+price of any model the engine has no entry for. Running it again resumes it
+the same way. A release that measures another way refuses to resume it, and
+says which release finishes it. `rejudge` judges its answers under the
+installed release in a new directory. An exported bundle states the method
+the run was made with, from what the directory recorded, whichever release
+exports it.
+
 ## What a run produces
 
 A run directory holds the captured answers, every judgment, the computed
