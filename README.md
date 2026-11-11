@@ -98,8 +98,10 @@ surfaces, in the audit's country and language, through the gateway's search
 tool. It is scored on its own line, under its label and its model, and it
 is never part of the headline rates: those stay the four API chat surfaces
 and Google AI Overviews, so they keep meaning the same thing from one
-report to the next. A model that cannot call the search tool fails its
-answers one by one; there is no check before the first paid call.
+report to the next. That tool attaches no source list to an answer, so a
+custom surface's citation rate counts only the links the model writes in
+its answer. A model that cannot call the search tool fails its answers one
+by one; there is no check before the first paid call.
 
 `literally-aeo plan` estimates what a run costs, as a range per kind of
 work: the assistant answers, the analysis stages, the other model calls and

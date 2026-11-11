@@ -120,13 +120,26 @@ export const probeUsage = {
   searches: { low: 1, high: 3 },
 } as const;
 
+/** What one probe through the gateway's own search tool is assumed to
+ * use. The gateway runs that tool loop itself and nothing caps how often a
+ * model searches, so one probe reads more than a provider's own search
+ * feeds it: the first recorded one (mistral/mistral-large-4, 2026-11-11)
+ * searched five times and read 37,000 tokens. The high end is about twice
+ * that probe, until more are recorded. */
+export const gatewaySearchProbeUsage = {
+  input: { low: 8000, high: 75_000 },
+  output: { low: 500, high: 6000 },
+  searches: { low: 1, high: 10 },
+} as const;
+
 /** The search fee per request assumed for a model whose catalog entry
  * lists none. */
 export const probeSearchUsd = 0.01;
 
 /** What the gateway charges for one request of its own search tool: "$5
  * per 1,000 requests" (vercel.com/docs/ai-gateway/web-search, read
- * 2026-11-10). */
+ * 2026-11-10). The gateway's reported cost of a recorded probe agrees:
+ * $0.025 above its inference cost for five searches (2026-11-11). */
 export const gatewaySearchUsd = 0.005;
 
 /** The calibrated workload a Codex session is: a batch of answer files

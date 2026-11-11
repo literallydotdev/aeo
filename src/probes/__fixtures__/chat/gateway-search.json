@@ -1,0 +1,487 @@
+{
+  "text": "The current **latest LTS** line of Node.js is **Node.js 26.x — codename “Lithium”**. The newest LTS build listed by nodejs.org is **v26.13.0 (LTS)**, which entered **Active LTS** on **Oct 28, 2026** and is supported through **April 30, 2029**.\n\nOther still-supported LTS lines are in maintenance: **Node.js 24.x “Krypton”** (latest around **v24.22.2**, EOL Apr 2028) and **Node.js 22.x “Jod”** (latest around **v22.23.4**, EOL Apr 2027). Node.js 27 is currently only an alpha line.\n\nFor production use, the recommended current LTS is therefore **Node.js 26 LTS — v26.13.0**.",
+  "steps": [
+    {
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "[…fixture-trimmed…]"
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "mCpUSidT6",
+          "toolName": "perplexity_search",
+          "input": {
+            "query": "current Node.js LTS version 2025 latest LTS release active LTS codename",
+            "max_results": 10
+          },
+          "providerExecuted": true
+        },
+        {
+          "type": "tool-result",
+          "toolCallId": "mCpUSidT6",
+          "toolName": "perplexity_search",
+          "input": {
+            "query": "current Node.js LTS version 2025 latest LTS release active LTS codename",
+            "max_results": 10
+          },
+          "output": {
+            "id": "[…fixture-trimmed…]",
+            "results": [
+              {
+                "date": "2026-10-29",
+                "last_updated": "2026-11-02",
+                "snippet": "# Node.js Releases[…fixture-trimmed…]",
+                "title": "Node.js — Node.js Releases",
+                "url": "https://nodejs.org/en/about/previous-releases"
+              },
+              {
+                "date": "2015-04-05",
+                "last_updated": "2026-11-11",
+                "snippet": "|Release|Status|Codename|Initial Release|Active LTS Start|Maintenance Start|End-[…fixture-trimmed…]",
+                "title": "Node.js Release Working Group",
+                "url": "https://github.com/nodejs/release"
+              },
+              {
+                "last_updated": "2026-11-10",
+                "snippet": "# Download Node.js®[…fixture-trimmed…]",
+                "title": "Node.js — Download Node.js®",
+                "url": "https://nodejs.org/en/download/current"
+              },
+              {
+                "date": "2025-10-28",
+                "last_updated": "2026-11-01",
+                "snippet": "Node.js — Node.js 24.11.0 (LTS)[…fixture-trimmed…]",
+                "title": "Node.js 24.11.0 (LTS)",
+                "url": "https://nodejs.org/en/blog/release/v24.11.0"
+              },
+              {
+                "date": "2015-04-05",
+                "last_updated": "2026-11-04",
+                "snippet": "|Release|Status|Codename|Initial Release|Active LTS Start|Maintenance Start|End-[…fixture-trimmed…]",
+                "title": "Release/README.md at main · nodejs/Release · GitHub",
+                "url": "https://github.com/nodejs/Release/blob/main/README.md"
+              },
+              {
+                "date": "2014-11-26",
+                "last_updated": "2025-05-19",
+                "snippet": "# Node.js[…fixture-trimmed…]",
+                "title": "GitHub - nodejs/node: Node.js JavaScript runtime ✨🐢🚀✨",
+                "url": "https://github.com/nodejs/node/tree/main"
+              },
+              {
+                "date": "2026-03-10",
+                "last_updated": "2026-11-02",
+                "snippet": "As of October 2026:[…fixture-trimmed…]",
+                "title": "Evolving the Node.js Release Schedule",
+                "url": "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule"
+              },
+              {
+                "date": "2025-01-21",
+                "last_updated": "2026-11-01",
+                "snippet": "# Blog[…fixture-trimmed…]",
+                "title": "Blog - Node.js",
+                "url": "https://nodejs.org/en/blog/year-2025/page/12"
+              },
+              {
+                "date": "2026-10-29",
+                "last_updated": "2026-11-01",
+                "snippet": "# Node.js Releases[…fixture-trimmed…]",
+                "title": "Versions de Node.js",
+                "url": "https://nodejs.org/fr/about//previous-releases?_rsc=sibw4"
+              }
+            ]
+          },
+          "providerExecuted": true
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "PbyzMDaEd",
+          "toolName": "perplexity_search",
+          "input": {
+            "query": "nodejs.org release schedule LTS current version November 2025",
+            "max_results": 10,
+            "search_domain_filter": [
+              "nodejs.org"
+            ]
+          },
+          "providerExecuted": true
+        },
+        {
+          "type": "tool-result",
+          "toolCallId": "PbyzMDaEd",
+          "toolName": "perplexity_search",
+          "input": {
+            "query": "nodejs.org release schedule LTS current version November 2025",
+            "max_results": 10,
+            "search_domain_filter": [
+              "nodejs.org"
+            ]
+          },
+          "output": {
+            "id": "[…fixture-trimmed…]",
+            "results": [
+              {
+                "date": "2026-10-29",
+                "last_updated": "2026-11-02",
+                "snippet": "# Node.js Releases[…fixture-trimmed…]",
+                "title": "Node.js — Node.js Releases",
+                "url": "https://nodejs.org/en/about/previous-releases"
+              },
+              {
+                "date": "2026-03-10",
+                "last_updated": "2026-11-02",
+                "snippet": "# Evolving the Node.js Release Schedule[…fixture-trimmed…]",
+                "title": "Evolving the Node.js Release Schedule",
+                "url": "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule"
+              },
+              {
+                "last_updated": "2026-11-10",
+                "snippet": "# Download Node.js®[…fixture-trimmed…]",
+                "title": "Node.js — Download Node.js®",
+                "url": "https://nodejs.org/en/download/current"
+              },
+              {
+                "date": "2026-10-29",
+                "last_updated": "2026-11-01",
+                "snippet": "# Node.js Releases[…fixture-trimmed…]",
+                "title": "Versions de Node.js",
+                "url": "https://nodejs.org/fr/about//previous-releases?_rsc=sibw4"
+              },
+              {
+                "date": "2026-10-29",
+                "last_updated": "2026-11-02",
+                "snippet": "# Blog[…fixture-trimmed…]",
+                "title": "Node.js",
+                "url": "https://nodejs.org/en/blog/release?view=Schedule"
+              },
+              {
+                "date": "2026-10-29",
+                "last_updated": "2026-11-01",
+                "snippet": "# Node.js Releases[…fixture-trimmed…]",
+                "title": "Versions de Node.js",
+                "url": "https://nodejs.org/fr/about/previous-releases?_rsc=9gisb"
+              },
+              {
+                "last_updated": "2026-11-10",
+                "snippet": "# Download Node.js®[…fixture-trimmed…]",
+                "title": "Download Node.js®",
+                "url": "https://nodejs.org/tr/download/current"
+              },
+              {
+                "date": "2026-03-31",
+                "last_updated": "2026-11-02",
+                "snippet": "# End-Of-Life (EOL)[…fixture-trimmed…]",
+                "title": "End-of-Life (EOL)",
+                "url": "https://nodejs.org/en/about/eol"
+              },
+              {
+                "date": "2025-11-11",
+                "last_updated": "2026-11-10",
+                "snippet": "Node.js — Node.js 25.2.0 (Current)[…fixture-trimmed…]",
+                "title": "Node.js 25.2.0 (Current)",
+                "url": "https://nodejs.org/ja/blog/release/v25.2.0"
+              },
+              {
+                "last_updated": "2026-11-10",
+                "snippet": "Wednesday, November 11, 2026 Security Releases[…fixture-trimmed…]",
+                "title": "Node.js Blog",
+                "url": "https://nodejs.org/en/feed/blog.xml"
+              }
+            ]
+          },
+          "providerExecuted": true
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "LWbF4syO6",
+          "toolName": "perplexity_search",
+          "input": {
+            "query": "Node.js 24 LTS 22 LTS which is current LTS version October 2025 release schedule",
+            "max_results": 10
+          },
+          "providerExecuted": true
+        },
+        {
+          "type": "tool-result",
+          "toolCallId": "LWbF4syO6",
+          "toolName": "perplexity_search",
+          "input": {
+            "query": "Node.js 24 LTS 22 LTS which is current LTS version October 2025 release schedule",
+            "max_results": 10
+          },
+          "output": {
+            "id": "[…fixture-trimmed…]",
+            "results": [
+              {
+                "date": "2026-10-29",
+                "last_updated": "2026-11-02",
+                "snippet": "# Node.js Releases[…fixture-trimmed…]",
+                "title": "Node.js — Node.js Releases",
+                "url": "https://nodejs.org/en/about/previous-releases"
+              },
+              {
+                "date": "2015-04-05",
+                "last_updated": "2026-11-11",
+                "snippet": "# Node.js Release Working Group[…fixture-trimmed…]",
+                "title": "Node.js Release Working Group",
+                "url": "https://github.com/nodejs/release"
+              },
+              {
+                "last_updated": "2026-11-10",
+                "snippet": "Node.js 27.0.0-alpha.0.0.0 (Alpha)[…fixture-trimmed…]",
+                "title": "Node.js Blog",
+                "url": "https://nodejs.org/en/feed/blog.xml"
+              },
+              {
+                "date": "2015-04-05",
+                "last_updated": "2026-10-29",
+                "snippet": "## Release schedule[…fixture-trimmed…]",
+                "title": "Release/README.md at 1ec620982f034a2e1986be87d3c6c213a1929912 · nodejs/Release",
+                "url": "https://github.com/nodejs/Release/blob/1ec620982f034a2e1986be87d3c6c213a1929912/README.md"
+              },
+              {
+                "date": "2025-05-06",
+                "last_updated": "2026-11-01",
+                "snippet": "Node.js — Node.js 24.0.0 (Current)[…fixture-trimmed…]",
+                "title": "Node.js 24.0.0 (Current)",
+                "url": "https://nodejs.org/en/blog/release/v24.0.0"
+              },
+              {
+                "date": "2015-04-05",
+                "last_updated": "2026-11-04",
+                "snippet": "|Release|Status|Codename|Initial Release|Active LTS Start|Maintenance Start|End-[…fixture-trimmed…]",
+                "title": "Release/README.md at main · nodejs/Release · GitHub",
+                "url": "https://github.com/nodejs/Release/blob/main/README.md"
+              },
+              {
+                "date": "2026-10-29",
+                "last_updated": "2026-11-01",
+                "snippet": "Major Node.js versions enter *Current* release status for six months, which give[…fixture-trimmed…]",
+                "title": "Versions de Node.js",
+                "url": "https://nodejs.org/fr/about//previous-releases?_rsc=sibw4"
+              }
+            ]
+          },
+          "providerExecuted": true
+        },
+        {
+          "type": "reasoning",
+          "text": "[…fixture-trimmed…]"
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "4g0oxQora",
+          "toolName": "perplexity_search",
+          "input": {
+            "query": "\"Node.js 26\" LTS \"Lithium\" latest version v26.13.0 Active LTS October 2026 supported until April 2029",
+            "max_results": 8
+          },
+          "providerExecuted": true
+        },
+        {
+          "type": "tool-result",
+          "toolCallId": "4g0oxQora",
+          "toolName": "perplexity_search",
+          "input": {
+            "query": "\"Node.js 26\" LTS \"Lithium\" latest version v26.13.0 Active LTS October 2026 supported until April 2029",
+            "max_results": 8
+          },
+          "output": {
+            "id": "[…fixture-trimmed…]",
+            "results": [
+              {
+                "date": "2026-10-28",
+                "last_updated": "2026-11-01",
+                "snippet": "Node.js — Node.js 26.13.0 (LTS)[…fixture-trimmed…]",
+                "title": "Node.js — Node.js 26.13.0 (LTS)",
+                "url": "https://nodejs.org/en/blog/release/v26.13.0"
+              },
+              {
+                "date": "2026-10-29",
+                "last_updated": "2026-11-10",
+                "snippet": "2026-10-28, Version 26.13.0 'Lithium' (LTS), @richardlau[…fixture-trimmed…]",
+                "title": "Releases · nodejs/node · GitHub",
+                "url": "https://github.com/nodejs/node/releases"
+              },
+              {
+                "date": "2026-10-29",
+                "last_updated": "2026-11-02",
+                "snippet": "# Node.js Releases[…fixture-trimmed…]",
+                "title": "Node.js — Node.js Releases",
+                "url": "https://nodejs.org/en/about/previous-releases"
+              },
+              {
+                "date": "2026-10-28",
+                "last_updated": "2026-11-10",
+                "snippet": "Release 2026-10-28, Version 26.13.0 'Lithium' (LTS), @richardlau · nodejs/node ·[…fixture-trimmed…]",
+                "title": "Release 2026-10-28, Version 26.13.0 'Lithium' (LTS), @richardlau · nodejs/node",
+                "url": "https://github.com/nodejs/node/releases/tag/v26.13.0"
+              },
+              {
+                "date": "2026-05-05",
+                "last_updated": "2026-11-02",
+                "snippet": "## v26.13.0 (Lithium)[…fixture-trimmed…]",
+                "title": "Node.js® Download Archive",
+                "url": "https://nodejs.org/en/download/archive/v26.13.0"
+              },
+              {
+                "date": "2014-11-26",
+                "last_updated": "2026-11-02",
+                "snippet": "# Node.js 26 ChangeLog[…fixture-trimmed…]",
+                "title": "node/doc/changelogs/CHANGELOG_V26.md at main - GitHub",
+                "url": "https://github.com/nodejs/node/blob/main/doc/changelogs/CHANGELOG_V26.md"
+              }
+            ]
+          },
+          "providerExecuted": true
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "pVf03MIdb",
+          "toolName": "perplexity_search",
+          "input": {
+            "query": "nodejs.org download \"Get Node.js\" \"LTS\" recommended version today latest LTS line which major version",
+            "max_results": 8
+          },
+          "providerExecuted": true
+        },
+        {
+          "type": "tool-result",
+          "toolCallId": "pVf03MIdb",
+          "toolName": "perplexity_search",
+          "input": {
+            "query": "nodejs.org download \"Get Node.js\" \"LTS\" recommended version today latest LTS line which major version",
+            "max_results": 8
+          },
+          "output": {
+            "id": "[…fixture-trimmed…]",
+            "results": [
+              {
+                "last_updated": "2026-11-11",
+                "snippet": "Node.js — Download Node.js®[…fixture-trimmed…]",
+                "title": "Node.js — Download Node.js®",
+                "url": "https://nodejs.org/en/download"
+              },
+              {
+                "last_updated": "2026-11-10",
+                "snippet": "Node.js — Download Node.js®[…fixture-trimmed…]",
+                "title": "Download Node.js",
+                "url": "https://nodejs.org/pt-br/download/alpha"
+              },
+              {
+                "date": "2026-10-29",
+                "last_updated": "2026-11-02",
+                "snippet": "# Node.js Releases[…fixture-trimmed…]",
+                "title": "Node.js — Node.js Releases",
+                "url": "https://nodejs.org/en/about/previous-releases"
+              },
+              {
+                "date": "2025-05-06",
+                "last_updated": "2026-11-10",
+                "snippet": "# Node.js® 历史版本下载[…fixture-trimmed…]",
+                "title": "Node.js — 在任何地方运行 JavaScript",
+                "url": "https://nodejs.org/zh-cn/download/archive/v24.17.0"
+              },
+              {
+                "last_updated": "2026-11-10",
+                "snippet": "Node.js — Download Node.js®[…fixture-trimmed…]",
+                "title": "Download Node.js®",
+                "url": "https://nodejs.org/tr/download/current"
+              },
+              {
+                "last_updated": "2026-11-11",
+                "snippet": "Node.js — Download Node.js®[…fixture-trimmed…]",
+                "title": "Node.js Download",
+                "url": "https://nodejs.org/en/download/?c=naruhodo"
+              },
+              {
+                "date": "2025-05-06",
+                "last_updated": "2026-11-02",
+                "snippet": "## v24 (Krypton)[…fixture-trimmed…]",
+                "title": "Node.js — Run JavaScript Everywhere",
+                "url": "https://nodejs.org/en/download/archive/v24"
+              },
+              {
+                "date": "2025-05-06",
+                "last_updated": "2026-11-10",
+                "snippet": "# Node.js® Download Archive[…fixture-trimmed…]",
+                "title": "Node.js — Run JavaScript Everywhere",
+                "url": "https://nodejs.org/tr/download/archive/v24.21.0"
+              }
+            ]
+          },
+          "providerExecuted": true
+        },
+        {
+          "type": "reasoning",
+          "text": "[…fixture-trimmed…]"
+        },
+        {
+          "type": "text",
+          "text": "The current **latest LTS** line of Node.js is **Node.js 26.x — codename “Lithium”**. The newest LTS build listed by nodejs.org is **v26.13.0 (LTS)**, which entered **Active LTS** on **Oct 28, 2026** and is supported through **April 30, 2029**.\n\nOther still-supported LTS lines are in maintenance: **Node.js 24.x “Krypton”** (latest around **v24.22.2**, EOL Apr 2028) and **Node.js 22.x “Jod”** (latest around **v22.23.4**, EOL Apr 2027). Node.js 27 is currently only an alpha line.\n\nFor production use, the recommended current LTS is therefore **Node.js 26 LTS — v26.13.0**."
+        }
+      ]
+    }
+  ],
+  "providerMetadata": {
+    "gateway": {
+      "routing": {
+        "originalModelId": "mistral/mistral-large-4",
+        "resolvedProvider": "mistral",
+        "fallbacksAvailable": [],
+        "canonicalSlug": "mistral/mistral-large-4",
+        "finalProvider": "mistral",
+        "modelAttemptCount": 1,
+        "modelAttempts": [
+          {
+            "canonicalSlug": "mistral/mistral-large-4",
+            "success": true,
+            "providerAttemptCount": 3,
+            "providerAttempts": [
+              {
+                "provider": "mistral",
+                "credentialType": "system",
+                "success": true,
+                "startTime": 1794389144052,
+                "endTime": 1794389147371,
+                "statusCode": 200,
+                "toolLoopLegIndex": 0
+              },
+              {
+                "provider": "mistral",
+                "credentialType": "system",
+                "success": true,
+                "startTime": 1794389147371,
+                "endTime": 1794389154527,
+                "statusCode": 200,
+                "toolLoopLegIndex": 1
+              },
+              {
+                "provider": "mistral",
+                "credentialType": "system",
+                "success": true,
+                "startTime": 1794389154527,
+                "endTime": 1794389171628,
+                "statusCode": 200,
+                "toolLoopLegIndex": 2
+              }
+            ]
+          }
+        ],
+        "totalProviderAttemptCount": 3
+      },
+      "cost": "0.0563306",
+      "marketCost": "0.0563306",
+      "surchargeCost": "0",
+      "gatewayCost": "0.0563306",
+      "inferenceCost": "0.0313306",
+      "inputInferenceCost": "0.0257845",
+      "outputInferenceCost": "0.0055461",
+      "gatewayToolCalls": {
+        "perplexity_search": 5
+      }
+    }
+  },
+  "sources": []
+}

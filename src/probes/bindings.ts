@@ -3,6 +3,7 @@ import { toolVersion } from '../bundle/contracts';
 import type { CapturedUnitRecord } from '../stores/ports';
 import type { CatalogModel } from '../models/catalog';
 import {
+  gatewaySearchProbeUsage,
   gatewaySearchUsd,
   probeSearchUsd,
   probeUsage,
@@ -367,16 +368,17 @@ export const probeEstimateUsd = (
   }
 
   const { input, output } = model.pricingUsdPerMillion;
-  // The gateway's tool has its own fee; a provider's own search is priced
-  // by the model's catalog entry.
-  const search =
-    binding.adapter === ProbeAdapterId.GATEWAY_SEARCH
-      ? gatewaySearchUsd
-      : (model.webSearchUsdPerRequest ?? probeSearchUsd);
+  // The gateway's tool has its own fee and its own usage; a provider's own
+  // search is priced by the model's catalog entry.
+  const viaGatewaySearch = binding.adapter === ProbeAdapterId.GATEWAY_SEARCH;
+  const usage = viaGatewaySearch ? gatewaySearchProbeUsage : probeUsage;
+  const search = viaGatewaySearch
+    ? gatewaySearchUsd
+    : (model.webSearchUsdPerRequest ?? probeSearchUsd);
   const costOf = (end: 'low' | 'high') => {
     return (
-      (probeUsage.input[end] * input + probeUsage.output[end] * output) / 1e6 +
-      probeUsage.searches[end] * search
+      (usage.input[end] * input + usage.output[end] * output) / 1e6 +
+      usage.searches[end] * search
     );
   };
 

@@ -188,10 +188,10 @@ describe('bindings - a custom surface', () => {
       ]),
     );
 
-    // 8,000 tokens in, 500 out and one $0.005 search; 30,000 in, 4,000
-    // out and three.
+    // 8,000 tokens in, 500 out and one $0.005 search; 75,000 in, 6,000
+    // out and ten.
     expect(estimate.low).toBeCloseTo(0.016 + 0.005 + 0.005, 10);
-    expect(estimate.high).toBeCloseTo(0.06 + 0.04 + 0.015, 10);
+    expect(estimate.high).toBeCloseTo(0.15 + 0.06 + 0.05, 10);
   });
 
   it('should always carry its own label, with the model its answers were asked of', () => {
@@ -230,8 +230,9 @@ describe('bindings - a custom surface', () => {
 });
 
 describe('chat-retrieval - extractGatewaySearchRetrieval()', () => {
-  // The parts as the pinned SDK declares them (PerplexitySearchInput and
-  // PerplexitySearchResponse); no real stream has been captured yet.
+  // The shapes the captured answer did not exercise (a list of queries, an
+  // error object), as the pinned SDK declares them (PerplexitySearchInput
+  // and PerplexitySearchResponse). chat-retrieval.spec.ts reads the capture.
   const call = (toolCallId: string, query: unknown) => {
     return {
       type: 'tool-call',

@@ -166,14 +166,15 @@ export const extractAnthropicRetrieval = (
 // ---------------------------------------------------------------------------
 // The gateway's own search tool (`perplexity_search`) — `full`
 // ---------------------------------------------------------------------------
-// `tool-call` parts carry the query in `input.query`, a string or a list of
-// strings; the matching `tool-result` part (by toolCallId) carries
-// `output.results: Array<{ title, url, snippet }>`, every result the tool
-// returned. Read from the pinned SDK's declared types (PerplexitySearchInput
-// and PerplexitySearchResponse in @ai-sdk/gateway): no real stream has been
-// captured yet, because one costs a paid call. A shape that differs yields
-// no calls, which the caller stores as "not captured", never as an answer
-// from memory.
+// `tool-call` parts carry the query in `input.query`; the matching
+// `tool-result` part (by toolCallId) carries `output.results: Array<{ title,
+// url, snippet }>`, every result the tool returned. Pinned by a captured
+// answer (__fixtures__/chat/gateway-search.json, 2026-11-11), in which every
+// query is a string. The list of strings and the error object are read from
+// the pinned SDK's declared types (PerplexitySearchInput and
+// PerplexitySearchResponse in @ai-sdk/gateway), which the capture did not
+// exercise. A shape that differs yields no calls, which the caller stores
+// as "not captured", never as an answer from memory.
 export const gatewaySearchToolName = 'perplexity_search';
 
 export const extractGatewaySearchRetrieval = (

@@ -82,7 +82,7 @@ export const buildMethodology = ({
 
   if (custom.length > 0) {
     sentences.push(
-      `Custom models (${custom.map((surface) => labelOf(surface, labels)).join('; ')}) were chosen by this audit's author. Each is asked every question through the gateway's own web search tool, which is not the search its maker's product uses. They are scored on their own lines and are not part of the headline rates.`,
+      `Custom models (${custom.map((surface) => labelOf(surface, labels)).join('; ')}) were chosen by this audit's author. Each is asked every question through the gateway's own web search tool, which is not the search its maker's product uses. The tool attaches no source list to an answer, so a custom model's citation rate counts only the links the model writes in its answer. They are scored on their own lines and are not part of the headline rates.`,
     );
   }
 

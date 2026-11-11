@@ -46,6 +46,14 @@ in `../chat-retrieval.ts` are tested against these objects.
 | `openai.json` | `openai/gpt-5.4-mini` | `tool-result` part, `output.action.type: 'search'` with `query` + `queries[]`, `sources[]` of `type: 'url'` |
 | `anthropic.json` | `anthropic/claude-sonnet-4.5` | `tool-call` with `input.query`, matching `tool-result` with `output: web_search_result[]` |
 | `gemini.json` | `google/gemini-3-flash` (routed to Vertex) | `providerMetadata.vertex.groundingMetadata.webSearchQueries[]` |
+| `gateway-search.json` | `mistral/mistral-large-4` (`@ai-sdk/gateway` 3.0.177) | `tool-call` with `input.query` (a string), matching `tool-result` with `output.results[]` of `{ title, url, snippet }` |
+
+`gateway-search.json` was taken 2026-11-11 by `../default-bindings.live.spec.ts`
+through the gateway's own search tool (`gateway.search@1`), then scrubbed:
+results on hosts other than nodejs.org and github.com removed, snippets cut
+to their first 80 characters, reasoning text, search ids and the gateway's
+request and session ids replaced or dropped (marked `[…fixture-trimmed…]`
+where a value remains). The tool attached no `source` parts to the answer.
 
 ## Fake CLI (`fake-cli/`)
 
