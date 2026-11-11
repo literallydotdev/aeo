@@ -53,13 +53,18 @@ const budgetStateSchema = z
     original: frozenPolicySchema,
     current: frozenPolicySchema,
     deadlineAt: z.iso.datetime(),
-    /** The gateway model the run judges and writes with, frozen with the
-     * budget. Absent on a directory from before model selection: the first
-     * resume records the model it continues with. */
+    /** The gateway model the run judges with, and writes with unless
+     * `writeModel` names another, frozen with the budget. Absent on a
+     * directory from before model selection: the first resume records the
+     * model it continues with. */
     model: z.string().min(1).optional(),
     /** The effort audit.json names for that model, frozen with it. Absent
      * when the audit names none. */
     modelEffort: reasoningEffortSchema.optional(),
+    /** The model audit.json names to write the report's narrative
+     * (`writeModel`), frozen with the report model. Absent when the audit
+     * names none: the report model writes. */
+    writeModel: z.string().min(1).optional(),
     amendments: z.array(
       z
         .object({
@@ -116,8 +121,12 @@ const effortPhrase = (effort: ReasoningEffort | undefined): string => {
   return effort === undefined ? "the engine's own effort" : `effort ${effort}`;
 };
 
-/** Thrown before any paid work when audit.json names another model than
- * the run directory froze. */
+const writerPhrase = (writeModel: string | undefined): string => {
+  return writeModel ?? 'its report model (no writeModel)';
+};
+
+/** Thrown before any paid work when audit.json names another model, effort
+ * or writer than the run directory froze. */
 export class RunModelChangedError extends Error {
   constructor(message: string) {
     super(message);
@@ -150,6 +159,8 @@ type ResolveRunBudgetOptions = {
   model: string;
   /** The effort audit.json names for it, if any. */
   modelEffort?: ReasoningEffort;
+  /** The model audit.json names to write the narrative, if any. */
+  writeModel?: string;
   /** The cap approved on the command line (`--max-usd`). On a new run it
    * sets the cap; on a resume it raises it, recorded like a --budget-file. */
   maxUsd?: number;
@@ -161,9 +172,9 @@ type ResolveRunBudgetOptions = {
  * resolveRunBudget returns the limits and the model a run executes under:
  * frozen from audit.json (and --max-usd) on the first run, kept on every
  * resume, raised only by an amendment. A new run without a dollar cap is
- * refused, as is a resume whose audit.json names another model. An
- * amendment that lowers a limit is refused: the ledger may already hold
- * more than the lower limit.
+ * refused, as is a resume whose audit.json names another model, effort or
+ * writer. An amendment that lowers a limit is refused: the ledger may
+ * already hold more than the lower limit.
  */
 export const resolveRunBudget = async (
   dir: string,
@@ -171,6 +182,7 @@ export const resolveRunBudget = async (
   {
     model,
     modelEffort,
+    writeModel,
     maxUsd,
     amendment,
     now = () => new Date(),
@@ -196,6 +208,16 @@ export const resolveRunBudget = async (
     );
   }
 
+  if (
+    existing?.model !== undefined &&
+    existing.model === model &&
+    existing.writeModel !== writeModel
+  ) {
+    throw new RunModelChangedError(
+      `This run directory writes its report with ${writerPhrase(existing.writeModel)}; audit.json now names ${writerPhrase(writeModel)}. A run never changes its models. To have another model write, rejudge the same answers into a new directory, where they are judged again: literally-aeo rejudge ${dir} --output <new-run-dir> --write-model <model>`,
+    );
+  }
+
   const cap = maxUsd ?? policy.maxUsd;
 
   const startState = (): BudgetState => {
@@ -214,6 +236,7 @@ export const resolveRunBudget = async (
       deadlineAt: hoursFrom(at, policy.maxHours),
       model,
       ...(modelEffort !== undefined && { modelEffort }),
+      ...(writeModel !== undefined && { writeModel }),
       amendments: [],
     };
   };
@@ -222,12 +245,13 @@ export const resolveRunBudget = async (
   let amended: RunBudget['amended'];
   const modelAdopted = state.model === undefined;
 
-  // A directory from before model selection adopts the effort with the
-  // model it continues with.
+  // A directory from before model selection adopts the effort and the
+  // writer with the model it continues with.
   state = {
     ...state,
     model,
     ...(modelAdopted && modelEffort !== undefined && { modelEffort }),
+    ...(modelAdopted && writeModel !== undefined && { writeModel }),
   };
 
   // On a resume --max-usd raises the cap like a --budget-file does.

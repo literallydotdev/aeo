@@ -34,10 +34,7 @@ import {
   type ModelCallAccounting,
 } from '../models/accounting';
 import type { ModelCatalogSource } from '../models/catalog';
-import {
-  recommendedModelId,
-  type SupportedModel,
-} from '../models/supported-models';
+import { recommendedModelId } from '../models/supported-models';
 import { chargedProbeTrace } from '../probes/charged-trace';
 import { catalogPricedModels, probeDependenciesOf } from '../probes/bindings';
 import type { InternalModelContext } from '../models/context';
@@ -58,8 +55,9 @@ import {
 import { resolveRunBindings } from './run-bindings';
 import {
   recordedCatalogSource,
-  resolveReportModel,
+  resolveReportModels,
   resolveRunModels,
+  type ReportModels,
 } from './run-models';
 import { bankDir } from './run-configuration';
 import { resolveRunMethod } from './run-method';
@@ -89,11 +87,12 @@ export type LocalPlan = {
 export const planLocalRun = (
   file: AuditFile,
   runId = 'planned',
-  /** The report model once resolved; the engine's own entry when absent. */
-  model?: SupportedModel,
+  /** The report's models once resolved; the engine's own entry for the
+   * model the file names when absent. */
+  models?: ReportModels,
 ): LocalPlan => {
   const config = toAuditConfig(file);
-  const request = toRunRequest(file, runId, { ...(model && { model }) });
+  const request = toRunRequest(file, runId, { ...models });
   const plan = planRun(config, request);
 
   const localPlan: LocalPlan = {
@@ -279,19 +278,22 @@ const openLockedLocalRun = async (
 
   await resolveRunMethod(dir, bank, { startedBefore });
 
-  // A resume under another report model is the budget's to refuse. It is
-  // asked first, so the refused directory gains no price for that model.
-  const namedModel = file.model ?? recommendedModelId;
+  // A resume under another report model, effort or writer is the budget's
+  // to refuse. It is asked first, so the refused directory gains no price
+  // for that model.
+  const named = {
+    model: file.model ?? recommendedModelId,
+    ...(file.modelEffort !== undefined && { modelEffort: file.modelEffort }),
+    ...(file.writeModel !== undefined && { writeModel: file.writeModel }),
+  };
 
   if (
     frozenBudget?.model !== undefined &&
-    (frozenBudget.model !== namedModel ||
-      frozenBudget.modelEffort !== file.modelEffort)
+    (frozenBudget.model !== named.model ||
+      frozenBudget.modelEffort !== named.modelEffort ||
+      frozenBudget.writeModel !== named.writeModel)
   ) {
-    await resolveRunBudget(dir, file.runPolicy.budget, {
-      model: namedModel,
-      ...(file.modelEffort !== undefined && { modelEffort: file.modelEffort }),
-    });
+    await resolveRunBudget(dir, file.runPolicy.budget, named);
   }
 
   const bindings = await resolveRunBindings(bank, {
@@ -303,12 +305,9 @@ const openLockedLocalRun = async (
     now: new Date(),
     freeze: true,
   };
-  const model = await resolveReportModel(file.model, bank, {
-    ...pricing,
-    ...(file.modelEffort !== undefined && { effort: file.modelEffort }),
-  });
+  const models = await resolveReportModels(file, bank, pricing);
   // A bound model the engine has no flat figure for is reserved at its
-  // catalog price, frozen here with the report model's.
+  // catalog price, frozen here with the report's models'.
   const probeModels = new Map(
     (
       await resolveRunModels(
@@ -319,14 +318,14 @@ const openLockedLocalRun = async (
     ).map((entry) => [entry.model.id, entry.model]),
   );
   const budget = await resolveRunBudget(dir, file.runPolicy.budget, {
-    model: model.id,
-    ...(file.modelEffort !== undefined && { modelEffort: file.modelEffort }),
+    ...named,
+    model: models.model.id,
     ...(maxUsd !== undefined && { maxUsd }),
     ...(amendment && { amendment }),
   });
   const config = toAuditConfig(file);
   const request = {
-    ...toRunRequest(file, runId, { modelBudget: budget.limits, model }),
+    ...toRunRequest(file, runId, { modelBudget: budget.limits, ...models }),
     ...(derivedFromRunId !== undefined && { derivedFromRunId }),
   };
   const plan = planRun(config, request);

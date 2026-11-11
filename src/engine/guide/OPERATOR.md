@@ -119,7 +119,9 @@ it. Apply the user's edits to
 that judges and writes the report; leave it out to use the recommended
 one. It may be any language model ID on the gateway: `literally-aeo doctor`
 lists the models the engine ships verified settings for, and says of any
-other what it was priced at and that it is unverified. To measure another
+other what it was priced at and that it is unverified. The optional
+`writeModel` field names another gateway model to write the report's
+narrative, one request; everything else stays on `model`. To measure another
 model behind an API chat surface, set
 `"probes": { "chatgpt": { "model": "<gateway model ID>" } }`; to measure a
 model as a surface of its own, add
@@ -192,7 +194,10 @@ nothing is asked again, and only the judging is paid for. Without
 `--max-usd` it prints its estimate and spends nothing; show that, get an
 amount approved, and run it again with `--max-usd <approved amount>`. A run
 never changes its own model: editing `model` in `audit.json` over an
-existing run directory is refused.
+existing run directory is refused. The same holds for `writeModel`, the
+model an audit may name to write the report's narrative in place of
+`model`: `--write-model <id>` on `rejudge` names another for the new run
+directory.
 
 ## Checkpoint 8: explain the result
 

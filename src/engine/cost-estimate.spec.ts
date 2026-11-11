@@ -221,6 +221,43 @@ describe('cost-estimate - estimateRunCost()', () => {
     },
   );
 
+  it("should price the copywriter's one request at the writer's prices when the audit names one, and say which model that is", () => {
+    const model = resolveSupportedModel();
+    const freeWriter = {
+      ...model,
+      id: 'acme/free-writer',
+      pricingUsdPerMillion: { input: 0, output: 0, cachedInput: 0 },
+    };
+    const options = {
+      plan: planOf(32),
+      bindings: defaultProbeBindings,
+      model,
+      grounding: 'full' as const,
+    };
+    const requestOnReportModel = tokenCostUsd(model.pricingUsdPerMillion, {
+      inputTokens: copyRequestTokens.high.input,
+      cachedInputTokens: 0,
+      outputTokens: copyRequestTokens.high.output,
+    });
+
+    const own = estimateRunCost(options);
+    const written = estimateRunCost({ ...options, writer: freeWriter });
+
+    // A writer that costs nothing takes exactly its request out.
+    expect(
+      own.categories.hostCalls.high - written.categories.hostCalls.high,
+    ).toBeCloseTo(requestOnReportModel, 1);
+    expect(written.categories.hostCalls.low).toBeLessThan(
+      own.categories.hostCalls.low,
+    );
+    expect(written.categories.stages).toEqual(own.categories.stages);
+    expect(written).toMatchObject({
+      model: model.id,
+      writeModel: 'acme/free-writer',
+    });
+    expect(own).not.toHaveProperty('writeModel');
+  });
+
   it('should charge nothing for search under extraction-only grounding', () => {
     const estimate = estimateRunCost({
       plan: planOf(16),

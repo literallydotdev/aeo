@@ -21,6 +21,7 @@ const valueOptions = new Set([
   '--max-usd',
   '--model',
   '--effort',
+  '--write-model',
 ]);
 
 export const parseFlags = (argv: readonly string[]): Flags => {

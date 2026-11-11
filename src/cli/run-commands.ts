@@ -71,8 +71,13 @@ import {
   reasoningEffortSchema,
   type ReasoningEffort,
 } from '../models/profiles';
-import type { SupportedModel } from '../models/supported-models';
-import { resolveReportModel, resolveRunModels } from '../engine/run-models';
+import {
+  resolveReportModel,
+  resolveReportModels,
+  resolveRunModels,
+  type NamedReportModels,
+  type ReportModels,
+} from '../engine/run-models';
 import { hasErrorCode } from '../stores/fs-errors';
 import { formatLine, writeErr, writeOut, type Flags } from './io';
 
@@ -126,19 +131,18 @@ const probesFor = async (
   };
 };
 
-/** The report model a command plans, estimates and checks with. A run
- * freezes the model's price itself, once its directory is known to be its
- * own (openLocalRun); everything before that only reads. */
-const reportModelFor = (
-  named: { model?: string; modelEffort?: ReasoningEffort },
+/** The report's models a command plans, estimates and checks with. A run
+ * freezes their prices itself, once its directory is known to be its own
+ * (openLocalRun); everything before that only reads. */
+const reportModelsFor = (
+  named: NamedReportModels,
   dir: string,
   settings: Settings,
-): Promise<SupportedModel> => {
-  return resolveReportModel(named.model, path.join(dir, bankDir), {
+): Promise<ReportModels> => {
+  return resolveReportModels(named, path.join(dir, bankDir), {
     source: catalogOf(settings),
     now: new Date(),
     freeze: false,
-    ...(named.modelEffort !== undefined && { effort: named.modelEffort }),
   });
 };
 
@@ -189,6 +193,13 @@ const maxUsdOf = (flags: Flags): number | undefined => {
   return usd;
 };
 
+/** The models an estimate is priced at, as a person reads them. */
+const modelsOf = (estimate: RunCostEstimate | AuthorCostEstimate): string => {
+  return 'writeModel' in estimate && estimate.writeModel !== undefined
+    ? `${estimate.model}, the narrative by ${estimate.writeModel}`
+    : estimate.model;
+};
+
 /** The cost lines a person reads, for plan and for a refused run. */
 const estimateLines = (estimate: RunCostEstimate | AuthorCostEstimate) => {
   const categories: [string, { low: number; high: number } | undefined][] = [
@@ -209,7 +220,7 @@ const estimateLines = (estimate: RunCostEstimate | AuthorCostEstimate) => {
   return [
     formatLine(
       'Estimated cost',
-      `${describeCostRange(estimate)} (an estimate, not a quote; ${estimate.model})`,
+      `${describeCostRange(estimate)} (an estimate, not a quote; ${modelsOf(estimate)})`,
     ),
     ...categories.flatMap(([label, range]) =>
       range ? [formatLine(`  ${label}`, describeCostRange(range))] : [],
@@ -266,11 +277,11 @@ export const runDoctor = async (flags: Flags) => {
   // A model that cannot be priced is doctor's finding, not its crash: the
   // rest of the checks still run, against the plan the recommended model
   // would make.
-  const model = await reportModelFor(file, dir, settings).then(
+  const model = await reportModelsFor(file, dir, settings).then(
     (resolved): PreflightModel => {
       return {
         outcome: 'resolved',
-        model: resolved,
+        ...resolved,
         named: file.model !== undefined,
       };
     },
@@ -284,7 +295,10 @@ export const runDoctor = async (flags: Flags) => {
   );
   const { plan, request } =
     model.outcome === 'resolved'
-      ? planLocalRun(file, 'planned', model.model)
+      ? planLocalRun(file, 'planned', {
+          model: model.model,
+          ...(model.writer && { writer: model.writer }),
+        })
       : planLocalRun({ ...file, model: undefined });
   const checks = await runPreflight({
     surfaces: plan.surfaces,
@@ -325,18 +339,19 @@ export const runPlan = async (flags: Flags) => {
   const file = await readAuditFile(configPathOf(flags));
   const dir = runDirOf(flags);
   const settings = await readSettings(flags.options.get('--env-file'));
-  const model = await reportModelFor(file, dir, settings);
+  const models = await reportModelsFor(file, dir, settings);
+  const { model, writer } = models;
   const { config, request, plan, digests } = planLocalRun(
     file,
     'planned',
-    model,
+    models,
   );
   const state = await runDirectoryState(dir);
   const bySurface = Object.fromEntries(plan.probesBySurface);
   const { bindings, probeModels } = await probesFor(file, dir, settings);
   const estimate = estimateRunCost({
     plan,
-    model,
+    ...models,
     grounding: request.grounding,
     bindings,
     probeModels,
@@ -363,6 +378,7 @@ export const runPlan = async (flags: Flags) => {
     brand: config.brand.name,
     model: model.id,
     modelEffort: model.stageReasoningEffort,
+    ...(writer && { writeModel: writer.id }),
     sections: config.sections.map((section) => ({
       key: section.key,
       questions: section.prompts.length,
@@ -391,6 +407,9 @@ export const runPlan = async (flags: Flags) => {
     [
       formatLine('Brand', summary.brand),
       formatLine('Model', `${summary.model}, at effort ${summary.modelEffort}`),
+      ...(writer
+        ? [formatLine('Writer', `${writer.id} (the narrative, one request)`)]
+        : []),
       ...summary.sections.map((section) =>
         formatLine(`Section ${section.key}`, `${section.questions} questions`),
       ),
@@ -431,8 +450,8 @@ export const runRun = async (flags: Flags) => {
   const file = await readAuditFile(configPathOf(flags));
   const dir = runDirOf(flags);
   const settings = await readSettings(flags.options.get('--env-file'));
-  const model = await reportModelFor(file, dir, settings);
-  const { plan, request } = planLocalRun(file, 'planned', model);
+  const models = await reportModelsFor(file, dir, settings);
+  const { plan, request } = planLocalRun(file, 'planned', models);
   const budgetFile = flags.options.get('--budget-file');
   const amendment = budgetFile
     ? await readBudgetAmendment(path.resolve(budgetFile))
@@ -445,7 +464,7 @@ export const runRun = async (flags: Flags) => {
     maxUsd,
     estimate: estimateRunCost({
       plan,
-      model,
+      ...models,
       grounding: request.grounding,
       bindings,
       probeModels,
@@ -460,7 +479,7 @@ export const runRun = async (flags: Flags) => {
     surfaces: plan.surfaces,
     settings,
     dir,
-    model: { outcome: 'resolved', model, named: file.model !== undefined },
+    model: { outcome: 'resolved', ...models, named: file.model !== undefined },
     groundingSearch: usesGroundingSearch(request),
     rendersPages: file.moneyPages.length > 0,
     bindings,
@@ -536,11 +555,13 @@ export const runAuthor = async (flags: Flags, usage: string) => {
   const settings = await readSettings(flags.options.get('--env-file'));
   const modelOption = flags.options.get('--model');
   const estimate = estimateAuthorCost(
-    await reportModelFor(
-      modelOption === undefined ? {} : { model: modelOption },
-      dir,
-      settings,
-    ),
+    (
+      await reportModelsFor(
+        modelOption === undefined ? {} : { model: modelOption },
+        dir,
+        settings,
+      )
+    ).model,
   );
   const maxUsd = maxUsdOf(flags);
 
@@ -690,11 +711,13 @@ export const runRejudge = async (flags: Flags, usage: string) => {
       ? await readRecordedAuthorEvidence(sourceDir)
       : undefined;
   // --model judges the same captures with another model, --effort at
-  // another effort: the method changes, the measurement does not, and the
-  // lineage records both. Another model never inherits the effort the
-  // configuration names for its own.
+  // another effort, and --write-model has another model write: the method
+  // changes, the measurement does not, and the lineage records both.
+  // Another model never inherits the effort the configuration names for
+  // its own; the configuration's writer stays unless another is named.
   const modelOption = flags.options.get('--model');
   const effortOption = effortOf(flags);
+  const writerOption = flags.options.get('--write-model');
   const configured = await readAuditFile(configFile);
   const { modelEffort: configuredEffort, ...withoutEffort } = configured;
   const namedEffort =
@@ -703,11 +726,15 @@ export const runRejudge = async (flags: Flags, usage: string) => {
     ...withoutEffort,
     ...(modelOption !== undefined && { model: modelOption }),
     ...(namedEffort !== undefined && { modelEffort: namedEffort }),
+    ...(writerOption !== undefined && { writeModel: writerOption }),
   };
-  const overridden = modelOption !== undefined || effortOption !== undefined;
+  const overridden =
+    modelOption !== undefined ||
+    effortOption !== undefined ||
+    writerOption !== undefined;
   const settings = await readSettings(flags.options.get('--env-file'));
-  const model = await reportModelFor(file, dir, settings);
-  const { plan, request } = planLocalRun(file, 'planned', model);
+  const models = await reportModelsFor(file, dir, settings);
+  const { plan, request } = planLocalRun(file, 'planned', models);
   const maxUsd = maxUsdOf(flags);
   const refused = await refuseWithoutCap({
     file,
@@ -716,7 +743,7 @@ export const runRejudge = async (flags: Flags, usage: string) => {
     // Nothing is probed again: only the judging and writing are paid.
     estimate: estimateRunCost({
       plan: { units: plan.units, probesBySurface: new Map() },
-      model,
+      ...models,
       grounding: request.grounding,
       bindings: defaultProbeBindings,
     }),
@@ -737,7 +764,7 @@ export const runRejudge = async (flags: Flags, usage: string) => {
     surfaces: plan.surfaces,
     settings,
     dir,
-    model: { outcome: 'resolved', model, named: file.model !== undefined },
+    model: { outcome: 'resolved', ...models, named: file.model !== undefined },
     groundingSearch: usesGroundingSearch(request),
     // Nothing is probed again; the settings checked are the same. The
     // bindings are the ones the source run froze, now in the target: only
@@ -770,15 +797,17 @@ export const runRejudge = async (flags: Flags, usage: string) => {
     dir,
     settings,
     maxUsd,
-    ...(overridden &&
-      file.model !== undefined && {
-        modelOverride: {
-          model: file.model,
-          ...(file.modelEffort !== undefined && {
-            modelEffort: file.modelEffort,
-          }),
-        },
-      }),
+    // The models as the rejudgment resolved them: a writer named alone
+    // is recorded beside the report model it rejudged with.
+    ...(overridden && {
+      modelOverride: {
+        model: models.model.id,
+        ...(file.modelEffort !== undefined && {
+          modelEffort: file.modelEffort,
+        }),
+        ...(file.writeModel !== undefined && { writeModel: file.writeModel }),
+      },
+    }),
     evidence,
     derivedFromRunId: lineage.runId,
   });

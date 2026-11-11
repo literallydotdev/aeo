@@ -192,9 +192,9 @@ export const resolveRunModels = async (
 };
 
 /**
- * resolveReportModel is the model a run judges and writes with: the
- * engine's own entry when it has one for `id` (or for the recommended model
- * when none is named), with no catalog read; otherwise the model's catalog
+ * resolveReportModel is one model a run's report is made with: the engine's
+ * own entry when it has one for `id` (or for the recommended model when
+ * none is named), with no catalog read; otherwise the model's catalog
  * entry, with settings derived from it.
  */
 export const resolveReportModel = async (
@@ -231,4 +231,46 @@ export const resolveReportModel = async (
   }
 
   return reportModelOf(entry.model, entry.readAt.slice(0, 10), options.effort);
+};
+
+/** What an audit names of the models its report is made with. */
+export type NamedReportModels = {
+  model?: string;
+  modelEffort?: ReasoningEffort;
+  writeModel?: string;
+};
+
+/** The models a run's report is made with, resolved. */
+export type ReportModels = {
+  /** Judges the answers: the Codex stages and every host role but the
+   * copywriter's. */
+  model: SupportedModel;
+  /** Writes the report's narrative, when the audit names another model
+   * for that (`writeModel`). Absent, the report model writes. */
+  writer?: SupportedModel;
+};
+
+/**
+ * resolveReportModels resolves the report model at the effort the audit
+ * names, and the writer when it names one. The effort is the report
+ * model's alone: a writer is asked at the engine's own choice for it.
+ */
+export const resolveReportModels = async (
+  named: NamedReportModels,
+  bankPath: string,
+  options: Omit<ResolveOptions, 'effort'>,
+): Promise<ReportModels> => {
+  const model = await resolveReportModel(named.model, bankPath, {
+    ...options,
+    ...(named.modelEffort !== undefined && { effort: named.modelEffort }),
+  });
+
+  if (named.writeModel === undefined) {
+    return { model };
+  }
+
+  return {
+    model,
+    writer: await resolveReportModel(named.writeModel, bankPath, options),
+  };
 };

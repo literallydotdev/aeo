@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { canonicalDigest } from '../bundle/json';
 import { requireDefined } from '../__fixtures__/require-defined';
 import { writeEnv } from '../lib/env';
+import { resolveSupportedModel } from '../models/supported-models';
 import { defaultProbeBindings, requestedBindingsOf } from '../probes/bindings';
 import { readAuthorEvidence } from './author';
 import {
@@ -129,6 +130,23 @@ describe('local-run - planLocalRun()', () => {
     ]);
     expect(first.plan.units).toHaveLength(16);
     expect(second.digests).toEqual(first.digests);
+  });
+
+  it('should plan the copy role on the writer a command resolved, and move no digest for it', () => {
+    const model = resolveSupportedModel();
+    const writer = resolveSupportedModel('anthropic/claude-sonnet-5.5');
+    const file = { ...exampleFile, writeModel: writer.id };
+
+    const planned = planLocalRun(file, 'planned', { model, writer });
+
+    expect(planned.request.modelProfile?.roles).toMatchObject({
+      copy: { model: writer.id },
+      premiseVerifier: { model: model.id },
+      analyzer: { model: model.id },
+    });
+    expect(planned.request.modelProfile?.stages?.model).toBe(model.id);
+    // Who writes is method, not measurement.
+    expect(planned.digests).toEqual(planLocalRun(exampleFile).digests);
   });
 
   it('should measure coding agents only when audit.json selects one', () => {
@@ -674,6 +692,38 @@ describe('budget - resolveRunBudget()', () => {
     ).rejects.toBeInstanceOf(RunModelChangedError);
   });
 
+  it('should freeze the writer audit.json names with the model, and refuse a resume that names another or none', async () => {
+    await resolveRunBudget(root, policy, { model, writeModel: 'acme/writer' });
+
+    await expect(
+      resolveRunBudget(root, policy, { model, writeModel: 'acme/writer' }),
+    ).resolves.toMatchObject({ model });
+    await expect(readFrozenBudget(root)).resolves.toMatchObject({
+      writeModel: 'acme/writer',
+    });
+    await expect(resolveRunBudget(root, policy, { model })).rejects.toThrow(
+      /writes its report with acme\/writer; audit\.json now names its report model \(no writeModel\)\. A run never changes its models/,
+    );
+
+    const other = resolveRunBudget(root, policy, {
+      model,
+      writeModel: 'acme/other',
+    });
+
+    await expect(other).rejects.toBeInstanceOf(RunModelChangedError);
+    await expect(other).rejects.toThrow(/rejudge .* --write-model/);
+  });
+
+  it('should refuse a writer named on the resume of a run that started without one', async () => {
+    await resolveRunBudget(root, policy, { model });
+
+    await expect(
+      resolveRunBudget(root, policy, { model, writeModel: 'acme/writer' }),
+    ).rejects.toThrow(
+      /writes its report with its report model \(no writeModel\); audit\.json now names acme\/writer/,
+    );
+  });
+
   it('should refuse a resume whose audit.json names another model', async () => {
     await resolveRunBudget(root, policy, { model });
 
@@ -947,5 +997,39 @@ describe('run-configuration - recordRunConfiguration()', () => {
     expect(
       await readAuditFile(path.join(plain, auditCopyFile)),
     ).not.toHaveProperty('modelEffort');
+  });
+
+  it("should record the writer a rejudgment named, and keep the source file's when it named none", async () => {
+    const configFile = path.join(root, 'source-audit.json');
+    const renamed = path.join(root, 'rejudged-writer');
+    const kept = path.join(root, 'rejudged-kept');
+
+    await mkdir(renamed, { recursive: true });
+    await mkdir(kept, { recursive: true });
+    await writeFile(
+      configFile,
+      JSON.stringify({ ...exampleFile, writeModel: 'acme/writer' }),
+    );
+
+    await recordRunConfiguration({
+      dir: renamed,
+      configFile,
+      evidence: { kind: 'manual' },
+      model: { model: 'acme/model', writeModel: 'acme/other-writer' },
+    });
+    await recordRunConfiguration({
+      dir: kept,
+      configFile,
+      evidence: { kind: 'manual' },
+      model: { model: 'acme/model' },
+    });
+
+    expect(
+      await readAuditFile(path.join(renamed, auditCopyFile)),
+    ).toMatchObject({ model: 'acme/model', writeModel: 'acme/other-writer' });
+    expect(await readAuditFile(path.join(kept, auditCopyFile))).toMatchObject({
+      model: 'acme/model',
+      writeModel: 'acme/writer',
+    });
   });
 });

@@ -9,6 +9,7 @@ import {
   modelsFile,
   recordedCatalogSource,
   resolveReportModel,
+  resolveReportModels,
   resolveRunModels,
 } from './run-models';
 
@@ -251,6 +252,65 @@ describe('run-models - resolveReportModel()', () => {
     ).rejects.toThrow(
       /acme\/model must be priced from the gateway's model list/,
     );
+  });
+});
+
+describe('run-models - resolveReportModels()', () => {
+  it('should resolve the report model alone when the audit names no writer', async () => {
+    const { source, list } = catalog();
+
+    const models = await resolveReportModels({}, bank, {
+      source,
+      now,
+      freeze: true,
+    });
+
+    expect(models).toEqual({
+      model: expect.objectContaining({ id: recommendedModelId }) as unknown,
+    });
+    expect(list).not.toHaveBeenCalled();
+  });
+
+  it("should resolve the writer an audit names beside its report model, frozen with it and asked at the engine's own effort", async () => {
+    const { source } = catalog(
+      entry('acme/model', '0.000001'),
+      entry('acme/writer', '0.000003'),
+    );
+
+    const models = await resolveReportModels(
+      { model: 'acme/model', modelEffort: 'low', writeModel: 'acme/writer' },
+      bank,
+      { source, now, freeze: true },
+    );
+
+    expect(models.model).toMatchObject({
+      id: 'acme/model',
+      stageReasoningEffort: 'low',
+    });
+    // modelEffort is the report model's: the writer is not asked at it.
+    expect(models.writer).toMatchObject({
+      id: 'acme/writer',
+      pricingUsdPerMillion: { input: 3, output: 2, cachedInput: 3 },
+      providerOptions: { gateway: { reasoning: { effort: 'high' } } },
+    });
+    expect(JSON.parse(await frozenFile())).toMatchObject({
+      models: [
+        { model: { id: 'acme/model' } },
+        { model: { id: 'acme/writer' } },
+      ],
+    });
+  });
+
+  it('should refuse a writer the catalog does not list', async () => {
+    const { source } = catalog(entry('acme/model', '0.000001'));
+
+    await expect(
+      resolveReportModels(
+        { model: 'acme/model', writeModel: 'acme/unlisted' },
+        bank,
+        { source, now, freeze: false },
+      ),
+    ).rejects.toThrow(/acme\/unlisted is not on the gateway's model list/);
   });
 });
 

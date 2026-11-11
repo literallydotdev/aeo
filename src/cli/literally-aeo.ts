@@ -27,7 +27,7 @@ Usage:
   literally-aeo plan [--config audit.json] [--output audit-run]
   literally-aeo run [--config audit.json] [--env-file .env] [--output audit-run] [--max-usd N] [--budget-file limits.json]
   literally-aeo author --brief brief.json [--estimate] [--max-usd N] [--model <id>] [--output audit-draft] [--env-file .env]
-  literally-aeo rejudge <run-dir> --output <new-run-dir> [--model <id>] [--effort <level>] [--max-usd N] [--config audit.json] [--env-file .env]
+  literally-aeo rejudge <run-dir> --output <new-run-dir> [--model <id>] [--effort <level>] [--write-model <id>] [--max-usd N] [--config audit.json] [--env-file .env]
   literally-aeo view <archive|bundle-dir|run-dir> [--working] [--port N]
   literally-aeo export <run-dir> [--output <file.aeo.zip>] [--env-file <file>] [--accept-findings] [--redact redactions.json]
   literally-aeo verify <archive|bundle-dir|run-dir>
@@ -58,7 +58,8 @@ of that file bundles the record and the diff from proposal to final.
 rejudge judges a finished run's captures again in a new run directory,
 carrying the original revision as its predecessor; nothing is probed
 again, and --model judges with another model, --effort at another
-reasoning effort the gateway lists for it. view serves the
+reasoning effort the gateway lists for it, and --write-model has another
+model write the narrative. view serves the
 report and its evidence on this machine only (127.0.0.1, a one-time link);
 a run directory without a finalized revision shows its working state,
 labelled as such. export packs a run directory into a portable archive;

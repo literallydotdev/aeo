@@ -54,17 +54,22 @@ export const readRecordedAuthorEvidence = async (
     : authorEvidenceSchema.parse(JSON.parse(text));
 };
 
-/** The report model a command names outside audit.json. */
-export type ModelOverride = { model: string; modelEffort?: ReasoningEffort };
+/** The report's models as a command names them outside audit.json. */
+export type ModelOverride = {
+  model: string;
+  modelEffort?: ReasoningEffort;
+  writeModel?: string;
+};
 
 /** recordRunConfiguration writes the run's audit.json and author evidence
  * into its directory, replacing what an earlier invocation wrote. */
-/** The operator's configuration with the model the run actually used,
- * asked as the run asked it: another model never inherits the effort the
- * file names for its own. */
+/** The operator's configuration with the models the run actually used,
+ * asked as the run asked them: another model never inherits the effort the
+ * file names for its own. A writer the command does not name stays the
+ * file's. */
 const configWithModel = (
   text: string,
-  { model, modelEffort }: ModelOverride,
+  { model, modelEffort, writeModel }: ModelOverride,
 ): string => {
   const config: unknown = JSON.parse(text);
 
@@ -75,7 +80,12 @@ const configWithModel = (
   const { modelEffort: _fileEffort, ...rest } = config;
 
   return `${JSON.stringify(
-    { ...rest, model, ...(modelEffort !== undefined && { modelEffort }) },
+    {
+      ...rest,
+      model,
+      ...(modelEffort !== undefined && { modelEffort }),
+      ...(writeModel !== undefined && { writeModel }),
+    },
     null,
     2,
   )}\n`;
@@ -90,9 +100,9 @@ export const recordRunConfiguration = async ({
   dir: string;
   configFile: string;
   evidence: RecordedAuthorEvidence;
-  /** A model named outside the file (`rejudge --model`, with its
-   * `--effort`): the recorded configuration is the one the run ran with,
-   * not the file's. */
+  /** Models named outside the file (`rejudge --model`, with its
+   * `--effort`, and `--write-model`): the recorded configuration is the
+   * one the run ran with, not the file's. */
   model?: ModelOverride;
 }): Promise<void> => {
   const text = await readFile(configFile, 'utf8');

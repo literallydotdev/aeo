@@ -231,19 +231,26 @@ const chromiumCheck = async (): Promise<PreflightCheck> => {
   }
 };
 
-/** The report model as a command resolved it (resolveReportModel), or why
- * it could not be priced. */
+/** The report's models as a command resolved them (resolveReportModels),
+ * or why one could not be priced. `writer` is the model audit.json names
+ * to write the narrative, when it names one. */
 export type PreflightModel =
-  | { outcome: 'resolved'; model: SupportedModel; named: boolean }
+  | {
+      outcome: 'resolved';
+      model: SupportedModel;
+      named: boolean;
+      writer?: SupportedModel;
+    }
   | { outcome: 'refused'; reason: string };
 
 const recommendedModel = (): PreflightModel => {
   return { outcome: 'resolved', model: resolveSupportedModel(), named: false };
 };
 
-/** The model the run judges and writes with. Any gateway model is accepted
- * once it is priced; one the engine ships no settings for says that it was
- * never verified on the Codex stage runtime. */
+/** The model the run judges with, and the one that writes its narrative
+ * when the audit names another for that. Any gateway model is accepted
+ * once it is priced; a report model the engine ships no settings for says
+ * that it was never verified on the Codex stage runtime. */
 export const modelCheck = (
   resolved: PreflightModel = recommendedModel(),
 ): PreflightCheck => {
@@ -259,13 +266,25 @@ export const modelCheck = (
     };
   }
 
-  const { model, named } = resolved;
-  const { input, output } = model.pricingUsdPerMillion;
-  const priced = findSupportedModel(model.id)
-    ? []
-    : [
-        `priced from the gateway's model list on ${model.pricingCheckedAt}, at up to ${input} in / ${output} out USD per million tokens`,
-      ];
+  const { model, named, writer } = resolved;
+  const pricedOf = (priced: SupportedModel) => {
+    const { input, output } = priced.pricingUsdPerMillion;
+
+    return findSupportedModel(priced.id)
+      ? []
+      : [
+          `priced from the gateway's model list on ${priced.pricingCheckedAt}, at up to ${input} in / ${output} out USD per million tokens`,
+        ];
+  };
+  // The writer makes one request and runs no Codex stage, so the stage
+  // runtime's verification says nothing of it.
+  const written = writer
+    ? [
+        [`the narrative is written by ${writer.id}`, ...pricedOf(writer)].join(
+          ', ',
+        ),
+      ]
+    : [];
 
   return {
     name: 'model',
@@ -273,10 +292,11 @@ export const modelCheck = (
     detail: [
       `${model.id}${named ? '' : ' (recommended; audit.json names none)'}`,
       `asked at effort ${model.stageReasoningEffort}`,
-      ...priced,
+      ...pricedOf(model),
       model.stageRuntimeVerifiedAt === null
         ? 'not yet verified on the Codex stage runtime through the gateway'
         : `verified on the Codex stage runtime ${model.stageRuntimeVerifiedAt}`,
+      ...written,
     ].join('; '),
   };
 };

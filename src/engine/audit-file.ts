@@ -196,6 +196,11 @@ export const auditFileSchema = z
     // list names for it. Absent means `high` where the model offers it.
     // Only for a model the engine ships no verified settings for.
     modelEffort: reasoningEffortSchema.optional(),
+    // Another gateway model to write the report's narrative, which is one
+    // request (method release spec §4.5). Everything else stays on `model`,
+    // the check of what the writer claimed included. Absent means `model`
+    // writes.
+    writeModel: z.string().trim().min(1).optional(),
     // Another model behind an API chat surface (open models spec §4): any
     // language model the gateway's model list prices. Absent means the
     // surface's pinned free-tier model. Never part of the measurement
@@ -461,15 +466,21 @@ export const measuredSurfaces = (file: AuditFile): AeoSurface[] => {
 
 /** toRunRequest is the request a local run executes under. The budget is
  * the run's frozen one (resolveRunBudget), absent only for a plan. `model`
- * is the report model once resolved (resolveReportModel); when absent, the
- * engine's own entry for the model the file names. */
+ * and `writer` are the report's models once resolved (resolveReportModels);
+ * when `model` is absent, the engine's own entry for the model the file
+ * names, and when `writer` is, the report model writes. */
 export const toRunRequest = (
   file: AuditFile,
   runId: string,
   {
     modelBudget,
     model = resolveSupportedModel(file.model),
-  }: { modelBudget?: ModelBudgetLimits; model?: SupportedModel } = {},
+    writer,
+  }: {
+    modelBudget?: ModelBudgetLimits;
+    model?: SupportedModel;
+    writer?: SupportedModel;
+  } = {},
 ): RunRequest => {
   const request = runRequestSchema.parse({
     reportKey: localReportKey(file),
@@ -481,6 +492,7 @@ export const toRunRequest = (
       // be set: full grounding searches, and preflight requires its key.
       searchProvider:
         file.grounding === 'full' ? 'dataforseo-google-organic-v1' : 'disabled',
+      ...(writer && { writer }),
     }),
     ...(modelBudget && { modelBudget }),
     surfaces: measuredSurfaces(file),

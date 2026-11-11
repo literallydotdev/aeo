@@ -10,9 +10,10 @@ import type { SupportedModel } from './supported-models';
 // ============================================================================
 // The profile a local run executes under (specs/aeo-claude-operator-spec.md
 // §4.1): every text role and the Codex stages on the one model audit.json
-// names, with the role settings below. The run freezes the model
-// (BUDGET.json); the profile is built from it by the running engine on every
-// invocation and recorded with the run as part of its method.
+// names, with the role settings below; the copywriter's role alone on
+// another when the audit names one to write (`writeModel`). The run freezes
+// both (BUDGET.json); the profile is built from them by the running engine
+// on every invocation and recorded with the run as part of its method.
 // ============================================================================
 
 /** Bumped when a role's prompt changes what it asks for. */
@@ -103,15 +104,19 @@ type LocalModelProfileOptions = {
   /** Full grounding researches through the pinned search provider; it is
    * pinned by the audit, never inferred from which credentials are set. */
   searchProvider: InternalModelProfile['searchProvider'];
+  /** The model that writes the report's narrative, when the audit names
+   * another than `model` for that (`writeModel`): the copy role runs on
+   * it, and nothing else does. */
+  writer?: SupportedModel;
 };
 
 /** localModelProfile builds the profile a local run pins for `model`. */
 export const localModelProfile = (
   model: SupportedModel,
-  { searchProvider }: LocalModelProfileOptions,
+  { searchProvider, writer }: LocalModelProfileOptions,
 ): InternalModelProfile => {
-  const role = (name: keyof typeof roleSizing) => {
-    return createRoleConfig(name, model, roleSizing[name]);
+  const role = (name: keyof typeof roleSizing, on: SupportedModel = model) => {
+    return createRoleConfig(name, on, roleSizing[name]);
   };
 
   const roles = {
@@ -121,13 +126,14 @@ export const localModelProfile = (
     adjudication: role('adjudication'),
     premiseVerifier: role('premiseVerifier'),
     author: role('author'),
-    copy: role('copy'),
+    copy: role('copy', writer),
     domainClassifier: role('domainClassifier'),
     competitorClassifier: role('competitorClassifier'),
   };
 
   const profile = internalModelProfileSchema.parse({
-    id: `local:${model.id}`,
+    // A profile that differs in a role is another profile, and says so.
+    id: writer ? `local:${model.id}+write:${writer.id}` : `local:${model.id}`,
     version: 1,
     pricingCheckedAt: model.pricingCheckedAt,
     searchProvider,

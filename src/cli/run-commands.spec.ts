@@ -295,6 +295,67 @@ describe('run-commands - runRun()', () => {
     ]);
   });
 
+  it('should refuse a resume that names a writer the run did not start with, before pricing it', async () => {
+    for (const name of [
+      'AI_GATEWAY_API_KEY',
+      'DATAFORSEO_LOGIN',
+      'DATAFORSEO_PASSWORD',
+    ]) {
+      vi.stubEnv(name, undefined);
+    }
+
+    vi.stubEnv('AEO_CODEX_BIN', process.execPath);
+    vi.stubEnv('PATH', path.join(root, 'no-agent-clis'));
+    vi.stubEnv(
+      'AEO_MODEL_CATALOG',
+      path.join(
+        import.meta.dirname,
+        '..',
+        'models',
+        '__fixtures__',
+        'gateway-models.json',
+      ),
+    );
+    const flags = await flagsFor(['--max-usd', '5']);
+    const runDir = path.join(root, 'run');
+    const bank = path.join(runDir, 'BANK');
+
+    await writeFile(
+      path.join(root, 'audit.json'),
+      JSON.stringify({
+        ...exampleAuditFile,
+        writeModel: 'anthropic/claude-sonnet-5',
+      }),
+    );
+    await writeFile(
+      path.join(root, 'empty.env'),
+      'AI_GATEWAY_API_KEY=fake-gateway-key\nDATAFORSEO_LOGIN=fake-login\nDATAFORSEO_PASSWORD=fake-password\n',
+    );
+    // A run this release started, whose report model writes.
+    await mkdir(bank, { recursive: true });
+    await resolveRunMethod(runDir, bank, { startedBefore: false });
+    await resolveRunBindings(bank, { startedBefore: false });
+    await resolveRunBudget(runDir, budgetPolicySchema.parse({}), {
+      model: resolveSupportedModel().id,
+      maxUsd: 5,
+    });
+    const stderr = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+
+    const code = await runRun(flags);
+
+    const message = stderr.mock.calls.map(([text]) => String(text)).join('');
+
+    expect(message).toContain(
+      'writes its report with its report model (no writeModel); audit.json now names anthropic/claude-sonnet-5',
+    );
+    expect(code).toBe(1);
+    await expect(readdir(bank)).resolves.toEqual([
+      'bindings.json',
+      'method.json',
+      'stage-prompts.json',
+    ]);
+  });
+
   it('should stop with exit 2 before the agent canaries when a banked answer was captured with another adapter', async () => {
     for (const name of [
       'AI_GATEWAY_API_KEY',

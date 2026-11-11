@@ -88,6 +88,32 @@ describe('run-commands - runPlan()', () => {
       await expect(access(path.join(root, 'run'))).rejects.toThrow();
     });
 
+    it('should name the model an audit has write the narrative, price its request, and refuse one the catalog does not list', async () => {
+      vi.stubEnv('AEO_MODEL_CATALOG', savedCatalog);
+      const stdout = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
+      const withWriter = (writeModel: string) => {
+        return flagsFor(
+          auditFileSchema.parse({ ...exampleAuditFile, writeModel }),
+        );
+      };
+
+      await expect(runPlan(await withWriter('acme/unlisted'))).rejects.toThrow(
+        /acme\/unlisted is not on the gateway's model list/,
+      );
+      expect(await runPlan(await withWriter('anthropic/claude-sonnet-5'))).toBe(
+        0,
+      );
+
+      const output = stdout.mock.calls.map(([text]) => String(text)).join('');
+
+      expect(output).toMatch(
+        /Writer:\s+anthropic\/claude-sonnet-5 \(the narrative, one request\)/,
+      );
+      expect(output).toContain(
+        'anthropic/claude-opus-5.5, the narrative by anthropic/claude-sonnet-5)',
+      );
+    });
+
     it('should refuse a model the catalog does not list, before anything else', async () => {
       vi.stubEnv('AEO_MODEL_CATALOG', savedCatalog);
       const flags = await flagsFor(

@@ -75,6 +75,14 @@ which the estimate does not model. A run keeps its effort as it keeps its
 model: `rejudge --model <id> --effort <level>` judges the same answers at
 another one, in a new run directory.
 
+The report's narrative (its title, subtitle and opening paragraphs) is
+written in one request, from the facts the run measured. To have another
+model write it, set `"writeModel"` to any language model ID on the gateway,
+priced like `"model"` above. Everything else stays on `"model"`, the check
+of every claim the writer makes included. `doctor` and `plan` name the
+writer, and a run keeps it: `rejudge --write-model <id>` judges the same
+answers again in a new run directory and has that model write.
+
 Each API chat surface (`chatgpt`, `claude`, `gemini`, `perplexity`) asks a
 pinned model: the gateway model closest to what that product serves its
 free tier by default. To measure another model behind a surface, name it
