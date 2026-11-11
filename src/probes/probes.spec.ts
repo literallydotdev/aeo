@@ -17,6 +17,7 @@ import { defaultProbeBindings } from './bindings';
 
 type StreamOptions = {
   toolChoice?: string;
+  maxOutputTokens?: number;
   onError?: (event: { error: unknown }) => void;
 };
 
@@ -111,6 +112,71 @@ describe('probes - runProbesForPrompts()', () => {
 
     expect(provider.streamText).toHaveBeenCalledTimes(6);
   });
+
+  it.each([
+    // The free-tier model reasons and searches through 2,000 tokens before
+    // it writes: its adapter version gives both streams eight times that.
+    {
+      name: 'the default ChatGPT binding',
+      surface: 'chatgpt',
+      bindings: defaultProbeBindings,
+      allowance: 16_000,
+    },
+    {
+      name: 'a directory frozen on the released OpenAI adapter',
+      surface: 'chatgpt',
+      bindings: {
+        ...defaultProbeBindings,
+        chatgpt: { adapter: 'gateway.openai@1', model: 'openai/gpt-6-luna' },
+      },
+      allowance: 2000,
+    },
+    {
+      name: 'the default Gemini binding',
+      surface: 'gemini',
+      bindings: defaultProbeBindings,
+      allowance: 2000,
+    },
+    {
+      name: 'the default Claude binding',
+      surface: 'claude',
+      bindings: defaultProbeBindings,
+      allowance: 2000,
+    },
+  ] as const)(
+    'should give $name its own output allowance, on the search call and on its follow-up',
+    async ({ surface, bindings, allowance }) => {
+      provider.streamText.mockImplementation((options) =>
+        options.toolChoice === 'none'
+          ? answered({
+              text: 'Acme Files.',
+              sources: [],
+              providerMetadata: undefined,
+            })
+          : searched(),
+      );
+
+      const run = runProbesForPrompts({
+        geography: 'us',
+        language: 'en',
+        prompts: [{ id: 'p1', promptText: 'Which agency?', category: 'x' }],
+        surfaces: [surface],
+        chatProbes: undefined,
+        dependencies: { bindings, gateway: provider.gateway },
+        filter: (unit) => unit.runIndex === 1,
+      });
+
+      await vi.runAllTimersAsync();
+      const [outcome] = await run;
+
+      expect(outcome).toMatchObject({ status: 'captured' });
+      expect(
+        provider.streamText.mock.calls.map(
+          ([options]) => options.maxOutputTokens,
+        ),
+      ).toEqual([allowance, allowance]);
+    },
+  );
 
   it('should read a failure of the search call through its own stream as well', async () => {
     provider.streamText.mockImplementation((options) =>

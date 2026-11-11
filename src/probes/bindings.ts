@@ -197,9 +197,11 @@ export const defaultProbeBindings: Readonly<
   ...legacyProbeBindings,
   // The Free plan's chat model is GPT-6 Luna (chatgpt.com/pricing). It
   // became the Free and Go default about 8 October 2026, a date read from
-  // reposts of OpenAI's release notes, not from the notes themselves.
+  // reposts of OpenAI's release notes, not from the notes themselves. It
+  // reasons and searches at length, so it is asked through the adapter
+  // version with room for that.
   chatgpt: {
-    adapter: ProbeAdapterId.GATEWAY_OPENAI,
+    adapter: ProbeAdapterId.GATEWAY_OPENAI_2,
     model: 'openai/gpt-6-luna',
   },
   // "The default model for Free and Pro plans" since 30 June 2026
@@ -252,6 +254,8 @@ export const probeAdapterProfiles: Readonly<
 > = {
   [ProbeAdapterId.GATEWAY_OPENAI]:
     gatewayChatProfiles[ProbeAdapterId.GATEWAY_OPENAI],
+  [ProbeAdapterId.GATEWAY_OPENAI_2]:
+    gatewayChatProfiles[ProbeAdapterId.GATEWAY_OPENAI_2],
   [ProbeAdapterId.GATEWAY_SEARCH]:
     gatewayChatProfiles[ProbeAdapterId.GATEWAY_SEARCH],
   [ProbeAdapterId.GATEWAY_GOOGLE]:
@@ -286,6 +290,7 @@ export type ModelBoundSurface = (typeof modelBoundSurfaces)[number];
  * name or infer. */
 export const modelAdapterIds = [
   ProbeAdapterId.GATEWAY_OPENAI,
+  ProbeAdapterId.GATEWAY_OPENAI_2,
   ProbeAdapterId.GATEWAY_GOOGLE,
   ProbeAdapterId.GATEWAY_ANTHROPIC,
   ProbeAdapterId.GATEWAY_PERPLEXITY,
@@ -301,7 +306,7 @@ const isModelAdapterId = (adapter: string): adapter is ModelAdapterId => {
 // Each provider's own search tool only works with that provider's models,
 // so the adapter follows the model's provider (open models spec §4).
 const adapterByProvider: Readonly<Record<string, ModelAdapterId>> = {
-  openai: ProbeAdapterId.GATEWAY_OPENAI,
+  openai: ProbeAdapterId.GATEWAY_OPENAI_2,
   google: ProbeAdapterId.GATEWAY_GOOGLE,
   anthropic: ProbeAdapterId.GATEWAY_ANTHROPIC,
   perplexity: ProbeAdapterId.GATEWAY_PERPLEXITY,
@@ -669,6 +674,7 @@ export const createChatAdapter = (
 
   switch (binding.adapter) {
     case ProbeAdapterId.GATEWAY_OPENAI:
+    case ProbeAdapterId.GATEWAY_OPENAI_2:
     case ProbeAdapterId.GATEWAY_GOOGLE:
     case ProbeAdapterId.GATEWAY_ANTHROPIC:
     case ProbeAdapterId.GATEWAY_SEARCH:

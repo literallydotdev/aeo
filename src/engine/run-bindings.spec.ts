@@ -147,8 +147,10 @@ describe('run-bindings - resolveRunBindings()', () => {
 
     expect(first).toEqual({
       ...defaultProbeBindings,
-      chatgpt: { adapter: 'gateway.openai@1', model: 'openai/gpt-test-1' },
-      // The adapter audit.json names wins over the model's own provider.
+      // An OpenAI model is asked through its provider's current adapter.
+      chatgpt: { adapter: 'gateway.openai@2', model: 'openai/gpt-test-1' },
+      // The adapter audit.json names wins over the model's own provider:
+      // the released version stays one an audit can name.
       claude: { adapter: 'gateway.openai@1', model: 'openai/gpt-test-2' },
     });
     expect(resumed).toEqual(first);

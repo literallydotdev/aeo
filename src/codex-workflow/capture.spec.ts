@@ -117,7 +117,21 @@ describe('capture - captureForRun() and the frozen bindings', () => {
   });
 
   it('should stop before any dispatch when a banked answer asked another model through the same adapter', async () => {
-    // Captured under 0.3.0's model; this run is bound to the 0.4.0 pin.
+    // Captured under 0.3.0's model; this run asks another one through the
+    // adapter 0.3.0 used.
+    const { result, captureSection } = capture(bankedWith({}), {
+      ...defaultProbeBindings,
+      chatgpt: { adapter: 'gateway.openai@1', model: 'openai/gpt-6-luna' },
+    });
+
+    await expect(result).rejects.toBeInstanceOf(RunBindingsError);
+    await expect(result).rejects.toThrow(
+      /chatgpt \(gateway\.openai@1, openai\/gpt-6-luna\)/,
+    );
+    expect(captureSection).not.toHaveBeenCalled();
+  });
+
+  it("should stop before any dispatch when a banked answer was captured under 0.3.0's binding and the run is bound to the 0.4.0 pin", async () => {
     const { result, captureSection } = capture(
       bankedWith({}),
       defaultProbeBindings,
@@ -125,7 +139,7 @@ describe('capture - captureForRun() and the frozen bindings', () => {
 
     await expect(result).rejects.toBeInstanceOf(RunBindingsError);
     await expect(result).rejects.toThrow(
-      /chatgpt \(gateway\.openai@1, openai\/gpt-6-luna\)/,
+      /chatgpt \(gateway\.openai@2, openai\/gpt-6-luna\)/,
     );
     expect(captureSection).not.toHaveBeenCalled();
   });

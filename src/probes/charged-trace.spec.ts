@@ -41,7 +41,7 @@ describe('charged-trace - chargedProbeTrace()', () => {
 
     expect(Object.values(ledger.state.calls)[0]).toMatchObject({
       role: 'probe:chatgpt',
-      reservedUsd: probeUsd['gateway.openai@1'].high,
+      reservedUsd: probeUsd['gateway.openai@2'].high,
     });
 
     await handle.end({
@@ -72,12 +72,12 @@ describe('charged-trace - chargedProbeTrace()', () => {
       valid: false,
     });
     expect(chargedTotal(Object.values(ledger.state.calls)).usd).toBe(
-      probeUsd['gateway.openai@1'].high,
+      probeUsd['gateway.openai@2'].high,
     );
   });
 
   it('should NOT dispatch a probe the cap cannot afford, and report the refusal', async () => {
-    const ledger = ledgerOf(probeUsd['gateway.openai@1'].high / 2);
+    const ledger = ledgerOf(probeUsd['gateway.openai@2'].high / 2);
     const charged = chargedProbeTrace(trace, ledger, {
       bindings: defaultProbeBindings,
     });
@@ -129,7 +129,7 @@ describe('charged-trace - chargedProbeTrace()', () => {
     expect(mockEnd).toHaveBeenCalledOnce();
     expect(Object.values(ledger.state.calls)[0]?.usage).toBeUndefined();
     expect(chargedTotal(Object.values(ledger.state.calls)).usd).toBe(
-      probeUsd['gateway.openai@1'].high,
+      probeUsd['gateway.openai@2'].high,
     );
   });
 

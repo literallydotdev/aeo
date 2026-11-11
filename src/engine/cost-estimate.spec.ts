@@ -100,8 +100,8 @@ describe('cost-estimate - estimateRunCost()', () => {
 
     expect(defaults.coefficientsVersion).toBe(3);
     expect(defaults.categories.probes).toEqual({
-      low: probeUsd['gateway.openai@1'].low * 4,
-      high: probeUsd['gateway.openai@1'].high * 4,
+      low: probeUsd['gateway.openai@2'].low * 4,
+      high: probeUsd['gateway.openai@2'].high * 4,
     });
     expect(rebound.categories.probes).toEqual({
       low: probeUsd['gateway.anthropic@1'].low * 4,

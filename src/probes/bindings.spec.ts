@@ -32,7 +32,8 @@ describe('bindings - defaultProbeBindings', () => {
     // spec §4), never a refactor.
     expect(defaultProbeBindings).toEqual({
       ...legacyProbeBindings,
-      chatgpt: { adapter: 'gateway.openai@1', model: 'openai/gpt-6-luna' },
+      // Through the adapter version with room for a model that reasons.
+      chatgpt: { adapter: 'gateway.openai@2', model: 'openai/gpt-6-luna' },
       claude: {
         adapter: 'gateway.anthropic@1',
         model: 'anthropic/claude-sonnet-5',
@@ -166,7 +167,7 @@ describe('bindings - createChatAdapter()', () => {
             registry: () => registered(fields),
           },
         }),
-      ).toThrow(/not the run's binding of gateway\.openai@1/);
+      ).toThrow(/not the run's binding of gateway\.openai@2/);
     },
   );
 });

@@ -39,6 +39,19 @@ import { classifyGatewayError, errorMessage, ProbeFailure } from '../failure';
 const log = createLog('AISearchProbes');
 
 export const probeMaxOutputTokens = 2000;
+
+/**
+ * The output allowance of gateway.openai@2. A model that reasons bills its
+ * thinking and its tool calls as output, and under 2,000 tokens the
+ * free-tier model ran out while it was still searching. In the first run
+ * on buyer questions (2026-11-11) the search call ended on its token limit
+ * with no text at least four times, each answer then written by the
+ * follow-up, which searches nothing; 6 of that run's 12 answers carried no
+ * source at all, where the same questions on the earlier model gave none
+ * without a source in 38. Eight times the room costs at most $0.008 a
+ * call at that model's output price.
+ */
+export const roomyProbeMaxOutputTokens = 16_000;
 // A search-required call plus a synthesis follow-up: bounded by the runner
 // (hardening spec §4.5), never by undici's defaults plus SDK retries.
 export const chatProbeTimeoutMs = 180_000;
@@ -95,21 +108,29 @@ export type SearchMarket = { geography: string; language: string };
 
 type GatewayChatMethod = {
   profile: ProbeAdapterProfile;
+  /** The output tokens one call may use: the follow-up gets the same. */
+  maxOutputTokens: number;
   /** Built per call, as the request carries it. */
   tools: (market: SearchMarket | undefined) => Record<string, unknown>;
   extractRetrieval: (result: SearchProbeResult) => RetrievalLog;
 };
 
-const searchRequest = (
-  model: string,
-  promptText: string,
-  tools: Record<string, unknown>,
-): ProbeRequest => {
+const searchRequest = ({
+  model,
+  promptText,
+  maxOutputTokens,
+  tools,
+}: {
+  model: string;
+  promptText: string;
+  maxOutputTokens: number;
+  tools: Record<string, unknown>;
+}): ProbeRequest => {
   return {
     prompt: `${searchPromptPrefix}${promptText}`,
     parameters: {
       model,
-      maxOutputTokens: probeMaxOutputTokens,
+      maxOutputTokens,
       toolChoice: 'required',
       tools: describeTools(tools),
     },
@@ -133,7 +154,13 @@ const searchProbe = async ({
   tools: () => Record<string, unknown>;
 }): Promise<ProbeAnswer> => {
   const tools = toolsOf();
-  const { prompt } = searchRequest(model, promptText, tools);
+  const { maxOutputTokens } = method;
+  const { prompt } = searchRequest({
+    model,
+    promptText,
+    maxOutputTokens,
+    tools,
+  });
   // Streamed like every other non-trivial response: the gateway abandons a
   // non-streaming request at 340 seconds whatever the caller's own timeout.
   // Without an `onError` the SDK prints a provider failure with
@@ -146,7 +173,7 @@ const searchProbe = async ({
     },
     model: gateway(model),
     prompt,
-    maxOutputTokens: probeMaxOutputTokens,
+    maxOutputTokens,
     tools: toProviderToolSet(tools),
     toolChoice: 'required',
     maxRetries: 0,
@@ -235,7 +262,7 @@ const searchProbe = async ({
           'Using the web search results from the previous turn, answer the original question in a complete, readable response. Do not perform another search. If the search results were insufficient, say what was missing.',
       },
     ],
-    maxOutputTokens: probeMaxOutputTokens,
+    maxOutputTokens,
     tools: toProviderToolSet(toolsOf()),
     toolChoice: 'none',
     maxRetries: 0,
@@ -290,6 +317,7 @@ const gatewayChatProfile = (
 
 export type GatewayChatAdapterId =
   | typeof ProbeAdapterId.GATEWAY_OPENAI
+  | typeof ProbeAdapterId.GATEWAY_OPENAI_2
   | typeof ProbeAdapterId.GATEWAY_GOOGLE
   | typeof ProbeAdapterId.GATEWAY_ANTHROPIC
   | typeof ProbeAdapterId.GATEWAY_SEARCH;
@@ -314,19 +342,29 @@ const gatewaySearchTool = (market: SearchMarket | undefined) => {
 };
 
 const gatewayChatMethods: Record<GatewayChatAdapterId, GatewayChatMethod> = {
+  // Kept as released: a run directory that froze it resumes on it.
   [ProbeAdapterId.GATEWAY_OPENAI]: {
     profile: gatewayChatProfile(ProbeAdapterId.GATEWAY_OPENAI, 'full'),
+    maxOutputTokens: probeMaxOutputTokens,
+    tools: () => ({ web_search: openai.tools.webSearch({}) }),
+    extractRetrieval: (result) => extractOpenAiRetrieval(result.steps),
+  },
+  [ProbeAdapterId.GATEWAY_OPENAI_2]: {
+    profile: gatewayChatProfile(ProbeAdapterId.GATEWAY_OPENAI_2, 'full'),
+    maxOutputTokens: roomyProbeMaxOutputTokens,
     tools: () => ({ web_search: openai.tools.webSearch({}) }),
     extractRetrieval: (result) => extractOpenAiRetrieval(result.steps),
   },
   [ProbeAdapterId.GATEWAY_GOOGLE]: {
     profile: gatewayChatProfile(ProbeAdapterId.GATEWAY_GOOGLE, 'partial'),
+    maxOutputTokens: probeMaxOutputTokens,
     tools: () => ({ google_search: google.tools.googleSearch({}) }),
     extractRetrieval: (result) =>
       extractGeminiRetrieval(result.providerMetadata),
   },
   [ProbeAdapterId.GATEWAY_ANTHROPIC]: {
     profile: gatewayChatProfile(ProbeAdapterId.GATEWAY_ANTHROPIC, 'full'),
+    maxOutputTokens: probeMaxOutputTokens,
     tools: () => ({
       web_search: anthropic.tools.webSearch_20250305({ maxUses: 5 }),
     }),
@@ -336,6 +374,7 @@ const gatewayChatMethods: Record<GatewayChatAdapterId, GatewayChatMethod> = {
   // own tool, so it does not depend on the model's provider.
   [ProbeAdapterId.GATEWAY_SEARCH]: {
     profile: gatewayChatProfile(ProbeAdapterId.GATEWAY_SEARCH, 'full'),
+    maxOutputTokens: probeMaxOutputTokens,
     tools: (market) => ({ [gatewaySearchToolName]: gatewaySearchTool(market) }),
     extractRetrieval: (result) => extractGatewaySearchRetrieval(result.steps),
   },
@@ -344,6 +383,8 @@ const gatewayChatMethods: Record<GatewayChatAdapterId, GatewayChatMethod> = {
 export const gatewayChatProfiles = {
   [ProbeAdapterId.GATEWAY_OPENAI]:
     gatewayChatMethods[ProbeAdapterId.GATEWAY_OPENAI].profile,
+  [ProbeAdapterId.GATEWAY_OPENAI_2]:
+    gatewayChatMethods[ProbeAdapterId.GATEWAY_OPENAI_2].profile,
   [ProbeAdapterId.GATEWAY_GOOGLE]:
     gatewayChatMethods[ProbeAdapterId.GATEWAY_GOOGLE].profile,
   [ProbeAdapterId.GATEWAY_ANTHROPIC]:
@@ -375,7 +416,13 @@ export const createGatewayChatAdapter = (
     ...method.profile,
     surface,
     model,
-    request: (promptText) => searchRequest(model, promptText, tools()),
+    request: (promptText) =>
+      searchRequest({
+        model,
+        promptText,
+        maxOutputTokens: method.maxOutputTokens,
+        tools: tools(),
+      }),
     probe: (promptText) =>
       searchProbe({ surface, gateway, model, promptText, method, tools }),
     classifyError: classifyGatewayFailure,

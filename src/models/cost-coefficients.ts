@@ -100,6 +100,11 @@ export const searchUsdPerAnswer = { low: 0.001, high: 0.01 } as const;
  * operator's own plan and bill nothing to the run's cap. */
 export const probeUsd: Readonly<Record<ProbeAdapterId, Range<number>>> = {
   [ProbeAdapterId.GATEWAY_OPENAI]: { low: 0.01, high: 0.05 },
+  // The first run on buyer questions (openai/gpt-6-luna, 2026-11-11, 12
+  // answers) cost $0.022 to $0.078 an answer under @1: the model searches
+  // five to seven times where the earlier one searched once or twice. The
+  // high end leaves room above the dearest of them.
+  [ProbeAdapterId.GATEWAY_OPENAI_2]: { low: 0.02, high: 0.1 },
   [ProbeAdapterId.GATEWAY_GOOGLE]: { low: 0.02, high: 0.06 },
   // The adapter allows five searches. A recorded answer with one search
   // cost $0.056 (anthropic/claude-sonnet-5, 2026-11-11: 19,000 tokens in at

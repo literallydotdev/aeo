@@ -18,6 +18,10 @@ import type { ProbeProvider } from './limits';
  * request or parsing bumps its version. */
 export const ProbeAdapterId = {
   GATEWAY_OPENAI: 'gateway.openai@1',
+  // The same request with room to finish (method release spec §4.4): a
+  // model that reasons and searches can spend @1's 2,000 output tokens
+  // before it writes an answer, which then carries no source.
+  GATEWAY_OPENAI_2: 'gateway.openai@2',
   GATEWAY_GOOGLE: 'gateway.google@1',
   GATEWAY_ANTHROPIC: 'gateway.anthropic@1',
   GATEWAY_PERPLEXITY: 'gateway.perplexity@1',

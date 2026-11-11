@@ -177,8 +177,8 @@ describe('probes - a registered adapter', () => {
     ).toEqual([0.004, 0.004]);
     // Journaled with the adapter and its request.
     expect(started.map((event) => event.payload.details)).toEqual([
-      expect.objectContaining({ adapter: 'gateway.openai@1' }),
-      expect.objectContaining({ adapter: 'gateway.openai@1' }),
+      expect.objectContaining({ adapter: 'gateway.openai@2' }),
+      expect.objectContaining({ adapter: 'gateway.openai@2' }),
     ]);
     // Covered: a probe operation returned every banked answer.
     expect(
