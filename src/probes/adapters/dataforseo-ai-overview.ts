@@ -1,5 +1,5 @@
 import { probeUsd } from '../../models/cost-coefficients';
-import type { AeoChatSurface } from '../../surfaces';
+import type { AeoApiSurface } from '../../surfaces';
 import {
   ProbeAdapterId,
   type ProbeAdapter,
@@ -43,7 +43,7 @@ export const createDataForSeoAiOverviewAdapter = ({
   client,
   locale,
 }: {
-  surface: AeoChatSurface;
+  surface: AeoApiSurface;
   client: DataForSeoProbeClient | undefined;
   locale: DataForSeoLocale;
 }): ProbeAdapter => {

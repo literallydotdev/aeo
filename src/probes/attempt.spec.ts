@@ -215,7 +215,9 @@ describe('attempt - runProbeUnit()', () => {
 
     const outcome = await runProbeUnit(fakeAdapter(probe), unit, {
       rules: attemptRules.chat,
-      trace: chargedProbeTrace(trace, stopped, defaultProbeBindings).trace,
+      trace: chargedProbeTrace(trace, stopped, {
+        bindings: defaultProbeBindings,
+      }).trace,
       limiter: unlimited(),
       log,
       logContext: {},

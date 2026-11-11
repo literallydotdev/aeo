@@ -13,7 +13,12 @@ import {
 } from '../models/structured';
 import { capturePlan } from '../capture-manifest';
 import { readRunInputs } from '../codex-workflow/run-inputs';
-import { bundlePaths, measurementDigest, objectPathPrefix } from './contracts';
+import {
+  bundlePaths,
+  measurementDigest,
+  objectPathPrefix,
+  operationKindsOf,
+} from './contracts';
 import { exportRun, finalizeRevision } from './export';
 import { readJournal } from './journal';
 import {
@@ -22,7 +27,7 @@ import {
   recordedOperationKinds,
   recordingAccounting,
 } from './recorder';
-import { capturedAnswerOf } from './trace-coverage';
+import { assessTraceCoverage, capturedAnswerOf } from './trace-coverage';
 import { checkTraceCoverage } from './verify-integrity';
 import { readBundleSource } from './read';
 import { verifyBundle } from './verify';
@@ -553,8 +558,41 @@ describe('export - exportRun() with every operation recorded', () => {
 
     expect(result.manifest.trace.coverage).toBe('partial');
     expect(result.manifest.trace.limitations[0]).toContain(
-      'did not record probe, canary, research_tool, technical_check operations',
+      'did not record probe, canary, research_tool, technical_check, model_catalog operations',
     );
+  });
+
+  it('should hold a bundle to the operation kinds of its own schema version', async () => {
+    const run = await fullyRecordedRun();
+    const { source } = await traceCoverageOf(run.dir);
+    const inputs = await readRunInputs(run.dir);
+    const events = readJournal(
+      source.files.get(bundlePaths.events)?.toString('utf8') ?? '',
+    ).events.map((event) =>
+      // A writer of bundle schema 2: it knew six kinds, not model_catalog.
+      event.type === 'run_started'
+        ? {
+            ...event,
+            payload: {
+              ...event.payload,
+              observes: operationKindsOf(2),
+            },
+          }
+        : event,
+    );
+    const gapsUnder = (bundleSchema: number) => {
+      return assessTraceCoverage({
+        events,
+        captured: (inputs?.captured ?? []).map(capturedAnswerOf),
+        derived: false,
+        bundleSchema,
+      }).gaps;
+    };
+
+    expect(gapsUnder(2)).toEqual([]);
+    expect(gapsUnder(3)).toEqual([
+      'A writer of this run did not record model_catalog operations.',
+    ]);
   });
 
   it('should fail a declared coverage that the events do not support', async () => {

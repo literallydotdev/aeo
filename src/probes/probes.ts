@@ -1,5 +1,10 @@
-import type { AeoChatSurface, ChatProbeConfig, RetrievalLog } from '../schema';
-import { chatRunsPerPrompt, chatSurfaces } from '../schema';
+import type { AeoApiSurface, ChatProbeConfig, RetrievalLog } from '../schema';
+import {
+  chatRunsPerPrompt,
+  chatSurfaces,
+  consumerSurfaces,
+  isCustomSurface,
+} from '../schema';
 import type { AeoSurface } from '../surfaces';
 import { createLog } from '../lib/log';
 import { attemptRules, runProbeUnit } from './attempt';
@@ -9,9 +14,10 @@ import type { ProbeOutcome } from './outcomes';
 import type { ProbeTrace } from './probe-trace';
 
 // ============================================================================
-// Chat-surface probes: every planned (prompt × surface × run) unit through
-// the surface's adapter (adapters/gateway-chat.ts, gateway-perplexity.ts,
-// dataforseo-ai-overview.ts) and the host's attempt loop (attempt.ts).
+// Probes of every surface asked through an API or a scrape (the chat
+// surfaces, the consumer apps, the custom models): every planned
+// (prompt × surface × run) unit through the adapter its surface is bound
+// to (bindings.ts) and the host's attempt loop (attempt.ts).
 // ============================================================================
 
 const log = createLog('AISearchProbes');
@@ -59,7 +65,7 @@ export type ProbeJob = {
   prompts: ProbePromptInput[];
   // Which chat surfaces to run — defaults to all five. Lets `--surfaces`
   // iterate cheaply without touching the canonical run counts.
-  surfaces?: readonly AeoChatSurface[];
+  surfaces?: readonly AeoApiSurface[];
   // Runs per prompt; undefined = the canonical surfaceRunCounts. Must be
   // the depth the plan was built with, or resume and scoring disagree.
   chatProbes: ChatProbeConfig | undefined;
@@ -67,7 +73,7 @@ export type ProbeJob = {
   // (prompt × surface × run) execution. Omitted = run everything.
   filter?: (unit: {
     promptId: string;
-    surface: AeoChatSurface;
+    surface: AeoApiSurface;
     runIndex: number;
   }) => boolean;
   // Called with each captured probe as soon as it is usable (redirects
@@ -96,21 +102,25 @@ export const runProbesForPrompts = async (
   job: ProbeJob,
   opts: { logContext?: Record<string, unknown> } = {},
 ): Promise<ChatProbeOutcome[]> => {
-  const selected = job.surfaces ?? chatSurfaces;
-  // Canonical surface order, whatever order the job names them in. Run
+  const selected: readonly AeoApiSurface[] = job.surfaces ?? chatSurfaces;
+  // Canonical surface order, whatever order the job names them in: the
+  // chat surfaces, the consumer apps, then the custom ones by ID. Run
   // counts come from chatRunsPerPrompt (schema.ts), the rule the plan and
   // the scoring denominators read too.
-  const probed = chatSurfaces
-    .filter((surface) => selected.includes(surface))
-    .map((surface) => ({
-      surface,
-      runs: chatRunsPerPrompt(surface, job.chatProbes),
-      adapter: createChatAdapter(surface, {
-        geography: job.geography,
-        language: job.language,
-        dependencies: job.dependencies,
-      }),
-    }));
+  const ordered: AeoApiSurface[] = [
+    ...chatSurfaces.filter((surface) => selected.includes(surface)),
+    ...consumerSurfaces.filter((surface) => selected.includes(surface)),
+    ...selected.filter(isCustomSurface).sort(),
+  ];
+  const probed = ordered.map((surface) => ({
+    surface,
+    runs: chatRunsPerPrompt(surface, job.chatProbes),
+    adapter: createChatAdapter(surface, {
+      geography: job.geography,
+      language: job.language,
+      dependencies: job.dependencies,
+    }),
+  }));
   const limiter = job.limiter ?? unlimited();
 
   const tasks: Promise<ChatProbeOutcome>[] = [];

@@ -8,6 +8,7 @@ import {
   versionForSurface,
 } from '../probes/agent-clis';
 import {
+  bindingOf,
   probeAdapterProfiles,
   profileOf,
   type ProbeBinding,
@@ -26,7 +27,8 @@ import {
 import {
   describeSupportedModels,
   findSupportedModel,
-  recommendedModelId,
+  resolveSupportedModel,
+  type SupportedModel,
 } from '../models/supported-models';
 import type { Settings } from './env-file';
 
@@ -229,31 +231,72 @@ const chromiumCheck = async (): Promise<PreflightCheck> => {
   }
 };
 
-/** The model audit.json names, or the recommended one: refused when it is
- * not on the supported list, which the detail then prints. */
-export const modelCheck = (model: string | undefined): PreflightCheck => {
-  const id = model ?? recommendedModelId;
-  const supported = findSupportedModel(id);
+/** The report's models as a command resolved them (resolveReportModels),
+ * or why one could not be priced. `writer` is the model audit.json names
+ * to write the narrative, when it names one. */
+export type PreflightModel =
+  | {
+      outcome: 'resolved';
+      model: SupportedModel;
+      named: boolean;
+      writer?: SupportedModel;
+    }
+  | { outcome: 'refused'; reason: string };
 
-  if (!supported) {
+const recommendedModel = (): PreflightModel => {
+  return { outcome: 'resolved', model: resolveSupportedModel(), named: false };
+};
+
+/** The model the run judges with, and the one that writes its narrative
+ * when the audit names another for that. Any gateway model is accepted
+ * once it is priced; a report model the engine ships no settings for says
+ * that it was never verified on the Codex stage runtime. */
+export const modelCheck = (
+  resolved: PreflightModel = recommendedModel(),
+): PreflightCheck => {
+  if (resolved.outcome === 'refused') {
     return {
       name: 'model',
       ok: false,
       detail: [
-        `${id} is not supported; use one of:`,
+        resolved.reason,
+        'literally-aeo ships verified settings for:',
         ...describeSupportedModels(),
       ].join('\n    '),
     };
   }
 
+  const { model, named, writer } = resolved;
+  const pricedOf = (priced: SupportedModel) => {
+    const { input, output } = priced.pricingUsdPerMillion;
+
+    return findSupportedModel(priced.id)
+      ? []
+      : [
+          `priced from the gateway's model list on ${priced.pricingCheckedAt}, at up to ${input} in / ${output} out USD per million tokens`,
+        ];
+  };
+  // The writer makes one request and runs no Codex stage, so the stage
+  // runtime's verification says nothing of it.
+  const written = writer
+    ? [
+        [`the narrative is written by ${writer.id}`, ...pricedOf(writer)].join(
+          ', ',
+        ),
+      ]
+    : [];
+
   return {
     name: 'model',
     ok: true,
     detail: [
-      `${supported.id}${model === undefined ? ' (recommended; audit.json names none)' : ''}`,
-      supported.stageRuntimeVerifiedAt === null
+      `${model.id}${named ? '' : ' (recommended; audit.json names none)'}`,
+      `asked at effort ${model.stageReasoningEffort}`,
+      ...pricedOf(model),
+      model.stageRuntimeVerifiedAt === null
         ? 'not yet verified on the Codex stage runtime through the gateway'
-        : `verified on the Codex stage runtime ${supported.stageRuntimeVerifiedAt}`,
+        : `verified on the Codex stage runtime ${model.stageRuntimeVerifiedAt}`,
+      ...written,
     ].join('; '),
   };
 };
@@ -290,8 +333,9 @@ export const runPreflight = async (args: {
   surfaces: readonly AeoSurface[];
   settings: Settings;
   dir: string;
-  /** audit.json's `model`; absent means the recommended model. */
-  model?: string;
+  /** The report model as the command resolved it; absent means the
+   * recommended model. */
+  model?: PreflightModel;
   /** Full grounding researches through the pinned search provider. */
   groundingSearch?: boolean;
   /** Money pages are rendered in Chromium by the renderability check. */
@@ -325,7 +369,7 @@ export const runPreflight = async (args: {
   const required = new Set<string>([
     gatewaySetting,
     ...chatSurfaces.flatMap((surface) =>
-      profileOf(bindings[surface])
+      profileOf(bindingOf(bindings, surface))
         .settings.filter((setting) => setting.group === undefined)
         .map((setting) => setting.name),
     ),
@@ -335,7 +379,7 @@ export const runPreflight = async (args: {
   checks.push(
     ...[...required].map((name) => settingCheck(name, settings)),
     ...chatSurfaces.map((surface) =>
-      chatBindingCheck(surface, bindings[surface], settings),
+      chatBindingCheck(surface, bindingOf(bindings, surface), settings),
     ),
   );
 

@@ -20,7 +20,10 @@ import { isAuthError } from '../probes/failure';
 import { isObject } from '../lib/type-guards';
 import { getEnvironment, readEnv } from '../lib/env';
 import type { ExecutionRecorder } from '../bundle/recorder';
-import type { ModelCallAccounting } from '../models/accounting';
+import {
+  ModelBudgetError,
+  type ModelCallAccounting,
+} from '../models/accounting';
 import {
   sessionReservation,
   type SessionCost,
@@ -148,6 +151,9 @@ export type StageContext = {
   ) => Promise<CopyVerdict>;
   /** An existing copy handed directly to the verifier for a requested edit. */
   initialCopyDraft?: unknown;
+  /** The copy's first draft, from the host's one request to the copy role
+   * (copy.ts): the write stage runs no session. */
+  draftCopy?: () => Promise<{ draft: unknown; usage: SessionUsage | null }>;
   /** The isolated environment every session of a stage runs with; written
    * once per stage by runStage. */
   codexEnv?: Record<string, string>;
@@ -209,8 +215,9 @@ type StageSpec = {
   /** Partitioned by answer file, or one session over the whole report. */
   batched: boolean;
   /** The calibrated workload a session is reserved at on the run's ledger
-   * (src/models/cost-coefficients.ts). */
-  sessionCost: SessionCost;
+   * (src/models/cost-coefficients.ts). Absent for the stage that runs no
+   * session: the copy's draft is one request (copy.ts). */
+  sessionCost?: SessionCost;
   /** Judged against the batch's own files, or every answer (the copy must
    * name every configured section). */
   judgedOn: 'batch' | 'all';
@@ -401,7 +408,6 @@ const stageSpecs: Record<StageName, StageSpec> = {
   write: {
     ...reportStage,
     batched: false,
-    sessionCost: 'report',
     judgedOn: 'all',
     persistent: true,
     // Everything under COPY/, listed at digest time.
@@ -723,9 +729,15 @@ const reserveSession = async (
     return undefined;
   }
 
+  const { sessionCost } = stageSpecs[stage];
+
+  if (sessionCost === undefined) {
+    throw new Error(`The ${stage} stage runs no session to reserve.`);
+  }
+
   const pricing = stageModel.pricingUsdPerMillion;
   const reserved = sessionReservation({
-    cost: stageSpecs[stage].sessionCost,
+    cost: sessionCost,
     answers: batch.files.length,
   });
   // Unique per session: a resumed run never settles a session it lost
@@ -1652,58 +1664,41 @@ const readPending = async (
   return pending;
 };
 
-/** The writer's one job: the initial draft file. A session that ends
- * without it is retried, at most maxAttempts; the draft is handed over as
- * written, even malformed, for the verifier to repair. */
+/** The copy's first draft: one request to the copy role, asked again only
+ * when it failed without a draft. A request the role cannot carry, a spent
+ * budget and a stopped run are not asked again. */
 const writeInitialDraft = async (
   ctx: StageContext,
-  {
-    stage,
-    batch,
-    files,
-    usages,
-  }: BatchTarget & { usages: StageRun['usage'][] },
+  { files, usages }: BatchTarget & { usages: StageRun['usage'][] },
 ): Promise<unknown> => {
-  const { label, outFile } = files;
+  const { label } = files;
+
+  if (!ctx.draftCopy) {
+    throw new Error(`Copy draft has no writer: ${label}.`);
+  }
 
   for (let attempt = 1; ; attempt += 1) {
     ctx.signal?.throwIfAborted();
 
-    const result = await execCodex(ctx, {
-      stage,
-      batch,
-      feedback: attempt > 1 ? { incomplete: true } : {},
-    });
+    try {
+      const { draft, usage } = await ctx.draftCopy();
 
-    usages.push(result.usage);
+      usages.push(usage);
 
-    const raw = await readFile(outFile, 'utf8').catch(() => null);
+      return draft;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const retrying =
+        !ctx.signal?.aborted &&
+        !(error instanceof ModelBudgetError) &&
+        message !== 'model_input_limit' &&
+        attempt < maxAttempts;
 
-    if (raw !== null) {
-      if (result.exitCode !== 0) {
-        printProgress(
-          `${label}: CLI exited ${result.exitCode}; handing its saved draft to the verifier`,
-        );
+      await recordIncomplete(ctx, { label, attempt, retrying, error: message });
+
+      if (!retrying) {
+        throw error;
       }
-
-      try {
-        return JSON.parse(raw);
-      } catch {
-        return raw;
-      }
-    }
-
-    const error = incompleteError(result);
-    const retrying = !ctx.signal?.aborted && attempt < maxAttempts;
-
-    await recordIncomplete(ctx, { label, attempt, retrying, error });
-
-    if (result.resumed) {
-      await dropSession(ctx, label);
-    }
-
-    if (!retrying) {
-      throw new Error(error);
     }
   }
 };

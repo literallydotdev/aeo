@@ -2,6 +2,7 @@ import { authorToolCaps } from '../codex-workflow/author-tools';
 import {
   authorSearchLowUsd,
   authorTokens,
+  copyRequestTokens,
   costCoefficientsVersion,
   hostTokensPerAnswer,
   searchUsdPerAnswer,
@@ -11,7 +12,12 @@ import {
 } from '../models/cost-coefficients';
 import { tokenCostUsd } from '../models/pricing';
 import type { SupportedModel } from '../models/supported-models';
-import { profileOf, type RunBindings } from '../probes/bindings';
+import type { CatalogModel } from '../models/catalog';
+import {
+  bindingOf,
+  probeEstimateUsd,
+  type RunBindings,
+} from '../probes/bindings';
 import type { RunPlan } from '../runner';
 
 // ============================================================================
@@ -29,6 +35,9 @@ export type RunCostEstimate = {
   /** An estimate, labelled as such wherever it is shown. */
   kind: 'estimate';
   model: string;
+  /** The model the copywriter's request is priced at, when the audit names
+   * another than `model` to write. */
+  writeModel?: string;
   coefficientsVersion: number;
   low: number;
   high: number;
@@ -42,7 +51,10 @@ export type RunCostEstimate = {
   recommendedCapUsd: number;
 };
 
-export type AuthorCostEstimate = Omit<RunCostEstimate, 'categories'> & {
+export type AuthorCostEstimate = Omit<
+  RunCostEstimate,
+  'categories' | 'writeModel'
+> & {
   categories: { stages: CostRange; search: CostRange };
 };
 
@@ -86,10 +98,15 @@ const sumOf = (ranges: readonly CostRange[]): CostRange => {
 type EstimateRunOptions = {
   plan: Pick<RunPlan, 'units' | 'probesBySurface'>;
   model: SupportedModel;
+  /** The model that writes the narrative, when not `model`. */
+  writer?: SupportedModel;
   grounding: 'full' | 'extraction_only';
   /** The bindings the run measures with: each surface's probes cost what
    * its bound adapter costs. */
   bindings: RunBindings;
+  /** Catalog prices of the bound models the engine has no flat figure
+   * for (catalogPricedModels). */
+  probeModels?: ReadonlyMap<string, CatalogModel>;
 };
 
 /** estimateRunCost estimates a whole run as planned; a resume spends less,
@@ -97,15 +114,17 @@ type EstimateRunOptions = {
 export const estimateRunCost = ({
   plan,
   model,
+  writer,
   grounding,
   bindings,
+  probeModels = new Map(),
 }: EstimateRunOptions): RunCostEstimate => {
   const answers = plan.units.length;
   const { cachedShare } = stageTokens;
 
   const probes = sumOf(
     [...plan.probesBySurface].map(([surface, count]) => {
-      const usd = profileOf(bindings[surface]).estimateUsd;
+      const usd = probeEstimateUsd(bindingOf(bindings, surface), probeModels);
 
       return rangeOf(usd.low * count, usd.high * count);
     }),
@@ -116,17 +135,21 @@ export const estimateRunCost = ({
       model,
       scaled(stageTokens.perAnswer.low, answers),
       cachedShare.high,
-    ) + tokensCost(model, stageTokens.perRun.low, cachedShare.high),
+    ),
     tokensCost(
       model,
       scaled(stageTokens.perAnswer.high, answers),
       cachedShare.low,
-    ) + tokensCost(model, stageTokens.perRun.high, cachedShare.low),
+    ),
   );
   const hostTokens = hostTokensPerAnswer[grounding];
+  // The calls per answer, and the copywriter's one request at its own
+  // model's prices.
   const hostCalls = rangeOf(
-    tokensCost(model, scaled(hostTokens.low, answers), 0),
-    tokensCost(model, scaled(hostTokens.high, answers), 0),
+    tokensCost(model, scaled(hostTokens.low, answers), 0) +
+      tokensCost(writer ?? model, copyRequestTokens.low, 0),
+    tokensCost(model, scaled(hostTokens.high, answers), 0) +
+      tokensCost(writer ?? model, copyRequestTokens.high, 0),
   );
   const search =
     grounding === 'full'
@@ -141,6 +164,7 @@ export const estimateRunCost = ({
     currency: 'USD',
     kind: 'estimate',
     model: model.id,
+    ...(writer && { writeModel: writer.id }),
     coefficientsVersion: costCoefficientsVersion,
     low: total.low,
     high: total.high,

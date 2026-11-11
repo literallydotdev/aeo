@@ -4,7 +4,13 @@ import {
   type ModelCallAccounting,
 } from '../models/accounting';
 import { createLog } from '../lib/log';
-import { profileOf, type RunBindings } from './bindings';
+import type { CatalogModel } from '../models/catalog';
+import {
+  bindingOf,
+  probeEstimateUsd,
+  profileOf,
+  type RunBindings,
+} from './bindings';
 import type { ProbeTrace } from './probe-trace';
 
 // ============================================================================
@@ -27,14 +33,23 @@ export type ChargedTrace = {
 export const chargedProbeTrace = (
   trace: ProbeTrace,
   ledger: ModelCallAccounting,
-  bindings: RunBindings,
+  {
+    bindings,
+    priced = new Map(),
+  }: {
+    bindings: RunBindings;
+    /** The run's frozen catalog prices, for a binding the engine has no
+     * flat figure for. */
+    priced?: ReadonlyMap<string, CatalogModel>;
+  },
 ): ChargedTrace => {
   let refused: ModelBudgetError | undefined;
 
   const charged: ProbeTrace = {
     start: async (attempt) => {
-      const profile = profileOf(bindings[attempt.surface]);
-      const estimateUsd = profile.estimateUsd.high;
+      const binding = bindingOf(bindings, attempt.surface);
+      const profile = profileOf(binding);
+      const estimateUsd = probeEstimateUsd(binding, priced).high;
       const callId = `probe:${attempt.surface}:${attempt.promptId}:${attempt.runIndex}:${attempt.attempt}:${randomUUID()}`;
       // The coding-agent surfaces run on the operator's own plan.
       const isPaid = profile.billing === 'metered';

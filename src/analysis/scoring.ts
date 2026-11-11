@@ -37,6 +37,15 @@ export type PromptForScoring = {
   category: string;
 };
 
+/** The counts behind a pair of rates: what the rate evidence is built from
+ * (method release spec §6.2), with the denominator the rates divide by. */
+export type ScoringCounts = {
+  mentioned: number;
+  cited: number;
+  captured: number;
+  planned: number;
+};
+
 export type ScoringSummary = {
   totalPrompts: number;
   probeShareOfVoice: number;
@@ -44,6 +53,15 @@ export type ScoringSummary = {
   byModel: Record<string, { sov: number; citation: number }>;
   byCategory: Record<string, { sov: number; citation: number }>;
   competitorScores: Array<{ domain: string; sov: number; citation: number }>;
+  counts: ScoringCounts;
+  byModelCounts: Record<string, ScoringCounts>;
+  /** Over captured answers, like competitorScores: no planned denominator. */
+  competitorCounts: Array<{
+    domain: string;
+    mentioned: number;
+    cited: number;
+    captured: number;
+  }>;
 };
 
 export { normalizeDomain } from '../report/core/normalize-domain';
@@ -83,20 +101,23 @@ export const computeAISearchSummary = (args: {
 
   // By model — planned runs per surface, same rule as the headline.
   const byModel: Record<string, { sov: number; citation: number }> = {};
+  const byModelCounts: Record<string, ScoringCounts> = {};
 
   for (const surface of surfaces) {
     const modelResults = results.filter((r) => r.model === surface);
     const total = prompts.length * runsPerPromptOn(surface, depth);
+    const modelMentioned = modelResults.filter((r) => r.clientMentioned).length;
+    const modelCited = modelResults.filter((r) => r.clientCited).length;
 
     byModel[surface] = {
-      sov:
-        total > 0
-          ? (modelResults.filter((r) => r.clientMentioned).length / total) * 100
-          : 0,
-      citation:
-        total > 0
-          ? (modelResults.filter((r) => r.clientCited).length / total) * 100
-          : 0,
+      sov: total > 0 ? (modelMentioned / total) * 100 : 0,
+      citation: total > 0 ? (modelCited / total) * 100 : 0,
+    };
+    byModelCounts[surface] = {
+      mentioned: modelMentioned,
+      cited: modelCited,
+      captured: modelResults.length,
+      planned: total,
     };
   }
 
@@ -147,16 +168,38 @@ export const computeAISearchSummary = (args: {
       domain,
       sov: total > 0 ? (mentioned2 / total) * 100 : 0,
       citation: total > 0 ? (cited2 / total) * 100 : 0,
+      mentioned: mentioned2,
+      cited: cited2,
+      captured: total,
     };
   });
 
-  const summary = {
+  const summary: ScoringSummary = {
     totalPrompts,
     probeShareOfVoice,
     probeCitationRate,
     byModel,
     byCategory,
-    competitorScores,
+    competitorScores: competitorScores.map(({ domain, sov, citation }) => ({
+      domain,
+      sov,
+      citation,
+    })),
+    counts: {
+      mentioned,
+      cited,
+      captured: results.length,
+      planned: totalPrompts,
+    },
+    byModelCounts,
+    competitorCounts: competitorScores.map(
+      ({ domain, mentioned: competitorMentioned, cited: competitorCited }) => ({
+        domain,
+        mentioned: competitorMentioned,
+        cited: competitorCited,
+        captured: results.length,
+      }),
+    ),
   };
 
   return summary;

@@ -38,6 +38,10 @@ export const exampleAuditFile = {
     },
   ],
   surfaces: ['chatgpt', 'gemini', 'claude', 'perplexity'],
+  // The market the search surfaces are placed in: the defaults, shown so
+  // they are there to edit.
+  geography: 'us',
+  language: 'en',
   moneyPages: ['https://northwind.example/pricing'],
   productBrief:
     'Northwind Data is a managed Postgres service for small teams: automatic backups, branching and usage-based pricing.',
@@ -56,8 +60,9 @@ export const exampleEnvFile = `# Settings literally-aeo reads. Keep this file ou
 # Every chat surface, every workflow stage and the host's model calls.
 AI_GATEWAY_API_KEY=
 
-# Google AI Overviews (the google_ai_overview surface) and the search that
-# full grounding researches product claims with.
+# Google AI Overviews (the google_ai_overview surface), the consumer apps
+# (chatgpt_app, google_ai_mode) and the search that full grounding
+# researches product claims with.
 DATAFORSEO_LOGIN=
 DATAFORSEO_PASSWORD=
 

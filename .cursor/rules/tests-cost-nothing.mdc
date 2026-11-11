@@ -19,7 +19,8 @@ that costs money to run stops being run.
   data.
 - A test that calls a real model, provider or CLI is named `*.live.spec.ts`.
   Vitest excludes those from `pnpm test`, and CI never runs them. Running one
-  is a deliberate, paid act by a maintainer.
+  is a deliberate, paid act by a maintainer, through `vitest.live.config.ts`
+  with the settings the suite names; each suite says what it spends.
 - No test reads the developer's environment for credentials, or reaches a
   real host. Use `vi.stubEnv` with fake values.
 

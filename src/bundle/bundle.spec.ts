@@ -1,11 +1,30 @@
-import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
+import { budgetPolicySchema, resolveRunBudget } from '../engine/budget';
+import { resolveRunBindings } from '../engine/run-bindings';
+import {
+  currentMethod,
+  methodFile,
+  resolveRunMethod,
+  stagePromptsFile,
+} from '../engine/run-method';
 import { canonicalJson, strictCanonicalJson } from '../lib/canonical-json';
+import { defaultProbeBindings } from '../probes/bindings';
+import { aeoVisibilitySchema } from '../report/core/schema';
 import {
   bundleManifestSchema,
   bundlePaths,
+  calculationVersion,
   digestManifest,
   objectPathPrefix,
   type BundleManifest,
@@ -544,7 +563,7 @@ describe('verify - verifyBundle()', () => {
     expect(verification.checks[0]?.code).toBe('bundle_version_unsupported');
   });
 
-  it('should verify a version 1 bundle as it verifies the version 2 bundles it writes', async () => {
+  it('should verify a version 1 bundle as it verifies the version 3 bundles it writes', async () => {
     const { files } = await exportSynthetic();
     const manifest = bundleManifestSchema.parse(
       parseBundleJson(
@@ -563,9 +582,9 @@ describe('verify - verifyBundle()', () => {
       return verification.checks.map(({ id, outcome }) => [id, outcome]);
     };
 
-    expect(manifest.bundleSchemaVersion).toBe(2);
+    expect(manifest.bundleSchemaVersion).toBe(3);
     expect(outcomes(verifyBundle(versionOne, 'version 1'))).toEqual(
-      outcomes(verifyBundle(files, 'version 2')),
+      outcomes(verifyBundle(files, 'version 3')),
     );
   });
 
@@ -606,5 +625,428 @@ describe('verify - verifyBundle()', () => {
     const result = readBundleSource(run.dir);
 
     await expect(result).rejects.toThrow(/export it first/);
+  });
+});
+
+// ============================================================================
+// Calculation versions (method release spec §6.3): an export names the
+// version its numbers were made with, the verifier recomputes each readable
+// version with its own arithmetic, and version 2 puts counts and an interval
+// beside every published rate.
+// ============================================================================
+
+// The synthetic snapshot carries the sections the verifier compares, not a
+// full report.
+const sectionsSchema = z.looseObject({
+  sections: z.array(
+    z.looseObject({ key: z.string(), visibility: aeoVisibilitySchema }),
+  ),
+});
+
+const snapshotSummaries = (files: ReadonlyMap<string, Buffer>) => {
+  return sectionsSchema
+    .parse(
+      parseBundleJson(
+        (files.get(bundlePaths.snapshot) ?? Buffer.alloc(0)).toString('utf8'),
+      ),
+    )
+    .sections.map((section) => section.visibility.summary);
+};
+
+const manifestOf = (files: ReadonlyMap<string, Buffer>) => {
+  return bundleManifestSchema.parse(
+    parseBundleJson(
+      (files.get(bundlePaths.manifest) ?? Buffer.alloc(0)).toString('utf8'),
+    ),
+  );
+};
+
+describe('export - calculation versions', () => {
+  it('should export and verify version 2, with counts and an interval beside each rate', async () => {
+    const { files } = await exportSynthetic();
+    const verification = verifyBundle(files, 'synthetic');
+
+    expect(manifestOf(files).calculationVersion).toBe(calculationVersion);
+    expect(outcomeOf(verification, 'metrics.recomputed')?.outcome).toBe('pass');
+
+    for (const summary of snapshotSummaries(files)) {
+      const evidence = summary.prospectShareOfVoiceEvidence;
+
+      // The rate is the count over the planned answers, inside its interval.
+      expect(evidence).toBeDefined();
+      expect(summary.prospectShareOfVoice).toBe(
+        (evidence?.count ?? NaN) / (evidence?.planned ?? NaN),
+      );
+      expect(evidence?.low).toBeLessThanOrEqual(
+        summary.prospectShareOfVoice ?? NaN,
+      );
+      expect(evidence?.high).toBeGreaterThanOrEqual(
+        summary.prospectShareOfVoice ?? NaN,
+      );
+
+      for (const model of Object.values(summary.byModel)) {
+        expect(model.shareOfVoiceEvidence).toBeDefined();
+        expect(model.citationRateEvidence).toBeDefined();
+      }
+
+      for (const competitor of summary.byCompetitor) {
+        expect(competitor.capturedAnswers).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('should export a directory aggregated with version 1 as version 1, which verifies with its own arithmetic', async () => {
+    const run = await createSyntheticRun(path.join(root, 'run'), {
+      calculationVersion: 1,
+    });
+    const files = readArchive(
+      await readFile((await exportRun(run.dir)).archive),
+    );
+
+    expect(manifestOf(files).calculationVersion).toBe(1);
+    expect(
+      outcomeOf(verifyBundle(files, 'version 1'), 'metrics.recomputed')
+        ?.outcome,
+    ).toBe('pass');
+    // Version 1 publishes no evidence: its bytes are what it always wrote.
+    expect(
+      snapshotSummaries(files).every(
+        (summary) => summary.prospectShareOfVoiceEvidence === undefined,
+      ),
+    ).toBe(true);
+  });
+
+  // Loose at every level, so re-encoding keeps every key it does not edit.
+  const intervalPathSchema = z.looseObject({
+    sections: z.array(
+      z.looseObject({
+        visibility: z.looseObject({
+          summary: z.looseObject({
+            prospectShareOfVoiceEvidence: z.looseObject({
+              high: z.number(),
+            }),
+          }),
+        }),
+      }),
+    ),
+  });
+
+  /** The first section's headline interval, its upper bound replaced, in a
+   * re-signed bundle; `replace` keeps the stored value. */
+  const withUpperBound = (
+    files: ReadonlyMap<string, Buffer>,
+    replace: (high: number) => number,
+  ) => {
+    return forge(
+      files,
+      new Map([
+        [
+          bundlePaths.snapshot,
+          editJson(files, bundlePaths.snapshot, (value) => {
+            const snapshot = intervalPathSchema.parse(value);
+            const [first, ...rest] = snapshot.sections;
+
+            if (!first) {
+              return value;
+            }
+
+            const { summary } = first.visibility;
+            const evidence = summary.prospectShareOfVoiceEvidence;
+
+            return {
+              ...snapshot,
+              sections: [
+                {
+                  ...first,
+                  visibility: {
+                    ...first.visibility,
+                    summary: {
+                      ...summary,
+                      prospectShareOfVoiceEvidence: {
+                        ...evidence,
+                        high: replace(evidence.high),
+                      },
+                    },
+                  },
+                },
+                ...rest,
+              ],
+            };
+          }),
+        ],
+      ]),
+    );
+  };
+
+  it('should fail a forged interval in a re-signed bundle', async () => {
+    const { files } = await exportSynthetic();
+    const untouched = verifyBundle(
+      withUpperBound(files, (high) => high),
+      'untouched interval',
+    );
+    const forged = verifyBundle(
+      withUpperBound(files, () => 1),
+      'forged interval',
+    );
+
+    // The same edit keeping the stored bound passes: only the forged number
+    // fails.
+    expect(outcomeOf(untouched, 'metrics.recomputed')?.outcome).toBe('pass');
+    expect(outcomeOf(forged, 'bundle.integrity')?.outcome).toBe('pass');
+    expect(outcomeOf(forged, 'metrics.recomputed')?.code).toBe(
+      'snapshot_metrics_mismatch',
+    );
+  });
+
+  it('should only add evidence in version 2: every number version 1 publishes is unchanged', async () => {
+    const versionOne = await createSyntheticRun(path.join(root, 'one'), {
+      calculationVersion: 1,
+    });
+    const versionTwo = await createSyntheticRun(path.join(root, 'two'));
+    const aggregateOf = async (dir: string): Promise<unknown> => {
+      return JSON.parse(
+        await readFile(path.join(dir, 'OUT', 'aggregate.json'), 'utf8'),
+      );
+    };
+    const evidenceKeys = new Set([
+      'mentionedAnswers',
+      'citedAnswers',
+      'capturedAnswers',
+    ]);
+    const withoutEvidence = (value: unknown): unknown => {
+      if (Array.isArray(value)) {
+        return value.map(withoutEvidence);
+      }
+
+      if (typeof value !== 'object' || value === null) {
+        return value;
+      }
+
+      return Object.fromEntries(
+        Object.entries(value)
+          .filter(
+            ([key]) => !key.endsWith('Evidence') && !evidenceKeys.has(key),
+          )
+          .map(([key, nested]) => [key, withoutEvidence(nested)]),
+      );
+    };
+
+    const one = z
+      .looseObject({ version: z.literal(1), sections: z.unknown() })
+      .parse(await aggregateOf(versionOne.dir));
+    const two = z
+      .looseObject({
+        version: z.literal(2),
+        calculationVersion: z.literal(2),
+        sections: z.unknown(),
+      })
+      .parse(await aggregateOf(versionTwo.dir));
+
+    // Version 1's file names no calculation version, as before.
+    expect(Object.keys(one)).not.toContain('calculationVersion');
+    expect(one.sections).toEqual(withoutEvidence(two.sections));
+  });
+
+  it('should export a damaged aggregate under its recorded version, leaving the damage to the verifier', async () => {
+    const run = await createSyntheticRun(path.join(root, 'run'));
+    const file = path.join(run.dir, 'OUT', 'aggregate.json');
+    const stored = z
+      .looseObject({ version: z.literal(2) })
+      .parse(JSON.parse(await readFile(file, 'utf8')));
+
+    await writeFile(file, JSON.stringify({ ...stored, sections: {} }));
+
+    const files = readArchive(
+      await readFile((await exportRun(run.dir)).archive),
+    );
+
+    expect(manifestOf(files).calculationVersion).toBe(calculationVersion);
+    expect(
+      outcomeOf(verifyBundle(files, 'damaged'), 'metrics.recomputed')?.code,
+    ).toBe('section_metrics_mismatch');
+  });
+
+  it('should refuse to export an aggregate naming a calculation version it cannot read', async () => {
+    const run = await createSyntheticRun(path.join(root, 'run'));
+    const file = path.join(run.dir, 'OUT', 'aggregate.json');
+    const stored = z
+      .looseObject({ version: z.literal(2) })
+      .parse(JSON.parse(await readFile(file, 'utf8')));
+
+    await writeFile(
+      file,
+      JSON.stringify({ ...stored, calculationVersion: 99 }),
+    );
+
+    await expect(exportRun(run.dir)).rejects.toThrow(
+      'names no calculation version this release reads',
+    );
+  });
+
+  it('should report a bundle of an unknown calculation version as unsupported, never recomputing it', async () => {
+    const { files } = await exportSynthetic();
+    const forged = forge(
+      files,
+      new Map([
+        [
+          bundlePaths.manifest,
+          editJson(files, bundlePaths.manifest, (value) => ({
+            ...bundleManifestSchema.parse(value),
+            calculationVersion: 99,
+          })),
+        ],
+      ]),
+    );
+
+    const check = outcomeOf(
+      verifyBundle(forged, 'unknown version'),
+      'metrics.recomputed',
+    );
+
+    expect(check?.outcome).toBe('unsupported');
+    expect(check?.code).toBe('calculation_version_unsupported');
+  });
+});
+
+describe('export - probe bindings', () => {
+  const methodOf = (files: ReadonlyMap<string, Buffer>) => {
+    return z
+      .looseObject({ probeBindings: z.unknown() })
+      .parse(
+        parseBundleJson(
+          (files.get(bundlePaths.method) ?? Buffer.alloc(0)).toString('utf8'),
+        ),
+      );
+  };
+
+  it("should name each planned surface's frozen binding in the method, under the method digest", async () => {
+    const run = await createSyntheticRun(path.join(root, 'run'));
+    const bank = path.join(run.dir, 'BANK');
+
+    await mkdir(bank);
+    await resolveRunBindings(bank, { startedBefore: false });
+    const files = readArchive(
+      await readFile((await exportRun(run.dir)).archive),
+    );
+
+    // The synthetic run plans ChatGPT and Perplexity: no other surface's
+    // binding enters its method.
+    expect(methodOf(files).probeBindings).toEqual({
+      chatgpt: defaultProbeBindings.chatgpt,
+      perplexity: defaultProbeBindings.perplexity,
+    });
+    expect(
+      outcomeOf(verifyBundle(files, 'bindings'), 'plan.accounted')?.outcome,
+    ).toBe('pass');
+  });
+
+  it('should record no bindings for a directory that froze none', async () => {
+    const { files } = await exportSynthetic();
+
+    expect(methodOf(files).probeBindings).toBeNull();
+  });
+
+  it('should refuse a damaged bindings file, naming it, rather than guess', async () => {
+    const run = await createSyntheticRun(path.join(root, 'run'));
+    const bank = path.join(run.dir, 'BANK');
+
+    await mkdir(bank);
+    await writeFile(path.join(bank, 'bindings.json'), '{"version":1}\n');
+
+    await expect(exportRun(run.dir)).rejects.toThrow(
+      /BANK\/bindings\.json is not a frozen bindings file/,
+    );
+  });
+});
+
+describe('export - the method a run was made with', () => {
+  const methodDocument = (files: ReadonlyMap<string, Buffer>) => {
+    return z
+      .looseObject({
+        stagePrompts: z.record(z.string(), z.string()),
+        stageVersions: z.record(z.string(), z.number()),
+        stageMethodFrom: z.string(),
+        runMethod: z.unknown(),
+      })
+      .parse(
+        parseBundleJson(
+          (files.get(bundlePaths.method) ?? Buffer.alloc(0)).toString('utf8'),
+        ),
+      );
+  };
+  const exportedFrom = async (dir: string) => {
+    return readArchive(await readFile((await exportRun(dir)).archive));
+  };
+
+  it("should state the stage prompts and versions the run directory saved, never the exporting engine's", async () => {
+    const run = await createSyntheticRun(path.join(root, 'run'));
+    const bank = path.join(run.dir, 'BANK');
+
+    await mkdir(bank);
+    await resolveRunMethod(run.dir, bank, { startedBefore: false });
+    // As another release would have left them.
+    await writeFile(
+      path.join(bank, methodFile),
+      JSON.stringify({
+        ...currentMethod(),
+        stageVersions: { analyze: 1 },
+        toolVersion: '0.4.0',
+      }),
+    );
+    await writeFile(
+      path.join(bank, stagePromptsFile),
+      JSON.stringify({ version: 1, stagePrompts: { analyze: 'As it was.' } }),
+    );
+
+    const method = methodDocument(await exportedFrom(run.dir));
+
+    expect(method).toMatchObject({
+      stagePrompts: { analyze: 'As it was.' },
+      stageVersions: { analyze: 1 },
+      stageMethodFrom: 'run_directory',
+      runMethod: { toolVersion: '0.4.0', stageVersions: { analyze: 1 } },
+    });
+  });
+
+  it("should say when the stage method is the exporting engine's, for a work directory that saves none", async () => {
+    const { files } = await exportSynthetic();
+
+    expect(methodDocument(files)).toMatchObject({
+      stageMethodFrom: 'exporting_engine',
+      runMethod: null,
+    });
+  });
+
+  it('should refuse to export a local run from before methods were saved, naming the release that can', async () => {
+    const run = await createSyntheticRun(path.join(root, 'run'));
+
+    // As 0.3.0 left a run directory: a frozen budget, no saved method.
+    await resolveRunBudget(run.dir, budgetPolicySchema.parse({}), {
+      model: 'anthropic/claude-opus-5.5',
+      maxUsd: 5,
+    });
+
+    const refused = exportRun(run.dir);
+
+    await expect(refused).rejects.toBeInstanceOf(ExportBlockedError);
+    await expect(refused).rejects.toThrow(
+      new RegExp(`npx literally-aeo@0\\.3\\.0 export ${run.dir}`),
+    );
+  });
+
+  it('should reuse the revision the release that ran such a directory finalized, without projecting it again', async () => {
+    const run = await createSyntheticRun(path.join(root, 'run'));
+    // The revision as that release finalized it.
+    const earlier = await finalizeRevision(run.dir);
+
+    await resolveRunBudget(run.dir, budgetPolicySchema.parse({}), {
+      model: 'anthropic/claude-opus-5.5',
+      maxUsd: 5,
+    });
+
+    const again = await finalizeRevision(run.dir);
+
+    expect(again.reused).toBe(true);
+    expect(again.manifest.bundleDigest).toBe(earlier.manifest.bundleDigest);
   });
 });

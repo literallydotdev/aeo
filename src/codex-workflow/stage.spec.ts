@@ -1398,6 +1398,24 @@ describe('Stage - runStage()', () => {
   });
 });
 
+/** A writer that hands out the given drafts in turn, failing its first
+ * `failures` requests, and counts how often it was asked. */
+const fakeWriter = (drafts: readonly unknown[], failures = 0) => {
+  let asked = 0;
+  const draftCopy: NonNullable<StageContext['draftCopy']> = () => {
+    asked += 1;
+
+    return asked <= failures
+      ? Promise.reject(new Error('stream disconnected before completion'))
+      : Promise.resolve({
+          draft: drafts[Math.min(asked - failures, drafts.length) - 1],
+          usage: { inputTokens: 120, cachedInputTokens: 0, outputTokens: 30 },
+        });
+  };
+
+  return { draftCopy, asked: () => asked };
+};
+
 describe('Stage - runStage() for the write stage', () => {
   const draft = {
     hero: {
@@ -1432,13 +1450,13 @@ describe('Stage - runStage() for the write stage', () => {
     confidence: 0.8,
   };
 
-  it('should run one session, ask the host for its verdict, and keep the validated copy with the draft', async () => {
+  it('should ask the writer once, ask the host for its verdict, and keep the validated copy with the draft', async () => {
     const ctx = await workdir();
     const asked: unknown[] = [];
     const run = await runStage(
       {
         ...ctx,
-        command: await fakeCodex(ctx.dir, [draft]),
+        draftCopy: fakeWriter([draft]).draftCopy,
         validateCopy: (candidate) => {
           asked.push(candidate);
 
@@ -1477,15 +1495,12 @@ describe('Stage - runStage() for the write stage', () => {
 
   it('should let the verifier repair a missing section without calling the implementer again', async () => {
     const ctx = await workdir();
+    const writer = fakeWriter([{ ...draft, sections: {} }]);
     let asked = 0;
     const run = await runStage(
       {
         ...ctx,
-        command: await fakeCodex(ctx.dir, [
-          { ...draft, sections: {} },
-          { ...draft, sections: {} },
-          { ...draft, sections: {} },
-        ]),
+        draftCopy: writer.draftCopy,
         validateCopy: (candidate) => {
           asked += 1;
 
@@ -1513,9 +1528,7 @@ describe('Stage - runStage() for the write stage', () => {
 
     expect(run.ok).toBe(true);
     expect(asked).toBe(2);
-    expect(await readFile(path.join(ctx.dir, 'fake-attempts'), 'utf8')).toBe(
-      '1\n',
-    );
+    expect(writer.asked()).toBe(1);
   });
 
   it('should hand an existing copy directly to the verifier for requested edits', async () => {
@@ -1558,11 +1571,12 @@ describe('Stage - runStage() for the write stage', () => {
 
   it('should revise defective copy and recheck the same draft when its verifier is unavailable', async () => {
     const ctx = await workdir();
+    const writer = fakeWriter([draft]);
     let calls = 0;
     const fixable = await runStage(
       {
         ...ctx,
-        command: await fakeCodex(ctx.dir, [draft, draft]),
+        draftCopy: writer.draftCopy,
         validateCopy: () => {
           calls += 1;
 
@@ -1588,19 +1602,17 @@ describe('Stage - runStage() for the write stage', () => {
 
     expect(fixable.ok).toBe(true);
     expect(fixable.summary).toMatchObject({ attempts: 2, refusals: 1 });
-    expect(await readFile(path.join(ctx.dir, 'fake-attempts'), 'utf8')).toBe(
-      '1\n',
-    );
+    expect(writer.asked()).toBe(1);
 
     const other = await workdir();
     let unavailableChecks = 0;
-    const command = await fakeCodex(other.dir, [draft, draft, draft]);
+    const otherWriter = fakeWriter([draft]);
 
     await expect(
       runStage(
         {
           ...other,
-          command,
+          draftCopy: otherWriter.draftCopy,
           validateCopy: () => {
             unavailableChecks += 1;
 
@@ -1623,14 +1635,12 @@ describe('Stage - runStage() for the write stage', () => {
       rounds: 0,
       draft,
     });
-    expect(await readFile(path.join(other.dir, 'fake-attempts'), 'utf8')).toBe(
-      '1\n',
-    );
+    expect(otherWriter.asked()).toBe(1);
 
     const recovered = await runStage(
       {
         ...other,
-        command,
+        draftCopy: otherWriter.draftCopy,
         validateCopy: () =>
           Promise.resolve({
             ok: true,
@@ -1644,9 +1654,7 @@ describe('Stage - runStage() for the write stage', () => {
 
     expect(recovered.ok).toBe(true);
     expect(recovered.summary).toMatchObject({ attempts: 1, refusals: 0 });
-    expect(await readFile(path.join(other.dir, 'fake-attempts'), 'utf8')).toBe(
-      '1\n',
-    );
+    expect(otherWriter.asked()).toBe(1);
   });
 
   it('should NOT burn editorial rounds retrying an exhausted budget', async () => {
@@ -1657,7 +1665,7 @@ describe('Stage - runStage() for the write stage', () => {
       runStage(
         {
           ...ctx,
-          command: await fakeCodex(ctx.dir, [draft]),
+          draftCopy: fakeWriter([draft]).draftCopy,
           validateCopy: () => {
             checks += 1;
 
@@ -1685,13 +1693,13 @@ describe('Stage - runStage() for the write stage', () => {
 
   it('should resume a legacy draft after five blocked checks without recalling the writer', async () => {
     const ctx = await workdir();
-    const command = await fakeCodex(ctx.dir, [draft]);
+    const writer = fakeWriter([draft]);
 
     await expect(
       runStage(
         {
           ...ctx,
-          command,
+          draftCopy: writer.draftCopy,
           validateCopy: () => Promise.reject(new Error('worker lost')),
         },
         'write',
@@ -1721,7 +1729,7 @@ describe('Stage - runStage() for the write stage', () => {
     const resumed = await runStage(
       {
         ...ctx,
-        command,
+        draftCopy: writer.draftCopy,
         validateCopy: (candidate, options) => {
           expect(candidate).toEqual(draft);
           expect(options?.round).toBe(1);
@@ -1740,20 +1748,16 @@ describe('Stage - runStage() for the write stage', () => {
 
     expect(resumed.ok).toBe(true);
     expect(resumed.summary).toMatchObject({ attempts: 1, refusals: 0 });
-    expect(await readFile(path.join(ctx.dir, 'fake-attempts'), 'utf8')).toBe(
-      '1\n',
-    );
+    expect(writer.asked()).toBe(1);
   });
 
-  it('should retry incomplete copy sessions without consuming draft review rounds', async () => {
+  it('should ask the writer again after a failed request, without consuming draft review rounds', async () => {
     const ctx = await workdir();
-    const command = await fakeCodex(ctx.dir, [draft], {
-      missingOutputAttempts: 2,
-    });
+    const writer = fakeWriter([draft], 2);
     const result = await runStage(
       {
         ...ctx,
-        command,
+        draftCopy: writer.draftCopy,
         validateCopy: () =>
           Promise.resolve({
             ok: true,
@@ -1767,39 +1771,79 @@ describe('Stage - runStage() for the write stage', () => {
 
     expect(result.ok).toBe(true);
     expect(result.summary).toMatchObject({ attempts: 1, refusals: 0 });
-    expect(await readFile(path.join(ctx.dir, 'fake-attempts'), 'utf8')).toBe(
-      '3\n',
-    );
+    expect(writer.asked()).toBe(3);
 
     const unavailable = await workdir();
+    const failing = fakeWriter([draft], 9);
 
     await expect(
       runStage(
         {
           ...unavailable,
-          command: await fakeCodex(unavailable.dir, [draft], {
-            missingOutputAttempts: 9,
-          }),
+          draftCopy: failing.draftCopy,
           validateCopy: () =>
             Promise.resolve({ ok: true, fixable: false, errors: [] }),
         },
         'write',
       ),
-    ).rejects.toThrow('without an output file');
-    expect(
-      await readFile(path.join(unavailable.dir, 'fake-attempts'), 'utf8'),
-    ).toBe('3\n');
+    ).rejects.toThrow('stream disconnected before completion');
+    expect(failing.asked()).toBe(3);
+  });
+
+  it('should NOT ask the writer again when the request cannot carry its documents, the budget is spent, or the run has no writer', async () => {
+    const verdict = () =>
+      Promise.resolve({ ok: true, fixable: false, errors: [] });
+    const refusing = (error: Error) => {
+      let asked = 0;
+
+      return {
+        asked: () => asked,
+        draftCopy: () => {
+          asked += 1;
+
+          return Promise.reject(error);
+        },
+      };
+    };
+    const tooLarge = refusing(new Error('model_input_limit'));
+    const spent = refusing(new ModelBudgetError('Model budget exhausted'));
+
+    await expect(
+      runStage(
+        {
+          ...(await workdir()),
+          draftCopy: tooLarge.draftCopy,
+          validateCopy: verdict,
+        },
+        'write',
+      ),
+    ).rejects.toThrow('model_input_limit');
+    await expect(
+      runStage(
+        {
+          ...(await workdir()),
+          draftCopy: spent.draftCopy,
+          validateCopy: verdict,
+        },
+        'write',
+      ),
+    ).rejects.toBeInstanceOf(ModelBudgetError);
+    await expect(
+      runStage({ ...(await workdir()), validateCopy: verdict }, 'write'),
+    ).rejects.toThrow('Copy draft has no writer: write-0.');
+    expect(tooLarge.asked()).toBe(1);
+    expect(spent.asked()).toBe(1);
   });
 
   it('should resume the saved draft under verifier ownership after worker replacement', async () => {
     const ctx = await workdir();
-    const command = await fakeCodex(ctx.dir, [draft, draft]);
+    const writer = fakeWriter([draft]);
 
     await expect(
       runStage(
         {
           ...ctx,
-          command,
+          draftCopy: writer.draftCopy,
           validateCopy: () => Promise.reject(new Error('worker lost')),
         },
         'write',
@@ -1808,19 +1852,19 @@ describe('Stage - runStage() for the write stage', () => {
 
     const replacement = await workdir();
 
-    for (const directory of ['PENDING', 'JOURNAL', '.codex-home']) {
-      await cp(
-        path.join(ctx.dir, directory),
-        path.join(replacement.dir, directory),
-        { recursive: true },
-      );
-    }
+    // The saved draft is all a replacement worker needs: the writer kept
+    // no session.
+    await cp(
+      path.join(ctx.dir, 'PENDING'),
+      path.join(replacement.dir, 'PENDING'),
+      { recursive: true },
+    );
 
     let checks = 0;
     const resumed = await runStage(
       {
         ...replacement,
-        command,
+        draftCopy: writer.draftCopy,
         validateCopy: () => {
           checks += 1;
 
@@ -1846,20 +1890,19 @@ describe('Stage - runStage() for the write stage', () => {
 
     expect(resumed.ok).toBe(true);
     expect(checks).toBe(2);
-    // The verifier makes the correction and checks it again. The original
-    // implementer is never restarted, even in a replacement worker.
-    expect(await readFile(path.join(ctx.dir, 'fake-attempts'), 'utf8')).toBe(
-      '1\n',
-    );
+    // The verifier makes the correction and checks it again. The writer is
+    // never asked again, even in a replacement worker.
+    expect(writer.asked()).toBe(1);
   });
 
   it('should bound verifier-owned edits at five rounds while retaining the last edit for delivery', async () => {
     const ctx = await workdir();
+    const writer = fakeWriter([draft]);
     let rounds = 0;
     const result = await runStage(
       {
         ...ctx,
-        command: await fakeCodex(ctx.dir, [draft]),
+        draftCopy: writer.draftCopy,
         validateCopy: (candidate) => {
           expect((candidate as typeof draft).confidence).toBe(
             rounds ? rounds / 10 : draft.confidence,
@@ -1880,9 +1923,7 @@ describe('Stage - runStage() for the write stage', () => {
     expect(result.ok).toBe(false);
     expect(result.summary).toMatchObject({ attempts: 5, refusals: 5 });
     expect(rounds).toBe(5);
-    expect(await readFile(path.join(ctx.dir, 'fake-attempts'), 'utf8')).toBe(
-      '1\n',
-    );
+    expect(writer.asked()).toBe(1);
     expect(
       JSON.parse(
         await readFile(path.join(ctx.dir, 'PENDING/write-0.json'), 'utf8'),

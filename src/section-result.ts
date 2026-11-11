@@ -1,6 +1,6 @@
 import type {
   AeoAgentSurface,
-  AeoChatSurface,
+  AeoApiSurface,
   AeoEvidenceChunk,
   AeoMatrixRow,
   AeoVisibility,
@@ -10,13 +10,21 @@ import {
   agentSurfaces,
   allSurfaces,
   chatSurfaces,
+  consumerSurfaces,
   evidenceChunkFileName,
   isAgentSurface,
+  isChatSurface,
+  isConsumerSurface,
+  isCustomSurface,
 } from './schema';
 import {
   computeAISearchSummary,
   type AnalyzedProbeForScoring,
+  type ScoringCounts,
 } from './analysis/scoring';
+import { rateEvidence, type RateEvidence } from './analysis/rate-evidence';
+import { compareCodeUnits } from './lib/compare';
+import type { CalculationVersion } from './bundle/contracts';
 import {
   attributeCitations,
   summarizeRetrievalCalls,
@@ -38,8 +46,25 @@ import type {
 // (specs/aeo-open-source-cli-spec.md §10) without loading a capture path.
 // ============================================================================
 
+/** The evidence beside a share of voice and a citation rate (calculation
+ * version 2); a rate with nothing planned gets none. */
+const evidenceOf = (
+  counts: ScoringCounts,
+): { shareOfVoice: RateEvidence | null; citationRate: RateEvidence | null } => {
+  return {
+    shareOfVoice: rateEvidence(
+      counts.mentioned,
+      counts.captured,
+      counts.planned,
+    ),
+    citationRate: rateEvidence(counts.cited, counts.captured, counts.planned),
+  };
+};
+
 /** Pure assembly of a section from its capture and extractions: scoring,
- * evidence split, matrix and visibility. The same inputs give the same result. */
+ * evidence split, matrix and visibility. The same inputs and calculation
+ * version give the same result; version 1 is the arithmetic before rates
+ * carried their evidence, byte for byte. */
 export const assembleSectionResult = (
   args: Pick<
     SectionRunArgs,
@@ -50,17 +75,23 @@ export const assembleSectionResult = (
     | 'surfaces'
     | 'agentProbes'
     | 'chatProbes'
-  >,
+  > & { calculationVersion: CalculationVersion },
   capture: SectionCaptureSummary,
   analyses: readonly PromptAnalysisResult[],
 ): SectionRunResult => {
-  const selectedChatSurfaces = args.surfaces.filter(
-    (s): s is AeoChatSurface => !isAgentSurface(s),
-  );
+  const withEvidence = args.calculationVersion >= 2;
+  const selectedChatSurfaces = args.surfaces.filter(isChatSurface);
 
   const selectedAgentSurfaces = args.surfaces.filter(
     (s): s is AeoAgentSurface => isAgentSurface(s),
   );
+  const selectedConsumerSurfaces = consumerSurfaces.filter((s) =>
+    args.surfaces.includes(s),
+  );
+  // In ID order: a custom surface has no canonical position of its own.
+  const selectedCustomSurfaces = args.surfaces
+    .filter(isCustomSurface)
+    .sort(compareCodeUnits);
 
   const depth = { agentProbes: args.agentProbes, chatProbes: args.chatProbes };
   const agentPrompts = agentProbedPrompts(args.prompts, args.agentProbes);
@@ -110,19 +141,37 @@ export const assembleSectionResult = (
   // comparable across baselines; the agent surfaces get their own pair. A
   // scope that didn't run — or has no prompt left to score — yields null:
   // an unmeasured scope must never look like a measured 0%.
-  const chatSummary =
-    selectedChatSurfaces.length > 0 && promptsForScoring.length > 0
+  // Every family asked every prompt (all but the coding agents) is scored
+  // the same way, over its own surfaces and their planned answers.
+  const summaryOver = (
+    surfaces: readonly AeoApiSurface[],
+    inFamily: (surface: string) => boolean,
+  ) => {
+    return surfaces.length > 0 && promptsForScoring.length > 0
       ? computeAISearchSummary({
           clientDomain: args.brand.domain,
           competitorDomains,
           prompts: promptsForScoring,
           results: allResults
-            .filter((r) => !isAgentSurface(r.surface))
+            .filter((r) => inFamily(r.surface))
             .map(toScoringInput),
-          surfaces: selectedChatSurfaces,
+          surfaces,
           depth,
         })
       : null;
+  };
+  const chatSummary = summaryOver(selectedChatSurfaces, isChatSurface);
+  // The consumer apps (method release spec §5.5) get a pair of their own:
+  // a scraped product is never folded into the chat headline, which stays
+  // the API chat surfaces and AI Overview.
+  const consumerSummary = summaryOver(
+    selectedConsumerSurfaces,
+    isConsumerSurface,
+  );
+  // Custom surfaces (open models spec §5.3) are in neither headline pair:
+  // a set of models the audit chose has no single meaning. They are scored
+  // only for their own lines in byModel.
+  const customSummary = summaryOver(selectedCustomSurfaces, isCustomSurface);
 
   const agentResults = allResults.filter((r) => isAgentSurface(r.surface));
   const agentSummary =
@@ -141,32 +190,65 @@ export const assembleSectionResult = (
 
   // Translate from scorecard percentages (0-100) to the visibility shape
   // (0-1 rates). byModel spans every surface that ran.
-  const byModel: Record<
-    string,
-    { shareOfVoice: number; citationRate: number }
-  > = {};
+  const byModel: AeoVisibility['summary']['byModel'] = {};
 
-  for (const summary of [chatSummary, agentSummary]) {
+  for (const summary of [
+    chatSummary,
+    agentSummary,
+    consumerSummary,
+    customSummary,
+  ]) {
     if (!summary) {
       continue;
     }
 
     for (const [name, vals] of Object.entries(summary.byModel)) {
+      const counts = summary.byModelCounts[name];
+      const evidence = withEvidence && counts ? evidenceOf(counts) : null;
+
       byModel[name] = {
         shareOfVoice: vals.sov / 100,
         citationRate: vals.citation / 100,
+        ...(evidence?.shareOfVoice && {
+          shareOfVoiceEvidence: evidence.shareOfVoice,
+        }),
+        ...(evidence?.citationRate && {
+          citationRateEvidence: evidence.citationRate,
+        }),
       };
     }
   }
 
   // Competitor scores come from whichever scope was measured — chat when it
-  // ran (the v1-comparable set), otherwise the agent runs.
-  const competitorSummary = chatSummary ?? agentSummary;
-  const byCompetitor = (competitorSummary?.competitorScores ?? []).map((c) => ({
-    domain: c.domain,
-    shareOfVoice: c.sov / 100,
-    citationRate: c.citation / 100,
-  }));
+  // ran (the v1-comparable set), otherwise the agent runs, otherwise the
+  // consumer apps, otherwise the custom surfaces. They split the captured
+  // answers, so version 2 adds their counts, not an interval.
+  const competitorSummary =
+    chatSummary ?? agentSummary ?? consumerSummary ?? customSummary;
+  const byCompetitor = (competitorSummary?.competitorScores ?? []).map(
+    (c, index) => {
+      const counts = withEvidence
+        ? competitorSummary?.competitorCounts[index]
+        : undefined;
+
+      return {
+        domain: c.domain,
+        shareOfVoice: c.sov / 100,
+        citationRate: c.citation / 100,
+        ...(counts && {
+          mentionedAnswers: counts.mentioned,
+          citedAnswers: counts.cited,
+          capturedAnswers: counts.captured,
+        }),
+      };
+    },
+  );
+  const chatEvidence =
+    withEvidence && chatSummary ? evidenceOf(chatSummary.counts) : null;
+  const agentEvidence =
+    withEvidence && agentSummary ? evidenceOf(agentSummary.counts) : null;
+  const consumerEvidence =
+    withEvidence && consumerSummary ? evidenceOf(consumerSummary.counts) : null;
 
   const topCompetitorDomain =
     [...byCompetitor].sort((a, b) => b.shareOfVoice - a.shareOfVoice)[0]
@@ -254,6 +336,8 @@ export const assembleSectionResult = (
     surfaces: [
       ...chatSurfaces.filter((s) => selectedChatSurfaces.includes(s)),
       ...agentSurfaces.filter((s) => selectedAgentSurfaces.includes(s)),
+      ...selectedConsumerSurfaces,
+      ...selectedCustomSurfaces,
     ],
     matrix,
     summary: {
@@ -269,6 +353,34 @@ export const assembleSectionResult = (
       agentCitationRate: agentSummary
         ? agentSummary.probeCitationRate / 100
         : null,
+      // Only for a run that planned a consumer app: every other summary
+      // keeps the keys it always had.
+      ...(selectedConsumerSurfaces.length > 0 && {
+        consumerShareOfVoice: consumerSummary
+          ? consumerSummary.probeShareOfVoice / 100
+          : null,
+        consumerCitationRate: consumerSummary
+          ? consumerSummary.probeCitationRate / 100
+          : null,
+      }),
+      ...(chatEvidence?.shareOfVoice && {
+        prospectShareOfVoiceEvidence: chatEvidence.shareOfVoice,
+      }),
+      ...(chatEvidence?.citationRate && {
+        prospectCitationRateEvidence: chatEvidence.citationRate,
+      }),
+      ...(agentEvidence?.shareOfVoice && {
+        agentShareOfVoiceEvidence: agentEvidence.shareOfVoice,
+      }),
+      ...(agentEvidence?.citationRate && {
+        agentCitationRateEvidence: agentEvidence.citationRate,
+      }),
+      ...(consumerEvidence?.shareOfVoice && {
+        consumerShareOfVoiceEvidence: consumerEvidence.shareOfVoice,
+      }),
+      ...(consumerEvidence?.citationRate && {
+        consumerCitationRateEvidence: consumerEvidence.citationRate,
+      }),
       byModel,
       byCompetitor,
       topCompetitorDomain,
@@ -307,10 +419,16 @@ const surfaceOrder = new Map<string, number>(
   allSurfaces.map((surface, index) => [surface, index]),
 );
 
+// A custom surface comes after every built-in one, in ID order.
+const positionOf = (surface: string): number => {
+  return surfaceOrder.get(surface) ?? allSurfaces.length;
+};
+
 const compareRuns = (a: AnalyzedRun, b: AnalyzedRun): number => {
   return (
     a.promptIdx - b.promptIdx ||
-    (surfaceOrder.get(a.surface) ?? 0) - (surfaceOrder.get(b.surface) ?? 0) ||
+    positionOf(a.surface) - positionOf(b.surface) ||
+    compareCodeUnits(a.surface, b.surface) ||
     a.runIndex - b.runIndex
   );
 };

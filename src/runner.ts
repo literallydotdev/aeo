@@ -9,15 +9,22 @@ import type {
 } from './schema';
 import {
   aeoSnapshotVersion,
-  allSurfaces,
   chatSurfaces,
+  defaultSurfaces,
+  isConsumerSurface,
   aeoSnapshotSchema,
+  customSurfacePrefix,
   isAgentSurface,
+  isCustomSurface,
 } from './schema';
 import { createLog } from './lib/log';
 import type { AgentCliVersions } from './probes/agent-clis';
 import type { ProbeLimiter } from './probes/limits';
-import { resolveDataForSeoLocale } from './probes/dataforseo-locale';
+import {
+  consumerMarketProblem,
+  resolveDataForSeoLocale,
+  supportedMarkets,
+} from './probes/dataforseo-locale';
 import type { PartialFailure } from './probes/web-tool-guard';
 import type { SectionRunResult } from './pipeline';
 import {
@@ -118,9 +125,27 @@ export const planRun = (
   // The request's surfaces are the operator's override (a narrowed
   // re-probe); otherwise the config decides whether the coding agents are
   // measured (specs/aeo-surface-selection-spec.md §3.2).
-  const surfaces: readonly AeoSurface[] =
-    request.surfaces ??
-    (config.surfaces.codingAgents === 'skip' ? chatSurfaces : allSurfaces);
+  const declared = (config.customSurfaces ?? []).map(
+    ({ key }): AeoSurface => `${customSurfacePrefix}${key}`,
+  );
+  const surfaces: readonly AeoSurface[] = request.surfaces ?? [
+    ...(config.surfaces.codingAgents === 'skip'
+      ? chatSurfaces
+      : defaultSurfaces),
+    ...(config.surfaces.consumerApps ?? []),
+    ...declared,
+  ];
+  // A custom surface has a label and a binding only when the config
+  // declares it: one the plan merely names would be measured as nothing.
+  const undeclared = surfaces.filter(
+    (surface) => isCustomSurface(surface) && !declared.includes(surface),
+  );
+
+  if (undeclared.length > 0) {
+    throw new RunRequestError(
+      `The run names ${undeclared.join(', ')}, which the config's customSurfaces does not declare. Please declare each custom surface, or leave it out of the run.`,
+    );
+  }
 
   const units = sections.flatMap((section) =>
     plannedProbeUnitsForSection({
@@ -132,15 +157,36 @@ export const planRun = (
     }),
   );
 
-  // Google AI Overviews are placed in a market by DataForSEO's location
-  // and language codes. A market the table cannot place is refused here,
-  // before anything is reserved, never measured as the United States.
+  // Google AI Overviews and the consumer apps are placed in a market by
+  // DataForSEO's location and language codes. A market the table cannot
+  // place is refused here, before anything is reserved, never measured as
+  // the United States.
+  const placed = surfaces.filter(
+    (surface) => surface === 'google_ai_overview' || isConsumerSurface(surface),
+  );
+
   if (
-    surfaces.includes('google_ai_overview') &&
+    placed.length > 0 &&
     !resolveDataForSeoLocale(config.geography, config.language)
   ) {
     throw new RunRequestError(
-      `No search market for geography ${JSON.stringify(config.geography)} and language ${JSON.stringify(config.language)}: AI Overviews cannot be placed there. Please fix the config's geography and language (supported codes include us and en), or leave google_ai_overview out of the run.`,
+      `No search market for geography ${JSON.stringify(config.geography)} and language ${JSON.stringify(config.language)}: ${placed.join(', ')} cannot be placed there. Please fix the config's geography and language, or leave ${placed.join(' and ')} out of the run. ${supportedMarkets}`,
+    );
+  }
+
+  // A consumer scrape takes fewer markets than the table maps. One it does
+  // not list would fail every answer of that app at run time, each paid
+  // for nothing: it is refused here instead.
+  const unlisted = surfaces
+    .filter(isConsumerSurface)
+    .flatMap(
+      (surface) =>
+        consumerMarketProblem(surface, config.geography, config.language) ?? [],
+    );
+
+  if (unlisted.length > 0) {
+    throw new RunRequestError(
+      `${unlisted.join(' ')} Please leave ${unlisted.length === 1 ? 'it' : 'them'} out of the run.`,
     );
   }
 
@@ -275,6 +321,11 @@ export const assembleSnapshot = (args: {
   generatedAt: string;
   /** What judged the answers: the Codex analyze stage's version and model. */
   analyzer: { version: number; model: string };
+  /** Labels of the surfaces asked of another model than their default
+   * (surfaceLabelOverrides); empty on the defaults. */
+  surfaceLabels?: Record<string, string>;
+  /** The methodology section's sentences (buildMethodology). */
+  methodology?: readonly string[];
 }): AeoSnapshot => {
   const { config, request, plan, enriched, resumed } = args;
 
@@ -307,6 +358,10 @@ export const assembleSnapshot = (args: {
         : {}),
       partialFailures: args.partialFailures,
       surfaces: [...plan.surfaces],
+      ...(args.surfaceLabels && Object.keys(args.surfaceLabels).length > 0
+        ? { surfaceLabels: args.surfaceLabels }
+        : {}),
+      ...(args.methodology && { methodology: [...args.methodology] }),
       agentClis: args.agentCliVersions,
       analyzerVersion: args.analyzer.version,
       domainClassifierVersion,

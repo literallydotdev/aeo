@@ -11,23 +11,45 @@ import {
 } from '../grounding/guarded-request';
 import type { ModelBudgetLimits } from '../models/accounting';
 import { localModelProfile } from '../models/local-profile';
-import { resolveSupportedModel } from '../models/supported-models';
-import { resolveDataForSeoLocale } from '../probes/dataforseo-locale';
+import { reasoningEffortSchema } from '../models/profiles';
+import {
+  resolveSupportedModel,
+  type SupportedModel,
+} from '../models/supported-models';
+import {
+  consumerMarketProblem,
+  resolveDataForSeoLocale,
+  supportedMarkets,
+} from '../probes/dataforseo-locale';
+import {
+  customSurfaceId,
+  modelAdapterIds,
+  modelBoundSurfaces,
+  requestedBindingsOf,
+} from '../probes/bindings';
 import { probeLimitsSchema } from '../probes/limits';
 import {
   aeoAuditConfigSchema,
   aeoSurfaceSchema,
   agentProbeConfigSchema,
-  allSurfaces,
   brandSchema,
   chatProbeConfigSchema,
+  consumerSurfaces,
   coverageThresholdsSchema,
+  customSurfaceKeyPattern,
   defaultMaxPlannedUnits,
+  defaultSurfaces,
   isAgentSurface,
+  isConsumerSurface,
+  isCustomSurface,
+  maxCustomSurfaces,
   runRequestSchema,
   type AeoAuditConfig,
+  type AeoConsumerSurface,
+  type AeoSurface,
   type RunRequest,
 } from '../schema';
+import type { RequestedBindings } from './run-bindings';
 import { budgetPolicySchema } from './budget';
 
 // ============================================================================
@@ -132,21 +154,77 @@ const describeMoneyPageProblem = (
   return `${page} is not on ${domain} or its subdomains. Name its host in runPolicy.checkHosts to let the site checks fetch it.`;
 };
 
+const probeOverrideSchema = z
+  .object({
+    model: z.string().trim().min(1).max(200),
+    // Absent means the adapter of the model's provider.
+    adapter: z.enum(modelAdapterIds).optional(),
+  })
+  .strict();
+
+// Only the API chat surfaces take a model: AI Overview has none to choose,
+// and the coding agents run their CLI's own.
+const probeOverridesSchema = z
+  .object({
+    chatgpt: probeOverrideSchema.optional(),
+    gemini: probeOverrideSchema.optional(),
+    claude: probeOverrideSchema.optional(),
+    perplexity: probeOverrideSchema.optional(),
+  })
+  .strict();
+
+const customSurfaceSchema = probeOverrideSchema
+  .extend({
+    key: z.string().regex(customSurfaceKeyPattern, {
+      error:
+        'A custom surface key is 1 to 32 lowercase letters, digits or underscores, starting with a letter.',
+    }),
+    // Shown in the report; inserted as text, never as markup.
+    label: z.string().trim().min(1).max(60),
+  })
+  .strict();
+
 export const auditFileSchema = z
   .object({
     version: z.literal(auditFileVersion),
-    // The gateway model every text role and Codex stage runs on; absent
-    // means the engine's recommended model (src/models/supported-models.ts).
-    // Probe surfaces are what is measured and keep their own pinned models.
+    // The gateway model every text role and Codex stage runs on: any
+    // language model the gateway's model list prices (resolveReportModel).
+    // Absent means the engine's recommended model. Probe surfaces are what
+    // is measured and keep their own pinned models.
     model: z.string().trim().min(1).optional(),
+    // How hard that model is asked to think: an effort the gateway's model
+    // list names for it. Absent means `high` where the model offers it.
+    // Only for a model the engine ships no verified settings for.
+    modelEffort: reasoningEffortSchema.optional(),
+    // Another gateway model to write the report's narrative, which is one
+    // request (method release spec §4.5). Everything else stays on `model`,
+    // the check of what the writer claimed included. Absent means `model`
+    // writes.
+    writeModel: z.string().trim().min(1).optional(),
+    // Another model behind an API chat surface (open models spec §4): any
+    // language model the gateway's model list prices. Absent means the
+    // surface's pinned free-tier model. Never part of the measurement
+    // digest: a model is how a surface was asked, not what was measured.
+    probes: probeOverridesSchema.optional(),
+    // Any gateway model as a surface of its own (open models spec §5),
+    // asked every question at the chat depth and scored on its own line,
+    // outside the headline rates. Every declared one is measured.
+    customSurfaces: z
+      .array(customSurfaceSchema)
+      .min(1)
+      .max(maxCustomSurfaces)
+      .optional(),
     brand: brandSchema,
     competitors: z.array(brandSchema).min(1),
     ownedDomains: z.array(z.string().min(1)).max(20).optional(),
     sections: z.array(sectionSchema).min(1).max(2),
+    // The default is the API chat surfaces, AI Overview and the coding
+    // agents. A consumer app (chatgpt_app, google_ai_mode) is measured only
+    // when it is listed here (method release spec §5.4).
     surfaces: z
       .array(aeoSurfaceSchema)
       .min(1)
-      .default([...allSurfaces]),
+      .default([...defaultSurfaces]),
     // Strict here, unlike the internal config that bundles keep: a
     // misspelled key is refused, never dropped for the default depth.
     agentProbes: agentProbeConfigSchema.strict().prefault({}),
@@ -165,12 +243,49 @@ export const auditFileSchema = z
   })
   .strict()
   .superRefine((file, context) => {
+    const declared = (file.customSurfaces ?? []).map(({ key }) => key);
+
+    for (const [index, key] of declared.entries()) {
+      if (declared.indexOf(key) !== index) {
+        context.addIssue({
+          code: 'custom',
+          message: `Two custom surfaces share the key ${JSON.stringify(key)}; each needs its own.`,
+          path: ['customSurfaces', index, 'key'],
+        });
+      }
+    }
+
+    for (const [index, surface] of file.surfaces.entries()) {
+      if (
+        isCustomSurface(surface) &&
+        !declared.some((key) => customSurfaceId(key) === surface)
+      ) {
+        context.addIssue({
+          code: 'custom',
+          message: `surfaces names ${surface}, which customSurfaces does not declare.`,
+          path: ['surfaces', index],
+        });
+      }
+
+      const marketProblem = isConsumerSurface(surface)
+        ? consumerMarketProblem(surface, file.geography, file.language)
+        : undefined;
+
+      if (marketProblem !== undefined) {
+        context.addIssue({
+          code: 'custom',
+          message: `${marketProblem} Please leave it out of surfaces.`,
+          path: ['surfaces', index],
+        });
+      }
+    }
+
     // Never a silent fallback to the US: AI Overviews and grounding search
     // are placed in this market or the config is refused.
     if (!resolveDataForSeoLocale(file.geography, file.language)) {
       context.addIssue({
         code: 'custom',
-        message: `No search market for geography ${JSON.stringify(file.geography)} and language ${JSON.stringify(file.language)}; use a supported code such as us and en.`,
+        message: `No search market for geography ${JSON.stringify(file.geography)} and language ${JSON.stringify(file.language)}. ${supportedMarkets}`,
         path: ['geography'],
       });
     }
@@ -274,10 +389,17 @@ export const localReportKey = (file: AuditFile): string => {
   return `local-${slug || 'audit'}`;
 };
 
+/** The consumer apps an audit file lists, in the engine's own order
+ * whatever order the file lists them in. */
+const listedConsumerApps = (file: AuditFile): AeoConsumerSurface[] => {
+  return consumerSurfaces.filter((surface) => file.surfaces.includes(surface));
+};
+
 /** toAuditConfig maps audit.json onto the engine's internal config. */
 export const toAuditConfig = (file: AuditFile): AeoAuditConfig => {
   const reportKey = localReportKey(file);
   const measuresAgents = file.surfaces.some(isAgentSurface);
+  const consumerApps = listedConsumerApps(file);
 
   const config = aeoAuditConfigSchema.parse({
     reportKey,
@@ -295,7 +417,16 @@ export const toAuditConfig = (file: AuditFile): AeoAuditConfig => {
     surfaces: {
       codingAgents: measuresAgents ? 'measure' : 'skip',
       because: 'Selected by the operator in audit.json.',
+      // Only when the file lists one: a config without consumer apps keeps
+      // the digest it always had.
+      ...(consumerApps.length > 0 && { consumerApps }),
     },
+    ...(file.customSurfaces && {
+      customSurfaces: file.customSurfaces.map(({ key, label }) => ({
+        key,
+        label,
+      })),
+    }),
     geography: file.geography,
     language: file.language,
   });
@@ -303,26 +434,68 @@ export const toAuditConfig = (file: AuditFile): AeoAuditConfig => {
   return config;
 };
 
-/** toRunRequest is the request a local run executes under; the budget is
- * the run's frozen one (resolveRunBudget), absent only for a plan. */
+/** requestedBindings is what an audit file asks of a run's bindings: the
+ * defaults with its model overrides, its consumer apps and its custom
+ * surfaces, and which surfaces it asks for itself. */
+export const requestedBindings = (file: AuditFile): RequestedBindings => {
+  const overrides = file.probes ?? {};
+  const custom = file.customSurfaces ?? [];
+  const consumerApps = listedConsumerApps(file);
+
+  return {
+    bindings: requestedBindingsOf(overrides, custom, consumerApps),
+    overridden: [
+      ...modelBoundSurfaces.filter(
+        (surface) => overrides[surface] !== undefined,
+      ),
+      ...consumerApps,
+      ...custom.map(({ key }) => customSurfaceId(key)),
+    ],
+  };
+};
+
+/** measuredSurfaces is every surface an audit file measures: the ones it
+ * selects, and every custom surface it declares. */
+export const measuredSurfaces = (file: AuditFile): AeoSurface[] => {
+  const custom = (file.customSurfaces ?? []).map(({ key }) =>
+    customSurfaceId(key),
+  );
+
+  return [...new Set([...file.surfaces, ...custom])];
+};
+
+/** toRunRequest is the request a local run executes under. The budget is
+ * the run's frozen one (resolveRunBudget), absent only for a plan. `model`
+ * and `writer` are the report's models once resolved (resolveReportModels);
+ * when `model` is absent, the engine's own entry for the model the file
+ * names, and when `writer` is, the report model writes. */
 export const toRunRequest = (
   file: AuditFile,
   runId: string,
-  modelBudget?: ModelBudgetLimits,
+  {
+    modelBudget,
+    model = resolveSupportedModel(file.model),
+    writer,
+  }: {
+    modelBudget?: ModelBudgetLimits;
+    model?: SupportedModel;
+    writer?: SupportedModel;
+  } = {},
 ): RunRequest => {
   const request = runRequestSchema.parse({
     reportKey: localReportKey(file),
     runId,
     mode: 'resume',
     grounding: file.grounding,
-    modelProfile: localModelProfile(resolveSupportedModel(file.model), {
+    modelProfile: localModelProfile(model, {
       // Pinned by the audit, never inferred from which credentials happen to
       // be set: full grounding searches, and preflight requires its key.
       searchProvider:
         file.grounding === 'full' ? 'dataforseo-google-organic-v1' : 'disabled',
+      ...(writer && { writer }),
     }),
     ...(modelBudget && { modelBudget }),
-    surfaces: file.surfaces,
+    surfaces: measuredSurfaces(file),
     maxPlannedUnits: file.runPolicy.maxPlannedUnits,
     limits: file.runPolicy.limits,
     coverageThresholds: file.runPolicy.coverageThresholds,

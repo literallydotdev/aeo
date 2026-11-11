@@ -27,16 +27,29 @@ export const generationBackendSchema = z.enum([
 ]);
 export type GenerationBackend = z.infer<typeof generationBackendSchema>;
 
+// Zero is a price: the gateway lists free models.
 export const modelPricingSchema = z
   .object({
-    input: z.number().positive(),
-    output: z.number().positive(),
+    input: z.number().nonnegative(),
+    output: z.number().nonnegative(),
     cachedInput: z.number().nonnegative(),
   })
   .strict();
 
 /** List prices, USD per million tokens. */
 export type ModelPricing = z.infer<typeof modelPricingSchema>;
+
+/** How hard a reasoning model is asked to think: the levels the gateway's
+ * model list names and the Codex stages accept. A model offers some of
+ * them; which, its catalog entry says. */
+export const reasoningEffortSchema = z.enum([
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+  'max',
+]);
+export type ReasoningEffort = z.infer<typeof reasoningEffortSchema>;
 
 export const internalModelRoleSchema = z
   .object({
@@ -53,7 +66,7 @@ export const internalModelRoleSchema = z
         gateway: z
           .object({
             reasoning: z.union([
-              z.object({ effort: z.literal('high') }).strict(),
+              z.object({ effort: reasoningEffortSchema }).strict(),
               /** Accepted so that a stored profile keeps parsing and
                * dispatching exactly as admitted; never built any more. */
               z.object({ max_tokens: z.number().int().positive() }).strict(),
@@ -86,7 +99,7 @@ export type InternalModelRoleConfig = z.infer<typeof internalModelRoleSchema>;
 export const codexStageModelSchema = z
   .object({
     model: z.string().min(1),
-    reasoningEffort: z.enum(['medium', 'high', 'xhigh']),
+    reasoningEffort: reasoningEffortSchema,
     /** The context window Codex must be told: it has no metadata for
      * gateway models and otherwise compacts a session at its own default. */
     contextWindow: z.number().int().positive(),

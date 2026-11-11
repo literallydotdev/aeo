@@ -51,6 +51,13 @@ const config = (): AeoAuditConfig => {
   });
 };
 
+type CollectionMetadata = {
+  requestedModel: string | null;
+  reportedModel: string | null;
+  parameters: Record<string, unknown>;
+  adapter?: string;
+};
+
 const fixture = (
   options: {
     runId?: string;
@@ -63,14 +70,12 @@ const fixture = (
     cited?: number[];
     noOverview?: boolean;
     origins?: Array<string | null>;
+    /** One method for every answer, or one per surface: a surface the
+     * function leaves undefined keeps the fixture's own. */
     collection?:
       | 'unknown'
-      | {
-          requestedModel: string | null;
-          reportedModel: string | null;
-          parameters: Record<string, unknown>;
-          adapter?: string;
-        };
+      | CollectionMetadata
+      | ((surface: AeoSurface) => CollectionMetadata | undefined);
   } = {},
 ): Omit<ProgressMeasurementInput, 'captureManifest'> & {
   captureManifest?: CaptureManifest;
@@ -94,6 +99,24 @@ const fixture = (
     }),
   );
 
+  const captureMetadataOf = (
+    surface: AeoSurface,
+  ): CollectionMetadata | undefined => {
+    const { collection } = options;
+
+    if (collection === 'unknown') {
+      return undefined;
+    }
+
+    return (
+      (typeof collection === 'function' ? collection(surface) : collection) ?? {
+        requestedModel: `observed/${surface}`,
+        reportedModel: null,
+        parameters: { geography: cfg.geography, language: cfg.language },
+      }
+    );
+  };
+
   const records: CapturedUnitRecord[] = units.flatMap((unit, index) =>
     options.missing?.includes(index)
       ? []
@@ -106,17 +129,7 @@ const fixture = (
               options.origins?.[index] === null
                 ? undefined
                 : (options.origins?.[index] ?? runId),
-            captureMetadata:
-              options.collection === 'unknown'
-                ? undefined
-                : (options.collection ?? {
-                    requestedModel: `observed/${unit.surface}`,
-                    reportedModel: null,
-                    parameters: {
-                      geography: cfg.geography,
-                      language: cfg.language,
-                    },
-                  }),
+            captureMetadata: captureMetadataOf(unit.surface),
             probe: {
               promptId: unit.promptId,
               promptText: unit.promptText,
@@ -589,7 +602,12 @@ describe('progress - projectProgressMeasurement()', () => {
     ]);
     expect(comparison.status).toBe('unavailable');
     expect(comparison.reasons).toContain('same_measurement');
-    expect(comparison.groups).toEqual({ chat: null, agents: null });
+    expect(comparison.groups).toEqual({
+      chat: null,
+      consumer: null,
+      agents: null,
+      custom: null,
+    });
   });
 
   it.each(['measurement', 'window', 'capture', 'empty'] as const)(
@@ -829,7 +847,12 @@ describe('progress - deriveProgressComparison()', () => {
     expect(result.status).toBe('unavailable');
     expect(result.reasons).toEqual(['scope_changed']);
     expect(result.matched).toMatchObject({ slots: 3, currentExcludedSlots: 2 });
-    expect(result.groups).toEqual({ chat: null, agents: null });
+    expect(result.groups).toEqual({
+      chat: null,
+      consumer: null,
+      agents: null,
+      custom: null,
+    });
     expect(chat.status).toBe('comparable');
     expect(chat.groups.chat).toMatchObject({
       baseline: { planned: 1, mentionRate: 0 },
@@ -1034,5 +1057,364 @@ describe('progress - deriveProgressComparison()', () => {
     expect(getFirst(point.slots).requestedModel).toBe(
       'observed/google_ai_overview',
     );
+  });
+});
+
+describe('progress - deriveProgressComparison() with a custom surface', () => {
+  it('should compare the custom surfaces both audits measured as their own group, outside chat and agents', () => {
+    const cfg = aeoAuditConfigSchema.parse({
+      ...config(),
+      customSurfaces: [{ key: 'grok', label: 'Grok 5' }],
+    });
+    const audit = (runId: string, mentioned: number[]) => {
+      return projectProgressMeasurement(
+        fixture({
+          runId,
+          config: cfg,
+          surfaces: ['google_ai_overview', 'custom:grok'],
+          mentioned,
+        }),
+      );
+    };
+    // Unit 0 is AI Overview's one run; units 1 and 2 are the custom
+    // surface's two.
+    const baseline = audit('baseline', []);
+    const current = audit('current', [1, 2]);
+
+    const result = deriveProgressComparison({ baseline, current });
+    const customOnly = deriveProgressComparison(
+      { baseline, current },
+      { scope: 'custom' },
+    );
+
+    expect(current.version).toBe(2);
+    expect(result.status).toBe('comparable');
+    expect(result.groups.chat).toMatchObject({
+      current: { planned: 1, mentioned: 0 },
+      mentionDeltaPp: 0,
+    });
+    expect(result.groups.custom).toMatchObject({
+      baseline: { planned: 2, mentioned: 0 },
+      current: { planned: 2, mentioned: 2 },
+      mentionDeltaPp: 100,
+    });
+    expect(result.groups.agents).toBeNull();
+    expect(customOnly.groups).toMatchObject({ chat: null, agents: null });
+    expect(customOnly.groups.custom?.current.planned).toBe(2);
+  });
+});
+
+describe('progress - deriveProgressComparison() with consumer apps', () => {
+  const cfg = aeoAuditConfigSchema.parse({
+    ...config(),
+    surfaces: {
+      codingAgents: 'skip',
+      because: 'Buyers ask in the consumer apps.',
+      consumerApps: ['chatgpt_app', 'google_ai_mode'],
+    },
+  });
+  const audit = (
+    runId: string,
+    surfaces: AeoSurface[],
+    mentioned: number[],
+  ) => {
+    return projectProgressMeasurement(
+      fixture({ runId, config: cfg, surfaces, mentioned }),
+    );
+  };
+
+  it('should compare the consumer apps both audits measured as their own group, never in the chat group', () => {
+    // Unit 0 is AI Overview's one run; units 1 and 2 are the one run of
+    // each consumer app.
+    const surfaces: AeoSurface[] = [
+      'google_ai_overview',
+      'chatgpt_app',
+      'google_ai_mode',
+    ];
+    const baseline = audit('baseline', surfaces, []);
+    const current = audit('current', surfaces, [1, 2]);
+
+    const result = deriveProgressComparison({ baseline, current });
+    const consumerOnly = deriveProgressComparison(
+      { baseline, current },
+      { scope: 'consumer' },
+    );
+
+    expect(current.version).toBe(2);
+    expect(result.status).toBe('comparable');
+    expect(result.groups.chat).toMatchObject({
+      current: { planned: 1, mentioned: 0 },
+      mentionDeltaPp: 0,
+    });
+    expect(result.groups.consumer).toMatchObject({
+      baseline: { planned: 2, mentioned: 0 },
+      current: { planned: 2, mentioned: 2 },
+      mentionDeltaPp: 100,
+    });
+    expect(consumerOnly.groups).toMatchObject({ chat: null, agents: null });
+    expect(consumerOnly.groups.consumer?.current.planned).toBe(2);
+  });
+
+  it("should call a comparison partial when the scraper's reported model changed: nothing pins it, and the report says so", () => {
+    const scraped = (runId: string, reportedModel: string) => {
+      return projectProgressMeasurement(
+        fixture({
+          runId,
+          config: cfg,
+          surfaces: ['chatgpt_app'],
+          collection: {
+            requestedModel: null,
+            reportedModel,
+            parameters: {},
+            adapter: 'dataforseo.chatgpt_app@1',
+          },
+        }),
+      );
+    };
+    const baseline = scraped('baseline', 'gpt-6');
+
+    expect(
+      deriveProgressComparison({
+        baseline,
+        current: scraped('current', 'gpt-6-mini'),
+      }),
+    ).toMatchObject({
+      status: 'partial',
+      reasons: ['collection_method_changed'],
+    });
+    expect(
+      deriveProgressComparison({
+        baseline,
+        current: scraped('current', 'gpt-6'),
+      }).status,
+    ).toBe('comparable');
+  });
+
+  it("should leave the chat group its test when only the scraper's model changed", () => {
+    const scraped = (runId: string, reportedModel: string) => {
+      return projectProgressMeasurement(
+        fixture({
+          runId,
+          config: cfg,
+          surfaces: ['google_ai_overview', 'chatgpt_app'],
+          // AI Overview keeps the fixture's own collection method.
+          collection: (surface) =>
+            surface === 'chatgpt_app'
+              ? {
+                  requestedModel: null,
+                  reportedModel,
+                  parameters: {},
+                  adapter: 'dataforseo.chatgpt_app@1',
+                }
+              : undefined,
+        }),
+      );
+    };
+    const pair = {
+      baseline: scraped('baseline', 'gpt-6'),
+      current: scraped('current', 'gpt-6-mini'),
+    };
+
+    const result = deriveProgressComparison(pair);
+
+    // The comparison says what changed; each group says whether it
+    // changed there.
+    expect(result).toMatchObject({
+      status: 'partial',
+      reasons: ['collection_method_changed'],
+    });
+    expect(result.groups.consumer).toMatchObject({
+      reasons: ['collection_method_changed'],
+      statistics: {
+        mention: { computed: false, reason: 'comparison_partial' },
+        citation: { computed: false, reason: 'comparison_partial' },
+      },
+    });
+    expect(result.groups.chat).toMatchObject({
+      reasons: [],
+      statistics: { mention: { computed: true }, citation: { computed: true } },
+    });
+    // What a comparison of the chat scope alone gives.
+    expect(result.groups.chat).toEqual(
+      deriveProgressComparison(pair, { scope: 'chat' }).groups.chat,
+    );
+  });
+
+  it('should report an audit that added a consumer app as a change of scope, not of visibility', () => {
+    const baseline = audit('baseline', ['google_ai_overview'], []);
+    const current = audit(
+      'current',
+      ['google_ai_overview', 'chatgpt_app'],
+      [1],
+    );
+
+    expect(baseline.version).toBe(1);
+    expect(deriveProgressComparison({ baseline, current })).toMatchObject({
+      status: 'unavailable',
+      reasons: ['scope_changed'],
+    });
+    // Narrowed to what both measured, the chat group compares as before.
+    expect(
+      deriveProgressComparison({ baseline, current }, { scope: 'chat' }).status,
+    ).toBe('comparable');
+  });
+});
+
+describe('progress - deriveProgressComparison() statistics', () => {
+  // Coding agents ask every question twice; slots 2q and 2q + 1 are
+  // question q's two runs.
+  const agentAudit = (questions: number) => {
+    const cfg = config();
+    const section = getFirst(cfg.sections);
+    const prompt = getFirst(section.prompts);
+
+    section.prompts = Array.from({ length: questions }, (_, index) => ({
+      ...prompt,
+      id: `p${index}`,
+      text: `Which agency writes technical content, part ${index}?`,
+    }));
+
+    return (options: {
+      runId?: string;
+      mentioned?: number[];
+      missing?: number[];
+    }) => {
+      return projectProgressMeasurement(
+        fixture({ ...options, config: cfg, surfaces: ['codex'] }),
+      );
+    };
+  };
+
+  it('should give fixed inputs a fixed p-value, per metric', () => {
+    const audit = agentAudit(3);
+
+    // Question 0: both runs, then one. Question 1: both, then none.
+    // Question 2: neither, both times.
+    const result = deriveProgressComparison({
+      baseline: audit({ mentioned: [0, 1, 2, 3] }),
+      current: audit({ runId: 'current', mentioned: [0] }),
+    });
+
+    expect(result.status).toBe('comparable');
+    expect(result.groups.agents?.statistics).toEqual({
+      // Weights [3, 3] and [1, 4, 1] convolve to [3, 15, 15, 3]; the
+      // observed total is an end: p = 6/36. Question 2 carries nothing.
+      mention: {
+        version: 1,
+        computed: true,
+        method: 'stratified_exact',
+        pValue: 0.166667,
+        largerThanVariation: false,
+      },
+      citation: {
+        version: 1,
+        computed: true,
+        method: 'stratified_exact',
+        pValue: 1,
+        largerThanVariation: false,
+      },
+    });
+  });
+
+  it('should find a total swing over 20 questions at depth 2 larger than variation', () => {
+    const audit = agentAudit(20);
+    const everySlot = Array.from({ length: 40 }, (_, index) => index);
+
+    const result = deriveProgressComparison({
+      baseline: audit({ mentioned: everySlot }),
+      current: audit({ runId: 'current' }),
+    });
+
+    const mention = result.groups.agents?.statistics.mention;
+
+    expect(result.groups.agents?.mentionDeltaPp).toBe(-100);
+    assert(mention?.computed, 'Expected a computed statistic.');
+    expect(mention.pValue).toBeLessThan(0.001);
+    expect(mention.largerThanVariation).toBe(true);
+  });
+
+  it('should NOT test a partial comparison', () => {
+    const audit = agentAudit(2);
+
+    const result = deriveProgressComparison({
+      baseline: audit({ mentioned: [0, 1] }),
+      current: audit({ runId: 'current', missing: [1] }),
+    });
+
+    expect(result.status).toBe('partial');
+    expect(result.groups.agents?.statistics).toEqual({
+      mention: { version: 1, computed: false, reason: 'comparison_partial' },
+      citation: { version: 1, computed: false, reason: 'comparison_partial' },
+    });
+  });
+
+  it('should test a group whose own answers are all there when another group missed one', () => {
+    // Unit 0 is AI Overview's one run; units 1 and 2 are Codex's two.
+    const surfaces: AeoSurface[] = ['google_ai_overview', 'codex'];
+
+    const result = compare(
+      fixture({ surfaces, mentioned: [1, 2] }),
+      fixture({ runId: 'current', surfaces, missing: [0] }),
+    );
+
+    expect(result.status).toBe('partial');
+    expect(result.reasons).toEqual([
+      'incomplete_capture_coverage',
+      'incomplete_analysis_coverage',
+    ]);
+    expect(result.groups.chat).toMatchObject({
+      reasons: ['incomplete_capture_coverage', 'incomplete_analysis_coverage'],
+      statistics: {
+        mention: { computed: false, reason: 'comparison_partial' },
+      },
+    });
+    expect(result.groups.agents).toMatchObject({
+      reasons: [],
+      statistics: { mention: { computed: true }, citation: { computed: true } },
+    });
+  });
+
+  it('should NOT test any group when what changed holds for the two audits as wholes', () => {
+    const surfaces: AeoSurface[] = ['google_ai_overview', 'codex'];
+    const baseline = projectProgressMeasurement(fixture({ surfaces }));
+    const current = projectProgressMeasurement(
+      fixture({ runId: 'current', surfaces }),
+    );
+    current.analyzer.version = 5;
+
+    const result = deriveProgressComparison({ baseline, current });
+
+    for (const group of [result.groups.chat, result.groups.agents]) {
+      expect(group).toMatchObject({
+        reasons: ['analyzer_changed'],
+        statistics: {
+          mention: { computed: false, reason: 'comparison_partial' },
+        },
+      });
+    }
+  });
+
+  it('should NOT test a chosen section or surface, only a whole scope', () => {
+    const audit = agentAudit(2);
+    const pair = {
+      baseline: audit({ mentioned: [0, 1] }),
+      current: audit({ runId: 'current' }),
+    };
+    const skipped = {
+      version: 1,
+      computed: false,
+      reason: 'section_or_surface_selected',
+    };
+
+    const bySurface = deriveProgressComparison(pair, { surface: 'codex' });
+    const bySection = deriveProgressComparison(pair, { sectionKey: 'content' });
+    const byScope = deriveProgressComparison(pair, { scope: 'agents' });
+
+    expect(bySurface.status).toBe('comparable');
+    expect(bySurface.groups.agents?.statistics.mention).toEqual(skipped);
+    expect(bySection.groups.agents?.statistics.citation).toEqual(skipped);
+    expect(byScope.groups.agents?.statistics.mention).toMatchObject({
+      computed: true,
+    });
   });
 });

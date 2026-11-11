@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { buildCaptureManifest, capturePlan } from '../../capture-manifest';
 import { aggregateWorkdir } from '../../codex-workflow/aggregate';
+import type { CalculationVersion } from '../contracts';
 import { runInputsFile, type RunInputs } from '../../codex-workflow/run-inputs';
 import { answerFilePath } from '../../codex-workflow/workdir';
 import type { CaptureArtifact } from '../../harness/report/artifacts';
@@ -10,6 +11,7 @@ import {
   aeoAuditConfigSchema,
   runRequestSchema,
   type AeoAuditConfig,
+  type AeoConsumerSurface,
   type AeoSurface,
   type ChatProbeConfig,
 } from '../../schema';
@@ -25,7 +27,7 @@ export const syntheticRunId = '01M2SYNTHET1CRVNAAAAAAAAAA';
 export const syntheticReportKey = 'synthetic-bundle';
 export const oddSectionKey = 'Märkte/../Éditeurs';
 
-const surfaces: AeoSurface[] = ['chatgpt', 'perplexity'];
+const builtInSurfaces: AeoSurface[] = ['chatgpt', 'perplexity'];
 
 export const syntheticConfig = aeoAuditConfigSchema.parse({
   reportKey: syntheticReportKey,
@@ -90,12 +92,37 @@ export const createSyntheticRun = async (
   {
     answerOverride,
     chatProbes,
-  }: { answerOverride?: string; chatProbes?: ChatProbeConfig } = {},
+    calculationVersion,
+    consumerApps = [],
+    customSurface,
+  }: {
+    answerOverride?: string;
+    chatProbes?: ChatProbeConfig;
+    /** The consumer apps the run also measures (method release spec §5). */
+    consumerApps?: readonly AeoConsumerSurface[];
+    /** A custom surface the run also measures (open models spec §5). */
+    customSurface?: { key: string; label: string };
+    // The version an earlier release aggregated with; the engine's own
+    // when absent.
+    calculationVersion?: CalculationVersion;
+  } = {},
 ): Promise<SyntheticRun> => {
-  const config: AeoAuditConfig =
-    chatProbes === undefined
-      ? syntheticConfig
-      : { ...syntheticConfig, chatProbes };
+  const config: AeoAuditConfig = {
+    ...syntheticConfig,
+    ...(chatProbes !== undefined && { chatProbes }),
+    ...(consumerApps.length > 0 && {
+      surfaces: {
+        ...syntheticConfig.surfaces,
+        consumerApps: [...consumerApps],
+      },
+    }),
+    ...(customSurface && { customSurfaces: [customSurface] }),
+  };
+  const surfaces: AeoSurface[] = [
+    ...builtInSurfaces,
+    ...consumerApps,
+    ...(customSurface ? [`custom:${customSurface.key}` as const] : []),
+  ];
   const plan = capturePlan(config, surfaces);
   const [failedUnit, ...capturedUnits] = plan.units;
 
@@ -258,13 +285,16 @@ export const createSyntheticRun = async (
     JSON.stringify([]),
   );
 
-  const aggregate = await aggregateWorkdir({
-    dir,
-    config,
-    surfaces,
-    capture,
-    captured,
-  });
+  const aggregate = await aggregateWorkdir(
+    {
+      dir,
+      config,
+      surfaces,
+      capture,
+      captured,
+    },
+    calculationVersion,
+  );
   const chunks = Object.values(aggregate.sections).flatMap(
     (section) => section.evidenceChunks,
   );

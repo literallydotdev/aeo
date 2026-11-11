@@ -1,4 +1,8 @@
-import type { AeoSurface } from './surfaces';
+import {
+  isCustomSurface,
+  type AeoBuiltInSurface,
+  type AeoSurface,
+} from './surfaces';
 
 // ============================================================================
 // Retrieval-log constants (retrieval-log spec §1, §2) — deliberately zod-free
@@ -20,8 +24,9 @@ export type RetrievalCallKind = (typeof retrievalCallKinds)[number];
 // What a surface's stream structurally reveals about its retrieval:
 //   full          queries and result sets
 //   queries_only  queries, no result sets (Codex)
-//   partial       queries as a flat list, sources not linked to them (Gemini)
-//   none          nothing (Perplexity, Google AI Overview)
+//   partial       queries as a flat list, sources not linked to them
+//                 (Gemini, the scraped ChatGPT app)
+//   none          nothing (Perplexity, Google AI Overview, Google AI Mode)
 export const retrievalExposures = [
   'full',
   'queries_only',
@@ -36,7 +41,7 @@ export type RetrievalExposure = (typeof retrievalExposures)[number];
 // that structurally expose nothing — a parse miss on any other surface is
 // stored as "not captured", never as `none`.
 export const surfaceRetrievalExposure: Readonly<
-  Record<AeoSurface, RetrievalExposure>
+  Record<AeoBuiltInSurface, RetrievalExposure>
 > = {
   chatgpt: 'full',
   gemini: 'partial',
@@ -46,4 +51,13 @@ export const surfaceRetrievalExposure: Readonly<
   claude_code: 'full',
   codex: 'queries_only',
   cursor: 'full',
+  // Read from captured scrapes on 2026-11-11 (method release spec §5.6).
+  chatgpt_app: 'partial',
+  google_ai_mode: 'none',
+};
+
+/** What `surface`'s stream reveals. A custom surface is asked through the
+ * gateway's search tool, which returns every result it found. */
+export const retrievalExposureOf = (surface: AeoSurface): RetrievalExposure => {
+  return isCustomSurface(surface) ? 'full' : surfaceRetrievalExposure[surface];
 };

@@ -1,5 +1,5 @@
-import type { AeoAgentSurface, AeoChatSurface } from '../surfaces';
-import { agentSurfaces, chatSurfaces } from '../surfaces';
+import type { AeoAgentSurface, AeoApiSurface } from '../surfaces';
+import { agentSurfaces, chatSurfaces, isCustomSurface } from '../surfaces';
 import { surfaceRetrievalExposure } from '../retrieval';
 
 // ============================================================================
@@ -81,11 +81,21 @@ export const checkRetrievalCapture = (
 ): PartialFailure[] => {
   const failures: PartialFailure[] = [];
 
-  for (const surface of chatSurfaces) {
-    if (surfaceRetrievalExposure[surface] !== 'full') {
-      continue;
-    }
+  const guarded = [
+    ...chatSurfaces.filter(
+      (surface) => surfaceRetrievalExposure[surface] === 'full',
+    ),
+    // A custom surface searches through the gateway's tool, which returns
+    // its results: no log across its answers is an extractor miss too.
+    ...new Set(
+      freshRows
+        .map((row) => row.surface)
+        .filter(isCustomSurface)
+        .sort(),
+    ),
+  ];
 
+  for (const surface of guarded) {
     const captured = freshRows.filter((row) => row.surface === surface);
 
     if (captured.length < webToolGuardMinAnswers) {
@@ -101,7 +111,7 @@ export const checkRetrievalCapture = (
     }
 
     failures.push({
-      step: `probes:retrieval_capture:${surface satisfies AeoChatSurface}`,
+      step: `probes:retrieval_capture:${surface satisfies AeoApiSurface}`,
       error: `0/${captured.length} answers captured by this run carry a retrieval log; verify the extractor against the installed AI SDK`,
     });
   }

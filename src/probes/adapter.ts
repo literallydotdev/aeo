@@ -18,10 +18,22 @@ import type { ProbeProvider } from './limits';
  * request or parsing bumps its version. */
 export const ProbeAdapterId = {
   GATEWAY_OPENAI: 'gateway.openai@1',
+  // The same request with room to finish (method release spec §4.4): a
+  // model that reasons and searches can spend @1's 2,000 output tokens
+  // before it writes an answer, which then carries no source.
+  GATEWAY_OPENAI_2: 'gateway.openai@2',
   GATEWAY_GOOGLE: 'gateway.google@1',
   GATEWAY_ANTHROPIC: 'gateway.anthropic@1',
+  // With the same room: under @1's 2,000 tokens the default model's
+  // answers to buyer questions were cut off mid-sentence.
+  GATEWAY_ANTHROPIC_2: 'gateway.anthropic@2',
   GATEWAY_PERPLEXITY: 'gateway.perplexity@1',
+  // Any gateway model, searching through the gateway's own search tool.
+  GATEWAY_SEARCH: 'gateway.search@1',
   DATAFORSEO_AI_OVERVIEW: 'dataforseo.ai_overview@1',
+  // The consumer apps, scraped by DataForSEO (method release spec §5).
+  DATAFORSEO_AI_MODE: 'dataforseo.ai_mode@1',
+  DATAFORSEO_CHATGPT_APP: 'dataforseo.chatgpt_app@1',
   CLI_CLAUDE_CODE: 'cli.claude_code@1',
   CLI_CODEX: 'cli.codex@1',
   CLI_CURSOR: 'cli.cursor@1',
@@ -49,7 +61,8 @@ export type ProbeRetryFamily = 'chat' | 'agent';
 export type ProbeBilling = 'metered' | 'subscription';
 
 /** How the host reads the model an answer names: through servedModelOf
- * against the requested model, as the CLI reported it, or not at all. */
+ * against the requested model, as the CLI or the scraper reported it, or
+ * not at all. */
 export type ServedModelRule = 'compare_to_requested' | 'raw' | 'none';
 
 /** What an adapter is, independent of a run: what it observes, what it
@@ -88,6 +101,9 @@ export type ProbeAnswer = {
    * how the host reads it. */
   servedModel?: string;
   reportedCostUsd?: number;
+  /** The search call returned no prose, and a second call wrote this answer
+   * from its results without searching (the gateway chat adapters). */
+  fromFollowUp?: true;
   /** Coding agents only; null stays unknown. */
   usedWebSearch?: boolean | null;
 };

@@ -4,12 +4,14 @@ import { z } from 'zod';
 import { writeFileAtomically } from '../codex-workflow/pending';
 import {
   availableBindings,
+  bindingOf,
   defaultProbeBindings,
   RunBindingsError,
   type RunBindings,
 } from '../probes/bindings';
 import { legacyProbeBindings } from '../probes/legacy-bindings';
 import { hasErrorCode } from '../stores/fs-errors';
+import type { AeoSurface } from '../surfaces';
 
 // ============================================================================
 // A run's frozen bindings (specs/aeo-probe-adapters-spec.md §4.5): written
@@ -36,49 +38,17 @@ const frozenBindingsSchema = z
   })
   .strict();
 
-/**
- * estimateBindingsOf is the bindings a run directory's estimate prices: its
- * frozen bindings once it has usable ones, else the defaults a new run
- * would freeze. Read-only. A frozen binding the engine cannot build is the
- * run's start to refuse (exit 2), not the estimate's.
- */
-export const estimateBindingsOf = async (
-  bankPath: string,
-): Promise<RunBindings> => {
-  const text = await readFile(path.join(bankPath, bindingsFile), 'utf8').catch(
-    (err: unknown) => {
-      if (hasErrorCode(err, 'ENOENT')) {
-        return undefined;
-      }
-
-      throw err;
-    },
-  );
-
-  if (text === undefined) {
-    return defaultProbeBindings;
-  }
-
-  try {
-    return availableBindings(
-      frozenBindingsSchema.parse(JSON.parse(text)).bindings,
-    );
-  } catch {
-    // Refused with its reason when the run starts.
-    return defaultProbeBindings;
-  }
-};
+/** A run's frozen bindings as its file records them, adapter IDs unchecked. */
+export type FrozenBindings = z.infer<typeof frozenBindingsSchema>['bindings'];
 
 /**
- * resolveRunBindings returns the bindings a run measures with: the frozen
- * ones on a resume, refused when the installed engine cannot build them;
- * otherwise the defaults for a new run, or the legacy bindings for a run
- * that started before bindings were frozen, written before they are used.
+ * readFrozenBindings returns the bindings a run directory froze, or
+ * undefined when it froze none: a directory no engine since 0.3.0 has run.
+ * A file that is not a frozen bindings file is refused, never guessed.
  */
-export const resolveRunBindings = async (
+export const readFrozenBindings = async (
   bankPath: string,
-  { startedBefore }: { startedBefore: boolean },
-): Promise<RunBindings> => {
+): Promise<FrozenBindings | undefined> => {
   const file = path.join(bankPath, bindingsFile);
   const text = await readFile(file, 'utf8').catch((err: unknown) => {
     if (hasErrorCode(err, 'ENOENT')) {
@@ -88,21 +58,98 @@ export const resolveRunBindings = async (
     throw err;
   });
 
-  if (text !== undefined) {
-    let frozen: z.infer<typeof frozenBindingsSchema>;
-
-    try {
-      frozen = frozenBindingsSchema.parse(JSON.parse(text));
-    } catch (error) {
-      throw new RunBindingsError(
-        `${file} is not a frozen bindings file (${error instanceof Error ? error.message.slice(0, 200) : String(error)}). Please restore it; a run never re-chooses how it measures.`,
-      );
-    }
-
-    return availableBindings(frozen.bindings);
+  if (text === undefined) {
+    return undefined;
   }
 
-  const bindings = startedBefore ? legacyProbeBindings : defaultProbeBindings;
+  try {
+    return frozenBindingsSchema.parse(JSON.parse(text)).bindings;
+  } catch (error) {
+    throw new RunBindingsError(
+      `${file} is not a frozen bindings file (${error instanceof Error ? error.message.slice(0, 200) : String(error)}). Please restore it; a run never re-chooses how it measures.`,
+    );
+  }
+};
+
+/**
+ * estimateBindingsOf is the bindings a run directory's estimate prices: its
+ * frozen bindings once it has usable ones, else the ones a new run would
+ * freeze (`requested`: the defaults, with audit.json's model overrides). Read-only. A frozen binding the engine cannot build is the
+ * run's start to refuse (exit 2), not the estimate's.
+ */
+export const estimateBindingsOf = async (
+  bankPath: string,
+  requested: RunBindings = defaultProbeBindings,
+): Promise<RunBindings> => {
+  try {
+    const frozen = await readFrozenBindings(bankPath);
+
+    return frozen === undefined ? requested : availableBindings(frozen);
+  } catch (error) {
+    // Refused with its reason when the run starts.
+    if (error instanceof RunBindingsError) {
+      return requested;
+    }
+
+    throw error;
+  }
+};
+
+/** What audit.json asks of the bindings: the bindings a new run would
+ * freeze, and the surfaces it asks for itself (a model it names behind a
+ * surface, a consumer app it lists, a custom surface it declares). */
+export type RequestedBindings = {
+  bindings: RunBindings;
+  overridden: readonly AeoSurface[];
+};
+
+const defaultRequest: RequestedBindings = {
+  bindings: defaultProbeBindings,
+  overridden: [],
+};
+
+/**
+ * resolveRunBindings returns the bindings a run measures with: the frozen
+ * ones on a resume, refused when the installed engine cannot build them or
+ * when audit.json now names another model for a surface; otherwise the
+ * requested bindings for a new run, or the legacy bindings for a run that
+ * started before bindings were frozen, written before they are used.
+ */
+export const resolveRunBindings = async (
+  bankPath: string,
+  {
+    startedBefore,
+    requested = defaultRequest,
+  }: { startedBefore: boolean; requested?: RequestedBindings },
+): Promise<RunBindings> => {
+  const frozen = await readFrozenBindings(bankPath);
+
+  if (frozen !== undefined) {
+    const bindings = availableBindings(frozen);
+
+    // Only what the file names itself is compared: a surface it leaves to
+    // the defaults keeps whatever the run froze, as a rejudgment needs.
+    for (const surface of requested.overridden) {
+      const asked = bindingOf(requested.bindings, surface);
+      const kept = bindings[surface];
+
+      if (!kept) {
+        throw new RunBindingsError(
+          `audit.json now declares ${surface}, which this run directory did not start with. A run never changes what it measures: measure it in a new run directory.`,
+        );
+      }
+
+      if (asked.adapter !== kept.adapter || asked.model !== kept.model) {
+        throw new RunBindingsError(
+          `This run directory measures ${surface} with ${kept.model ?? kept.adapter}; audit.json now asks for ${asked.model ?? asked.adapter}. A run never changes how a surface is measured: measure it this way in a new run directory.`,
+        );
+      }
+    }
+
+    return bindings;
+  }
+
+  const bindings = startedBefore ? legacyProbeBindings : requested.bindings;
 
   await freezeBindings(bankPath, bindings);
 

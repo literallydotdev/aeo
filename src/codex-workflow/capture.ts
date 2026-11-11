@@ -3,6 +3,7 @@ import type {
   SectionCaptureArtifact,
 } from '../harness/report/artifacts';
 import { captureCoverageIssues } from '../harness/report/capture-coverage';
+import { compareCodeUnits } from '../lib/compare';
 import { unitRecordKey } from '../lib/checkpoint';
 import type { InternalModelContext } from '../models/context';
 import { captureSectionProbes, type SectionRunArgs } from '../pipeline';
@@ -17,6 +18,7 @@ import { isAgentSurface, type AeoAgentSurface } from '../surfaces';
 import type { ProbeTrace } from '../probes/probe-trace';
 import {
   bankBindingMismatches,
+  bindingOf,
   RunBindingsError,
   type ProbeDependencies,
   type RunBindings,
@@ -127,8 +129,8 @@ export const assertBankUsable = async (
     parseUnitRecord(record, unitRecordKey(record));
   }
 
-  // A banked answer is reused only under the binding that captured it; a
-  // mismatch stops the run, never re-probed silently.
+  // A banked answer is reused only under the binding that captured it, its
+  // model included; a mismatch stops the run, never re-probed silently.
   const plannedKeys = new Set(plan.units.map(unitRecordKey));
   const mismatched = bankBindingMismatches(
     banked.filter(
@@ -141,22 +143,17 @@ export const assertBankUsable = async (
   if (mismatched.length > 0) {
     const surfaces = [...new Set(mismatched.map((record) => record.surface))];
     const bound = surfaces
-      .map((surface) => `${surface} (${bindings[surface].adapter})`)
+      .map((surface) => {
+        const { adapter, model } = bindingOf(bindings, surface);
+
+        return `${surface} (${model === undefined ? adapter : `${adapter}, ${model}`})`;
+      })
       .join(', ');
 
     throw new RunBindingsError(
-      `${mismatched.length} banked answers were captured with another adapter than this run's binding of ${bound}. A banked answer is never probed again under another binding: start a fresh run (a new run directory, or mode fresh) to measure them this way.`,
+      `${mismatched.length} banked answers were captured with another adapter or model than this run's binding of ${bound}. A banked answer is never probed again under another binding: start a fresh run (a new run directory, or mode fresh) to measure them this way.`,
     );
   }
-};
-
-/** Orders by UTF-16 code units, independent of the host's locale. */
-const compareCodeUnits = (left: string, right: string) => {
-  if (left === right) {
-    return 0;
-  }
-
-  return left < right ? -1 : 1;
 };
 
 export const captureForRun = async (

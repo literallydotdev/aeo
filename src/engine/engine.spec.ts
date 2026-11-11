@@ -12,13 +12,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { canonicalDigest } from '../bundle/json';
 import { requireDefined } from '../__fixtures__/require-defined';
 import { writeEnv } from '../lib/env';
-import { defaultProbeBindings } from '../probes/bindings';
+import { resolveSupportedModel } from '../models/supported-models';
+import { defaultProbeBindings, requestedBindingsOf } from '../probes/bindings';
 import { readAuthorEvidence } from './author';
 import {
   auditFileSchema,
   localReportKey,
   readAuditFile,
   toAuditConfig,
+  requestedBindings,
 } from './audit-file';
 import { readSettings } from './env-file';
 import {
@@ -130,6 +132,23 @@ describe('local-run - planLocalRun()', () => {
     expect(second.digests).toEqual(first.digests);
   });
 
+  it('should plan the copy role on the writer a command resolved, and move no digest for it', () => {
+    const model = resolveSupportedModel();
+    const writer = resolveSupportedModel('anthropic/claude-sonnet-5.5');
+    const file = { ...exampleFile, writeModel: writer.id };
+
+    const planned = planLocalRun(file, 'planned', { model, writer });
+
+    expect(planned.request.modelProfile?.roles).toMatchObject({
+      copy: { model: writer.id },
+      premiseVerifier: { model: model.id },
+      analyzer: { model: model.id },
+    });
+    expect(planned.request.modelProfile?.stages?.model).toBe(model.id);
+    // Who writes is method, not measurement.
+    expect(planned.digests).toEqual(planLocalRun(exampleFile).digests);
+  });
+
   it('should measure coding agents only when audit.json selects one', () => {
     const result = planLocalRun({
       ...exampleFile,
@@ -147,6 +166,44 @@ describe('local-run - planLocalRun()', () => {
     });
 
     expect(result.digests).toEqual(planLocalRun(exampleFile).digests);
+  });
+
+  it('should keep the measurement and plan digests when only the model behind a surface changes', () => {
+    const swapped = auditFileSchema.parse({
+      ...exampleAuditFile,
+      probes: { chatgpt: { model: 'openai/gpt-test-1' } },
+    });
+
+    // A model is how a surface is asked, not what is measured.
+    expect(planLocalRun(swapped).digests).toEqual(
+      planLocalRun(exampleFile).digests,
+    );
+    expect(requestedBindings(swapped)).toEqual({
+      bindings: {
+        ...defaultProbeBindings,
+        chatgpt: { adapter: 'gateway.openai@2', model: 'openai/gpt-test-1' },
+      },
+      overridden: ['chatgpt'],
+    });
+    expect(requestedBindings(exampleFile)).toEqual({
+      bindings: defaultProbeBindings,
+      overridden: [],
+    });
+  });
+
+  it('should refuse a model behind a surface that asks none, and an unknown adapter', () => {
+    const parse = (probes: unknown) => {
+      return auditFileSchema.safeParse({ ...exampleAuditFile, probes });
+    };
+
+    expect(parse({ google_ai_overview: { model: 'google/x' } }).success).toBe(
+      false,
+    );
+    expect(parse({ codex: { model: 'gpt-test-1' } }).success).toBe(false);
+    expect(
+      parse({ chatgpt: { model: 'openai/x', adapter: 'cli.codex@1' } }).success,
+    ).toBe(false);
+    expect(parse({ chatgpt: { model: 'openai/x' } }).success).toBe(true);
   });
 
   it('should plan every chat surface at the configured chat depth, as a new measurement', () => {
@@ -333,7 +390,7 @@ describe('preflight - runPreflight()', () => {
       name: 'chatgpt probes',
       ok: true,
       detail:
-        'gateway.openai@1 with openai/gpt-5.4-mini; AI_GATEWAY_API_KEY from the env file',
+        'gateway.openai@2 with openai/gpt-6-luna; AI_GATEWAY_API_KEY from the env file',
     });
     expect(
       checks.find((check) => check.name === 'google_ai_overview probes'),
@@ -344,6 +401,39 @@ describe('preflight - runPreflight()', () => {
         'dataforseo.ai_overview@1; DATAFORSEO_LOGIN from the env file; DATAFORSEO_PASSWORD not set',
     });
     expect(JSON.stringify(checks)).not.toContain('fake-secret-value-1');
+  });
+
+  it('should require the DataForSEO login for a consumer app, and none for a run that lists none', async () => {
+    const settings = await settingsOf(
+      'AI_GATEWAY_API_KEY=fake-secret-value-1\n',
+    );
+    const withApp = await runPreflight({
+      surfaces: ['chatgpt', 'chatgpt_app'],
+      bindings: requestedBindingsOf({}, [], ['chatgpt_app']),
+      settings,
+      dir: path.join(root, 'run'),
+    });
+    const without = await runPreflight({
+      surfaces: ['chatgpt'],
+      bindings: defaultProbeBindings,
+      settings,
+      dir: path.join(root, 'run'),
+    });
+
+    expect(
+      withApp.find((check) => check.name === 'chatgpt_app probes'),
+    ).toEqual({
+      name: 'chatgpt_app probes',
+      ok: false,
+      detail:
+        'dataforseo.chatgpt_app@1; DATAFORSEO_LOGIN not set; DATAFORSEO_PASSWORD not set',
+    });
+    expect(
+      withApp.find((check) => check.name === 'DATAFORSEO_LOGIN'),
+    ).toMatchObject({ ok: false });
+    expect(without.map((check) => check.name)).not.toContain(
+      'DATAFORSEO_LOGIN',
+    );
   });
 
   it("should accept any one of a coding agent's grouped auth settings, and disclose Codex billed outside the cap", async () => {
@@ -577,6 +667,63 @@ describe('budget - resolveRunBudget()', () => {
     expect(raised.amended?.from.maxUsd).toBe(40);
   });
 
+  it('should freeze the effort audit.json names with the model, and refuse a resume that asks for another', async () => {
+    await resolveRunBudget(root, policy, {
+      model: 'acme/model',
+      modelEffort: 'max',
+    });
+
+    await expect(
+      resolveRunBudget(root, policy, {
+        model: 'acme/model',
+        modelEffort: 'max',
+      }),
+    ).resolves.toMatchObject({ model: 'acme/model' });
+    await expect(
+      resolveRunBudget(root, policy, { model: 'acme/model' }),
+    ).rejects.toThrow(
+      /judges with acme\/model at effort max; audit\.json now asks for the engine's own effort\. A run never changes how its model is asked/,
+    );
+    await expect(
+      resolveRunBudget(root, policy, {
+        model: 'acme/model',
+        modelEffort: 'low',
+      }),
+    ).rejects.toBeInstanceOf(RunModelChangedError);
+  });
+
+  it('should freeze the writer audit.json names with the model, and refuse a resume that names another or none', async () => {
+    await resolveRunBudget(root, policy, { model, writeModel: 'acme/writer' });
+
+    await expect(
+      resolveRunBudget(root, policy, { model, writeModel: 'acme/writer' }),
+    ).resolves.toMatchObject({ model });
+    await expect(readFrozenBudget(root)).resolves.toMatchObject({
+      writeModel: 'acme/writer',
+    });
+    await expect(resolveRunBudget(root, policy, { model })).rejects.toThrow(
+      /writes its report with acme\/writer; audit\.json now names its report model \(no writeModel\)\. A run never changes its models/,
+    );
+
+    const other = resolveRunBudget(root, policy, {
+      model,
+      writeModel: 'acme/other',
+    });
+
+    await expect(other).rejects.toBeInstanceOf(RunModelChangedError);
+    await expect(other).rejects.toThrow(/rejudge .* --write-model/);
+  });
+
+  it('should refuse a writer named on the resume of a run that started without one', async () => {
+    await resolveRunBudget(root, policy, { model });
+
+    await expect(
+      resolveRunBudget(root, policy, { model, writeModel: 'acme/writer' }),
+    ).rejects.toThrow(
+      /writes its report with its report model \(no writeModel\); audit\.json now names acme\/writer/,
+    );
+  });
+
   it('should refuse a resume whose audit.json names another model', async () => {
     await resolveRunBudget(root, policy, { model });
 
@@ -805,12 +952,84 @@ describe('run-configuration - recordRunConfiguration()', () => {
       dir,
       configFile,
       evidence: { kind: 'manual' },
-      model: 'anthropic/claude-sonnet-5.5',
+      model: { model: 'anthropic/claude-sonnet-5.5' },
     });
 
     const recorded = await readAuditFile(path.join(dir, auditCopyFile));
 
     expect(recorded.model).toBe('anthropic/claude-sonnet-5.5');
     expect(recorded.brand).toEqual(exampleFile.brand);
+  });
+
+  it('should record the effort a rejudgment asked its model for, never the one the source file named for its own', async () => {
+    const configFile = path.join(root, 'source-audit.json');
+    const atMax = path.join(root, 'rejudged-max');
+    const plain = path.join(root, 'rejudged-plain');
+
+    await mkdir(atMax, { recursive: true });
+    await mkdir(plain, { recursive: true });
+    await writeFile(
+      configFile,
+      JSON.stringify({
+        ...exampleFile,
+        model: 'acme/model',
+        modelEffort: 'low',
+      }),
+    );
+
+    await recordRunConfiguration({
+      dir: atMax,
+      configFile,
+      evidence: { kind: 'manual' },
+      model: { model: 'acme/other', modelEffort: 'max' },
+    });
+    await recordRunConfiguration({
+      dir: plain,
+      configFile,
+      evidence: { kind: 'manual' },
+      model: { model: 'acme/other' },
+    });
+
+    expect(await readAuditFile(path.join(atMax, auditCopyFile))).toMatchObject({
+      model: 'acme/other',
+      modelEffort: 'max',
+    });
+    expect(
+      await readAuditFile(path.join(plain, auditCopyFile)),
+    ).not.toHaveProperty('modelEffort');
+  });
+
+  it("should record the writer a rejudgment named, and keep the source file's when it named none", async () => {
+    const configFile = path.join(root, 'source-audit.json');
+    const renamed = path.join(root, 'rejudged-writer');
+    const kept = path.join(root, 'rejudged-kept');
+
+    await mkdir(renamed, { recursive: true });
+    await mkdir(kept, { recursive: true });
+    await writeFile(
+      configFile,
+      JSON.stringify({ ...exampleFile, writeModel: 'acme/writer' }),
+    );
+
+    await recordRunConfiguration({
+      dir: renamed,
+      configFile,
+      evidence: { kind: 'manual' },
+      model: { model: 'acme/model', writeModel: 'acme/other-writer' },
+    });
+    await recordRunConfiguration({
+      dir: kept,
+      configFile,
+      evidence: { kind: 'manual' },
+      model: { model: 'acme/model' },
+    });
+
+    expect(
+      await readAuditFile(path.join(renamed, auditCopyFile)),
+    ).toMatchObject({ model: 'acme/model', writeModel: 'acme/other-writer' });
+    expect(await readAuditFile(path.join(kept, auditCopyFile))).toMatchObject({
+      model: 'acme/model',
+      writeModel: 'acme/writer',
+    });
   });
 });

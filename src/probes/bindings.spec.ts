@@ -4,15 +4,19 @@ import {
   engineSecretSettingNames,
 } from '../engine/preflight';
 import { surfaceRetrievalExposure } from '../retrieval';
-import { allSurfaces } from '../surfaces';
+import { allSurfaces, defaultSurfaces } from '../surfaces';
+import type { CapturedUnitRecord } from '../stores/ports';
 import { ProbeAdapterId, type ProbeAdapter } from './adapter';
 import { agentAuthEnv, assertAgentAuth } from './agent-clis';
 import {
+  consumerProbeBindings,
   createChatAdapter,
   defaultProbeBindings,
+  ownBindingOf,
   probeAdapterProfiles,
   probeDependenciesOf,
   profileOf,
+  surfaceLabelOverrides,
 } from './bindings';
 import { legacyProbeBindings } from './legacy-bindings';
 
@@ -23,18 +27,45 @@ import { legacyProbeBindings } from './legacy-bindings';
 // ============================================================================
 
 describe('bindings - defaultProbeBindings', () => {
-  it('should bind every surface to the legacy binding until a method release changes it', () => {
-    expect(defaultProbeBindings).toEqual(legacyProbeBindings);
+  it('should pin each API chat surface to its free-tier model and keep every other legacy binding', () => {
+    // The method: changing a row is a method release (method release
+    // spec §4), never a refactor.
+    expect(defaultProbeBindings).toEqual({
+      ...legacyProbeBindings,
+      // Through the adapter version with room for a model that reasons.
+      chatgpt: { adapter: 'gateway.openai@2', model: 'openai/gpt-6-luna' },
+      // Its answers run past the released adapter's allowance too.
+      claude: {
+        adapter: 'gateway.anthropic@2',
+        model: 'anthropic/claude-sonnet-5',
+      },
+      gemini: {
+        adapter: 'gateway.google@1',
+        model: 'google/gemini-3.5-flash-lite',
+      },
+      perplexity: {
+        adapter: 'gateway.perplexity@1',
+        model: 'perplexity/sonar',
+      },
+    });
+    // A consumer app is bound only in a run whose audit lists it.
     expect(Object.keys(defaultProbeBindings).sort()).toEqual(
-      [...allSurfaces].sort(),
+      [...defaultSurfaces].sort(),
     );
+  });
+
+  it('should bind each consumer app to its scrape, with no model', () => {
+    expect(consumerProbeBindings).toEqual({
+      chatgpt_app: { adapter: 'dataforseo.chatgpt_app@1' },
+      google_ai_mode: { adapter: 'dataforseo.ai_mode@1' },
+    });
   });
 
   it('should declare the same retrieval exposure as the client-safe table for every surface', () => {
     const declared = Object.fromEntries(
       allSurfaces.map((surface) => [
         surface,
-        profileOf(defaultProbeBindings[surface]).observes.retrieval,
+        profileOf(ownBindingOf(surface)).observes.retrieval,
       ]),
     );
 
@@ -137,7 +168,7 @@ describe('bindings - createChatAdapter()', () => {
             registry: () => registered(fields),
           },
         }),
-      ).toThrow(/not the run's binding of gateway\.openai@1/);
+      ).toThrow(/not the run's binding of gateway\.openai@2/);
     },
   );
 });
@@ -195,6 +226,55 @@ describe('agent-clis - assertAgentAuth()', () => {
         runtimeWith({ ANTHROPIC_API_KEY: 'fake-anthropic-key' }),
       ),
     ).not.toThrow();
+  });
+});
+
+describe('bindings - surfaceLabelOverrides()', () => {
+  const askedOf = (
+    surface: 'chatgpt' | 'claude' | 'codex',
+    requestedModel: string | null,
+  ): CapturedUnitRecord => {
+    return {
+      status: 'captured',
+      sectionKey: 'file_stores',
+      promptId: 'p1',
+      promptText: 'Which store?',
+      surface,
+      runIndex: 1,
+      capturedAt: '2026-11-10T10:00:00.000Z',
+      probe: {
+        promptId: 'p1',
+        promptText: 'Which store?',
+        promptCategory: 'comparison',
+        modelName: surface,
+        runIndex: 1,
+        text: 'Acme Files.',
+      },
+      captureMetadata: { requestedModel, reportedModel: null, parameters: {} },
+    };
+  };
+
+  it('should label nothing when every surface was asked of its default model', () => {
+    expect(
+      surfaceLabelOverrides([
+        askedOf('chatgpt', defaultProbeBindings.chatgpt.model ?? null),
+        askedOf('claude', defaultProbeBindings.claude.model ?? null),
+        // A coding agent's CLI names its own model: never a label.
+        askedOf('codex', 'gpt-test-codex'),
+      ]),
+    ).toEqual({});
+  });
+
+  it('should name the model in the label of a surface asked of another one, legacy models included', () => {
+    expect(
+      surfaceLabelOverrides([
+        askedOf('chatgpt', 'openai/gpt-test-1'),
+        askedOf('claude', legacyProbeBindings.claude.model),
+      ]),
+    ).toEqual({
+      chatgpt: 'ChatGPT (API, openai/gpt-test-1)',
+      claude: 'Claude (API, anthropic/claude-sonnet-4.5)',
+    });
   });
 });
 

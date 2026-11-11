@@ -1,4 +1,4 @@
-import { operationKinds, type BundleEvent } from './contracts';
+import { operationKindsOf, type BundleEvent } from './contracts';
 import { sha256Hex } from './json';
 
 // ============================================================================
@@ -46,16 +46,20 @@ const recordOf = (value: unknown): Record<string, unknown> => {
 };
 
 /** The kinds some writer of the run did not declare it observes. */
-const unobservedKinds = (events: readonly BundleEvent[]): string[] => {
+const unobservedKinds = (
+  events: readonly BundleEvent[],
+  bundleSchema: number,
+): string[] => {
+  const kinds = operationKindsOf(bundleSchema);
   const writers = events.filter(
     (event) => event.type === 'run_started' || event.type === 'run_resumed',
   );
 
   if (writers.length === 0) {
-    return [...operationKinds];
+    return [...kinds];
   }
 
-  return operationKinds.filter((kind) =>
+  return kinds.filter((kind) =>
     writers.some(
       (writer) => !stringList(writer.payload.observes).includes(kind),
     ),
@@ -108,20 +112,23 @@ const probedAnswers = (
  * assessTraceCoverage finds the gaps in a journal: a writer that did not
  * observe every operation kind, or a captured answer that no probe
  * operation in the journal returned byte for byte. A derived run's answers
- * come from its predecessor, whose own trace covers them.
+ * come from its predecessor, whose own trace covers them. The kinds are
+ * those of the bundle's own schema version.
  */
 export const assessTraceCoverage = ({
   events,
   captured,
   derived,
+  bundleSchema,
 }: {
   events: readonly BundleEvent[];
   captured: readonly CapturedAnswer[];
   derived: boolean;
+  bundleSchema: number;
 }): TraceCoverageAssessment => {
   const gaps: string[] = [];
   const notes: string[] = [];
-  const unobserved = unobservedKinds(events);
+  const unobserved = unobservedKinds(events, bundleSchema);
 
   if (unobserved.length > 0) {
     gaps.push(

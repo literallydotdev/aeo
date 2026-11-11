@@ -33,9 +33,10 @@ import {
   createFileModelAccounting,
   type ModelCallAccounting,
 } from '../models/accounting';
-import { resolveSupportedModel } from '../models/supported-models';
+import type { ModelCatalogSource } from '../models/catalog';
+import { recommendedModelId } from '../models/supported-models';
 import { chargedProbeTrace } from '../probes/charged-trace';
-import { probeDependenciesOf } from '../probes/bindings';
+import { catalogPricedModels, probeDependenciesOf } from '../probes/bindings';
 import type { InternalModelContext } from '../models/context';
 import { ProbeLimiter } from '../probes/limits';
 import { planRun, type RunPlan } from '../runner';
@@ -44,8 +45,22 @@ import { hasErrorCode } from '../stores/fs-errors';
 import { openFileStores } from '../stores/files';
 import type { CapturedUnitRecord } from '../stores/ports';
 import { getEnvironment } from '../lib/env';
-import { toAuditConfig, toRunRequest, type AuditFile } from './audit-file';
+import {
+  measuredSurfaces,
+  requestedBindings,
+  toAuditConfig,
+  toRunRequest,
+  type AuditFile,
+} from './audit-file';
 import { resolveRunBindings } from './run-bindings';
+import {
+  recordedCatalogSource,
+  resolveReportModels,
+  resolveRunModels,
+  type ReportModels,
+} from './run-models';
+import { bankDir } from './run-configuration';
+import { resolveRunMethod } from './run-method';
 import {
   readFrozenBudget,
   resolveRunBudget,
@@ -61,8 +76,6 @@ import {
 // banked answer is reused and only a missing unit is probed.
 // ============================================================================
 
-export const bankDir = 'BANK';
-
 export type LocalPlan = {
   config: AeoAuditConfig;
   request: RunRequest;
@@ -71,9 +84,15 @@ export type LocalPlan = {
 };
 
 /** planLocalRun resolves what a run would measure; no I/O, no network. */
-export const planLocalRun = (file: AuditFile, runId = 'planned'): LocalPlan => {
+export const planLocalRun = (
+  file: AuditFile,
+  runId = 'planned',
+  /** The report's models once resolved; the engine's own entry for the
+   * model the file names when absent. */
+  models?: ReportModels,
+): LocalPlan => {
   const config = toAuditConfig(file);
-  const request = toRunRequest(file, runId);
+  const request = toRunRequest(file, runId, { ...models });
   const plan = planRun(config, request);
 
   const localPlan: LocalPlan = {
@@ -91,6 +110,15 @@ export const planLocalRun = (file: AuditFile, runId = 'planned'): LocalPlan => {
   };
 
   return localPlan;
+};
+
+/** What a file measures, as digests. They do not depend on the report
+ * model, so none is resolved or priced to compute them. */
+export const localRunDigests = (
+  file: AuditFile,
+  runId = 'planned',
+): LocalPlan['digests'] => {
+  return planLocalRun({ ...file, model: undefined }, runId).digests;
 };
 
 /** Whether full grounding will search through the pinned provider, so its
@@ -170,6 +198,9 @@ export const openLocalRun = async (
     maxUsd?: number;
     amendment?: BudgetAmendment;
     derivedFromRunId?: string;
+    /** Where a report model the engine has no entry for is priced from;
+     * without one, such a model is refused. */
+    catalog?: ModelCatalogSource;
   } = {},
 ): Promise<LocalRun> => {
   await mkdir(dir, { recursive: true });
@@ -179,13 +210,15 @@ export const openLocalRun = async (
 
   try {
     const runId = await persistedRunId(dir);
-    const planned = planLocalRun(file, runId);
+    // The report model is resolved, and its price frozen, only once the
+    // directory's method is known to match (openLockedLocalRun).
+    const digests = localRunDigests(file, runId);
 
     recorder = await openRecorder(dir, {
       origin: RunOrigin.LOCAL,
       runId,
-      measurementDigest: planned.digests.measurement,
-      planDigest: planned.digests.plan,
+      measurementDigest: digests.measurement,
+      planDigest: digests.plan,
       observes: recordedOperationKinds,
       ...(writer.takenOver && { takenOver: writer.takenOver }),
     });
@@ -220,6 +253,7 @@ const openLockedLocalRun = async (
     maxUsd,
     amendment,
     derivedFromRunId,
+    catalog,
     runId,
     held,
   }: {
@@ -227,27 +261,71 @@ const openLockedLocalRun = async (
     maxUsd?: number;
     amendment?: BudgetAmendment;
     derivedFromRunId?: string;
+    catalog?: ModelCatalogSource;
     runId: string;
     held: LocalRun['held'];
   },
 ): Promise<LocalRun> => {
   const { recorder } = held;
   const bank = path.join(dir, bankDir);
-  // Frozen before the budget and the first canary, then kept on every
-  // resume: a directory that holds a budget but no bindings started before
-  // bindings were frozen. Frozen after the budget, an attempt stopped
-  // between the two (a refused plan, a crash) would read as one.
+  // The method and the bindings are frozen before the budget and the first
+  // canary, then kept on every resume: a directory that holds a budget but
+  // not them started before they were frozen. Frozen after the budget, an
+  // attempt stopped between the two (a refused plan, a crash) would read as
+  // one. The method comes first, so a refused directory gains no file.
+  const frozenBudget = await readFrozenBudget(dir);
+  const startedBefore = frozenBudget !== undefined;
+
+  await resolveRunMethod(dir, bank, { startedBefore });
+
+  // A resume under another report model, effort or writer is the budget's
+  // to refuse. It is asked first, so the refused directory gains no price
+  // for that model.
+  const named = {
+    model: file.model ?? recommendedModelId,
+    ...(file.modelEffort !== undefined && { modelEffort: file.modelEffort }),
+    ...(file.writeModel !== undefined && { writeModel: file.writeModel }),
+  };
+
+  if (
+    frozenBudget?.model !== undefined &&
+    (frozenBudget.model !== named.model ||
+      frozenBudget.modelEffort !== named.modelEffort ||
+      frozenBudget.writeModel !== named.writeModel)
+  ) {
+    await resolveRunBudget(dir, file.runPolicy.budget, named);
+  }
+
   const bindings = await resolveRunBindings(bank, {
-    startedBefore: (await readFrozenBudget(dir)) !== undefined,
+    startedBefore,
+    requested: requestedBindings(file),
   });
+  const pricing = {
+    source: catalog && recordedCatalogSource(catalog, recorder),
+    now: new Date(),
+    freeze: true,
+  };
+  const models = await resolveReportModels(file, bank, pricing);
+  // A bound model the engine has no flat figure for is reserved at its
+  // catalog price, frozen here with the report's models'.
+  const probeModels = new Map(
+    (
+      await resolveRunModels(
+        bank,
+        catalogPricedModels(bindings, measuredSurfaces(file)),
+        pricing,
+      )
+    ).map((entry) => [entry.model.id, entry.model]),
+  );
   const budget = await resolveRunBudget(dir, file.runPolicy.budget, {
-    model: resolveSupportedModel(file.model).id,
+    ...named,
+    model: models.model.id,
     ...(maxUsd !== undefined && { maxUsd }),
     ...(amendment && { amendment }),
   });
   const config = toAuditConfig(file);
   const request = {
-    ...toRunRequest(file, runId, budget.limits),
+    ...toRunRequest(file, runId, { modelBudget: budget.limits, ...models }),
     ...(derivedFromRunId !== undefined && { derivedFromRunId }),
   };
   const plan = planRun(config, request);
@@ -311,11 +389,10 @@ const openLockedLocalRun = async (
     );
   }
 
-  const probes = chargedProbeTrace(
-    probeTraceOf(recorder, 'probe'),
-    ledger,
+  const probes = chargedProbeTrace(probeTraceOf(recorder, 'probe'), ledger, {
     bindings,
-  );
+    priced: probeModels,
+  });
   const capture = await captureForRun({
     probeDependencies: probeDependenciesOf(getEnvironment(), bindings),
     config,

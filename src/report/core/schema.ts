@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import { retrievalCallKinds, retrievalExposures } from './retrieval';
-import { allSurfaces } from './surfaces';
+import {
+  allSurfaces,
+  isCustomSurface,
+  type AeoCustomSurface,
+} from './surfaces';
 
 export const aeoSnapshotVersion = 2;
 
@@ -19,12 +23,37 @@ export {
   agentSurfaces,
   allSurfaces,
   chatSurfaces,
+  consumerSurfaces,
+  defaultSurfaces,
   surfaceRunCounts,
   isAgentSurface,
+  isBuiltInSurface,
+  isChatSurface,
+  isConsumerSurface,
+  isCustomSurface,
+  customSurfacePrefix,
+  customSurfaceKeyPattern,
+  customSurfaceRunCount,
 } from './surfaces';
-export type { AeoAgentSurface, AeoChatSurface, AeoSurface } from './surfaces';
+export type {
+  AeoAgentSurface,
+  AeoApiSurface,
+  AeoBuiltInSurface,
+  AeoChatSurface,
+  AeoConsumerSurface,
+  AeoCustomSurface,
+  AeoDefaultSurface,
+  AeoSurface,
+} from './surfaces';
 
-export const aeoSurfaceSchema = z.enum(allSurfaces);
+export const aeoSurfaceSchema = z.union([
+  z.enum(allSurfaces),
+  // The z.custom keeps the template type that z.string() would widen.
+  z.custom<AeoCustomSurface>(
+    (value) => typeof value === 'string' && isCustomSurface(value),
+    { error: 'Expected a built-in surface or a custom surface ID.' },
+  ),
+]);
 
 // ---------------------------------------------------------------------------
 // Retrieval log (retrieval-log spec §4) — the searches and fetches behind one
@@ -201,6 +230,20 @@ export const aeoMatrixRowSchema = z.object({
 
 export type AeoMatrixRow = z.infer<typeof aeoMatrixRowSchema>;
 
+// Calculation version 2 (specs/aeo-method-release-spec.md §6.2): the counts
+// behind a published rate and its approximate 95% interval over the planned
+// answers. Every field that carries it is optional, so a snapshot made
+// before it and an older reader keep working.
+export const aeoRateEvidenceSchema = z.object({
+  count: z.number().int().nonnegative(),
+  captured: z.number().int().nonnegative(),
+  planned: z.number().int().positive(),
+  low: z.number().min(0).max(1),
+  high: z.number().min(0).max(1),
+});
+
+export type AeoRateEvidence = z.infer<typeof aeoRateEvidenceSchema>;
+
 export const aeoVisibilitySchema = z.object({
   prompts: z.array(
     z.object({ text: z.string(), category: aeoPromptCategorySchema }),
@@ -218,15 +261,37 @@ export const aeoVisibilitySchema = z.object({
     // agent surfaces weren't run.
     agentShareOfVoice: z.number().min(0).max(1).nullable(),
     agentCitationRate: z.number().min(0).max(1).nullable(),
+    // Consumer-app pair over the scraped products (method release spec
+    // §5.5), never part of the chat headline. Present only when the run
+    // planned a consumer app; null when it had no prompt left to score.
+    consumerShareOfVoice: z.number().min(0).max(1).nullable().optional(),
+    consumerCitationRate: z.number().min(0).max(1).nullable().optional(),
+    // Beside each measured rate from calculation version 2.
+    prospectShareOfVoiceEvidence: aeoRateEvidenceSchema.optional(),
+    prospectCitationRateEvidence: aeoRateEvidenceSchema.optional(),
+    agentShareOfVoiceEvidence: aeoRateEvidenceSchema.optional(),
+    agentCitationRateEvidence: aeoRateEvidenceSchema.optional(),
+    consumerShareOfVoiceEvidence: aeoRateEvidenceSchema.optional(),
+    consumerCitationRateEvidence: aeoRateEvidenceSchema.optional(),
     byModel: z.record(
       z.string(),
-      z.object({ shareOfVoice: z.number(), citationRate: z.number() }),
+      z.object({
+        shareOfVoice: z.number(),
+        citationRate: z.number(),
+        shareOfVoiceEvidence: aeoRateEvidenceSchema.optional(),
+        citationRateEvidence: aeoRateEvidenceSchema.optional(),
+      }),
     ),
+    // A split of captured answers, not a visibility claim: counts from
+    // calculation version 2, no interval.
     byCompetitor: z.array(
       z.object({
         domain: z.string(),
         shareOfVoice: z.number(),
         citationRate: z.number(),
+        mentionedAnswers: z.number().int().nonnegative().optional(),
+        citedAnswers: z.number().int().nonnegative().optional(),
+        capturedAnswers: z.number().int().nonnegative().optional(),
       }),
     ),
     topCompetitorDomain: z.string().nullable(),
@@ -419,6 +484,16 @@ export const aeoSnapshotSchema = z.object({
     // CLI check, `agentClis.<cli>: null` can only mean "not in scope", and
     // this field says so explicitly. Optional: older snapshots lack it.
     surfaces: z.array(aeoSurfaceSchema).optional(),
+    // The label of each surface that was not asked of its default model,
+    // naming the model it was asked of. Absent on a run measured with the
+    // defaults: readers fall back to the engine's own labels.
+    surfaceLabels: z
+      .record(z.string().min(1).max(60), z.string().min(1).max(300))
+      .optional(),
+    // How the run measured, as fixed sentences the host built from what it
+    // observed (method release spec §8): never written by a model. Absent
+    // on a snapshot from before 0.4.0.
+    methodology: z.array(z.string().min(1).max(1500)).max(20).optional(),
     // Which agent CLIs answered, for the methodology note. Null = not run.
     agentClis: z
       .object({

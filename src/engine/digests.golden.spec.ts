@@ -97,7 +97,9 @@ describe('project - projectWorkdir() golden pins', () => {
       reportKey: planned.config.reportKey,
       runId: 'golden-run',
       config: planned.config,
-      request: toRunRequest(fixedAuditFile, 'golden-run', fixedModelBudget),
+      request: toRunRequest(fixedAuditFile, 'golden-run', {
+        modelBudget: fixedModelBudget,
+      }),
       surfaces: planned.plan.surfaces,
       capture: {
         version: 1,

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { hasErrorCode } from '../stores/fs-errors';
 import {
   bundlePaths,
+  bundleSchemaVersion,
   objectPathPrefix,
   RunOrigin,
   type BundleManifest,
@@ -153,7 +154,12 @@ export const projectJournal = async (
       return runtime.success ? [runtime.data] : [];
     });
 
-  const coverage = assessTraceCoverage({ events, captured, derived });
+  const coverage = assessTraceCoverage({
+    events,
+    captured,
+    derived,
+    bundleSchema: bundleSchemaVersion,
+  });
   const trace: BundleManifest['trace'] =
     coverage.gaps.length === 0
       ? {

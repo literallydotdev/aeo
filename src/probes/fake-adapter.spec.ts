@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { bundleSchemaVersion } from '../bundle/contracts';
 import { readJournal } from '../bundle/journal';
 import {
   openRecorder,
@@ -19,7 +20,13 @@ import { aeoAuditConfigSchema } from '../schema';
 import { MemoryProbeStore } from '../stores/memory';
 import type { CapturedUnitRecord } from '../stores/ports';
 import type { ProbeAdapter } from './adapter';
-import { defaultProbeBindings, type ChatAdapterRegistry } from './bindings';
+import {
+  bankBindingMismatches,
+  defaultProbeBindings,
+  profileOf,
+  requestedBindingsOf,
+  type ChatAdapterRegistry,
+} from './bindings';
 import { chargedProbeTrace } from './charged-trace';
 
 // ============================================================================
@@ -127,11 +134,9 @@ describe('probes - a registered adapter', () => {
         runId: 'fake-run',
         probeStore,
         analysisStore: null,
-        trace: chargedProbeTrace(
-          probeTraceOf(recorder, 'probe'),
-          ledger,
-          defaultProbeBindings,
-        ).trace,
+        trace: chargedProbeTrace(probeTraceOf(recorder, 'probe'), ledger, {
+          bindings: defaultProbeBindings,
+        }).trace,
         probeDependencies: {
           bindings: defaultProbeBindings,
           gateway: () => 'unused',
@@ -172,8 +177,8 @@ describe('probes - a registered adapter', () => {
     ).toEqual([0.004, 0.004]);
     // Journaled with the adapter and its request.
     expect(started.map((event) => event.payload.details)).toEqual([
-      expect.objectContaining({ adapter: 'gateway.openai@1' }),
-      expect.objectContaining({ adapter: 'gateway.openai@1' }),
+      expect.objectContaining({ adapter: 'gateway.openai@2' }),
+      expect.objectContaining({ adapter: 'gateway.openai@2' }),
     ]);
     // Covered: a probe operation returned every banked answer.
     expect(
@@ -181,7 +186,121 @@ describe('probes - a registered adapter', () => {
         events,
         captured: banked.map(capturedAnswerOf),
         derived: false,
+        bundleSchema: bundleSchemaVersion,
       }).gaps,
     ).toEqual([]);
+  });
+
+  it('should capture a custom surface the same way, reserved at its catalog price and banked under its own adapter', async () => {
+    if (!section) {
+      throw new Error('The config has no section.');
+    }
+
+    const bindings = requestedBindingsOf({}, [
+      { key: 'grok', model: 'acme/grok-5' },
+    ]);
+    const probe = vi.fn<ProbeAdapter['probe']>((promptText) =>
+      Promise.resolve({
+        answerText: `Acme Files answers: ${promptText}`,
+        sources: { format: 'none' },
+        retrieval: { exposure: 'full', calls: [] },
+        servedModel: 'acme/grok-5',
+      }),
+    );
+    const registry: ChatAdapterRegistry = (surface, binding) => {
+      return {
+        ...profileOf(binding),
+        model: binding.model,
+        surface,
+        request: (promptText) => ({ prompt: promptText, parameters: {} }),
+        probe,
+        classifyError: (error) => ({
+          kind: 'cli_error',
+          message: String(error),
+        }),
+      };
+    };
+    const ledger = createMemoryModelAccounting({
+      maxUsd: 10,
+      maxTokens: 1_000_000,
+      deadlineAt: '2099-01-01T00:00:00.000Z',
+    });
+    const recorder = await openRecorder(root, {
+      origin: 'local',
+      runId: 'fake-run',
+      measurementDigest: '0'.repeat(64),
+      planDigest: '0'.repeat(64),
+      observes: recordedOperationKinds,
+    });
+    const probeStore = new MemoryProbeStore();
+    const priced = new Map([
+      [
+        'acme/grok-5',
+        {
+          id: 'acme/grok-5',
+          label: 'Grok 5',
+          pricingUsdPerMillion: { input: 2, output: 10, cachedInput: 0.2 },
+          webSearchUsdPerRequest: null,
+          contextWindow: null,
+          maxOutputTokens: null,
+          reasoning: false,
+          reasoningEfforts: [],
+        },
+      ],
+    ]);
+
+    const captured = await captureSectionProbes({
+      sectionKey: section.key,
+      brand: config.brand,
+      competitors: config.competitors,
+      prompts: section.prompts,
+      geography: config.geography,
+      language: config.language,
+      surfaces: ['custom:grok'],
+      agentProbes: config.agentProbes,
+      chatProbes: config.chatProbes,
+      agentCliVersions: { claudeCode: null, codex: null, cursor: null },
+      runId: 'fake-run',
+      probeStore,
+      analysisStore: null,
+      trace: chargedProbeTrace(probeTraceOf(recorder, 'probe'), ledger, {
+        bindings,
+        priced,
+      }).trace,
+      probeDependencies: { bindings, gateway: () => 'unused', registry },
+      logContext: {},
+    });
+    const banked = (await probeStore.list()).filter(
+      (record): record is CapturedUnitRecord => record.status === 'captured',
+    );
+
+    expect(captured.coverage).toEqual([
+      { surface: 'custom:grok', planned: 2, captured: 2 },
+    ]);
+    // A custom surface has no legacy adapter: its capture always names one.
+    expect(banked.map((record) => record.captureMetadata)).toEqual([
+      expect.objectContaining({
+        adapter: 'gateway.search@1',
+        requestedModel: 'acme/grok-5',
+      }),
+      expect.objectContaining({
+        adapter: 'gateway.search@1',
+        requestedModel: 'acme/grok-5',
+      }),
+    ]);
+    expect(bankBindingMismatches(banked, bindings)).toEqual([]);
+    // The answers were reused under the binding that captured them, and a
+    // run bound to another model refuses them.
+    expect(
+      bankBindingMismatches(
+        banked,
+        requestedBindingsOf({}, [{ key: 'grok', model: 'acme/grok-6' }]),
+      ),
+    ).toHaveLength(2);
+    // Reserved at the catalog price: no cost was reported, so each call
+    // keeps its high estimate (75,000 in, 8,000 out, ten $0.005 searches).
+    expect(
+      Object.values(ledger.state.calls).map((call) => call.reservedUsd),
+    ).toEqual([0.28, 0.28]);
   });
 });

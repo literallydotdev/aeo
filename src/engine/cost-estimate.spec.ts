@@ -4,7 +4,11 @@ import {
   createMemoryModelAccounting,
 } from '../models/accounting';
 import { authorToolCaps } from '../codex-workflow/author-tools';
-import { probeUsd, sessionReservation } from '../models/cost-coefficients';
+import {
+  copyRequestTokens,
+  probeUsd,
+  sessionReservation,
+} from '../models/cost-coefficients';
 import { tokenCostUsd } from '../models/pricing';
 import { defaultProbeBindings } from '../probes/bindings';
 import {
@@ -61,9 +65,14 @@ const replayed = async (
     return chargedTotal([ledger.state.calls[callId] ?? never()]).usd;
   };
 
-  const stages =
-    (await charge('analyze', 'stage:analyze', run.stageTokens.perAnswer)) +
-    (await charge('write', 'stage:write', run.stageTokens.perRun));
+  // The recorded runs wrote their copy in a session (`perRun`). The draft
+  // is one request now, estimated among the host's calls, so only the
+  // stages that still run sessions are held to the stages' estimate.
+  const stages = await charge(
+    'analyze',
+    'stage:analyze',
+    run.stageTokens.perAnswer,
+  );
   const hostCalls = await charge('host', 'perception', {
     ...run.hostTokens,
     cachedInput: 0,
@@ -77,7 +86,7 @@ const never = (): never => {
 };
 
 describe('cost-estimate - estimateRunCost()', () => {
-  it("should price each surface's probes at its bound adapter, under coefficients version 2", () => {
+  it("should price each surface's probes at its bound adapter's flat figure, under coefficients version 3", () => {
     const plan = {
       units: Array.from({ length: 4 }, (_, index) => ({ index })),
       probesBySurface: new Map<AeoSurface, number>([['chatgpt', 4]]),
@@ -92,20 +101,63 @@ describe('cost-estimate - estimateRunCost()', () => {
     };
 
     const defaults = priced(defaultProbeBindings);
+    // Another of the engine's own bindings behind the surface.
     const rebound = priced({
       ...defaultProbeBindings,
-      chatgpt: { adapter: 'gateway.anthropic@1', model: 'anthropic/test-1' },
+      chatgpt: defaultProbeBindings.claude,
     });
 
-    expect(defaults.coefficientsVersion).toBe(2);
+    expect(defaults.coefficientsVersion).toBe(3);
     expect(defaults.categories.probes).toEqual({
-      low: probeUsd['gateway.openai@1'].low * 4,
-      high: probeUsd['gateway.openai@1'].high * 4,
+      low: probeUsd['gateway.openai@2'].low * 4,
+      high: probeUsd['gateway.openai@2'].high * 4,
     });
     expect(rebound.categories.probes).toEqual({
-      low: probeUsd['gateway.anthropic@1'].low * 4,
-      high: probeUsd['gateway.anthropic@1'].high * 4,
+      low: probeUsd['gateway.anthropic@2'].low * 4,
+      high: probeUsd['gateway.anthropic@2'].high * 4,
     });
+  });
+
+  it("should price a probe of any other model from its catalog price and a probe's assumed usage", () => {
+    const plan = {
+      units: Array.from({ length: 4 }, (_, index) => ({ index })),
+      probesBySurface: new Map<AeoSurface, number>([['chatgpt', 4]]),
+    } as never;
+    const bindings = {
+      ...defaultProbeBindings,
+      chatgpt: { adapter: 'gateway.openai@1', model: 'openai/gpt-test-1' },
+    } as const;
+    const listed = {
+      id: 'openai/gpt-test-1',
+      label: 'GPT Test 1',
+      pricingUsdPerMillion: { input: 2, output: 10, cachedInput: 0.2 },
+      webSearchUsdPerRequest: 0.02,
+      contextWindow: 200_000,
+      maxOutputTokens: 16_000,
+      reasoning: true,
+      reasoningEfforts: [],
+    };
+
+    const estimate = estimateRunCost({
+      plan,
+      model: resolveSupportedModel(),
+      grounding: 'extraction_only',
+      bindings,
+      probeModels: new Map([[listed.id, listed]]),
+    });
+
+    // One probe: 6,000 to 120,000 tokens in, 200 to 8,000 out, 1 to 7
+    // searches. At $2 and $10 per million and $0.02 a search that is
+    // $0.034 to $0.46, four times, to the cent.
+    expect(estimate.categories.probes).toEqual({ low: 0.14, high: 1.84 });
+    expect(() =>
+      estimateRunCost({
+        plan,
+        model: resolveSupportedModel(),
+        grounding: 'extraction_only',
+        bindings,
+      }),
+    ).toThrow(/No catalog price was resolved for openai\/gpt-test-1/);
   });
 
   it('should estimate every category, with a cap at the high end', () => {
@@ -125,7 +177,14 @@ describe('cost-estimate - estimateRunCost()', () => {
       'hostCalls',
       'search',
     ]);
-    expect(ranges.filter((range) => range.low <= 0)).toEqual([]);
+    // Every category can cost something. Research that reads the pages it
+    // already holds searches nothing, so search alone starts at zero.
+    expect(ranges.filter((range) => range.high <= 0)).toEqual([]);
+    expect(
+      Object.entries(estimate.categories)
+        .filter(([, range]) => range.low <= 0)
+        .map(([category]) => category),
+    ).toEqual(['search']);
     expect(ranges.filter((range) => range.high < range.low)).toEqual([]);
     expect(estimate.recommendedCapUsd).toBeGreaterThanOrEqual(estimate.high);
   });
@@ -162,6 +221,43 @@ describe('cost-estimate - estimateRunCost()', () => {
     },
   );
 
+  it("should price the copywriter's one request at the writer's prices when the audit names one, and say which model that is", () => {
+    const model = resolveSupportedModel();
+    const freeWriter = {
+      ...model,
+      id: 'acme/free-writer',
+      pricingUsdPerMillion: { input: 0, output: 0, cachedInput: 0 },
+    };
+    const options = {
+      plan: planOf(32),
+      bindings: defaultProbeBindings,
+      model,
+      grounding: 'full' as const,
+    };
+    const requestOnReportModel = tokenCostUsd(model.pricingUsdPerMillion, {
+      inputTokens: copyRequestTokens.high.input,
+      cachedInputTokens: 0,
+      outputTokens: copyRequestTokens.high.output,
+    });
+
+    const own = estimateRunCost(options);
+    const written = estimateRunCost({ ...options, writer: freeWriter });
+
+    // A writer that costs nothing takes exactly its request out.
+    expect(
+      own.categories.hostCalls.high - written.categories.hostCalls.high,
+    ).toBeCloseTo(requestOnReportModel, 1);
+    expect(written.categories.hostCalls.low).toBeLessThan(
+      own.categories.hostCalls.low,
+    );
+    expect(written.categories.stages).toEqual(own.categories.stages);
+    expect(written).toMatchObject({
+      model: model.id,
+      writeModel: 'acme/free-writer',
+    });
+    expect(own).not.toHaveProperty('writeModel');
+  });
+
   it('should charge nothing for search under extraction-only grounding', () => {
     const estimate = estimateRunCost({
       plan: planOf(16),
@@ -193,22 +289,33 @@ describe('cost-estimate - reservations under the recommended cap', () => {
   );
 
   it.each(supportedModels.map((model) => [model.id] as const))(
-    "should reserve the write session within the estimate's high end for the stages on %s",
+    "should estimate the copywriter's one request among the host's calls on %s, and no write session among the stages",
     (modelId) => {
       const model = resolveSupportedModel(modelId);
-      const estimate = estimateRunCost({
-        plan: planOf(4),
+      const none = estimateRunCost({
+        plan: planOf(0),
         bindings: defaultProbeBindings,
         model,
         grounding: 'full',
       });
+      const request = (tokens: { input: number; output: number }) => {
+        return (
+          Math.round(
+            tokenCostUsd(model.pricingUsdPerMillion, {
+              inputTokens: tokens.input,
+              cachedInputTokens: 0,
+              outputTokens: tokens.output,
+            }) * 100,
+          ) / 100
+        );
+      };
 
-      const write = tokenCostUsd(
-        model.pricingUsdPerMillion,
-        sessionReservation({ cost: 'report', answers: 0 }),
-      );
-
-      expect(write).toBeLessThanOrEqual(estimate.categories.stages.high);
+      // A run with no answer still writes its report: one request.
+      expect(none.categories.stages).toEqual({ low: 0, high: 0 });
+      expect(none.categories.hostCalls).toEqual({
+        low: request(copyRequestTokens.low),
+        high: request(copyRequestTokens.high),
+      });
     },
   );
 });

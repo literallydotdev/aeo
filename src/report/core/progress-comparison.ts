@@ -1,4 +1,8 @@
-import { isAgentSurface, type AeoSurface } from './surfaces';
+import {
+  surfaceFamilyOf,
+  type AeoSurface,
+  type SurfaceFamily,
+} from './surfaces';
 import type { ProgressMeasurement, ProgressSlot } from './progress-schema';
 import {
   hasRetainedCaptureIdentity,
@@ -7,8 +11,19 @@ import {
   progressQuestionSetKey,
 } from './progress-question-sets';
 import { progressSlotKey } from './progress-slot-key';
+import {
+  progressStatistic,
+  progressStatisticsVersion,
+  type ProgressStatistic,
+  type ProgressStatisticSkip,
+  type ProgressStratum,
+} from './progress-statistics';
 
 export type { ProgressMeasurement, ProgressSlot } from './progress-schema';
+export type {
+  ProgressStatistic,
+  ProgressStatisticSkip,
+} from './progress-statistics';
 export { selectProgressMeasurements } from './progress-question-sets';
 export { progressSlotKey } from './progress-slot-key';
 
@@ -24,10 +39,16 @@ export type ProgressCounts = {
 };
 
 export type ProgressGroupComparison = {
+  /** Why this group's comparison is partial: what holds for the two audits
+   * as wholes, and what its own matched slots show. Empty when the group
+   * is comparable, whatever the slots of another group show. */
+  reasons: ProgressComparisonReason[];
   baseline: ProgressCounts;
   current: ProgressCounts;
   mentionDeltaPp: number | null;
   citationDeltaPp: number | null;
+  /** Change or noise, per metric (method release spec §7.2). */
+  statistics: { mention: ProgressStatistic; citation: ProgressStatistic };
 };
 
 /** Why a comparison is partial or unavailable; progressNotes words each one. */
@@ -51,6 +72,8 @@ export type ProgressComparisonReason =
   | 'includes_reused_captures';
 
 export type ProgressComparison = {
+  /** The selection as a whole: `partial` when any group of it is. Each
+   * group says what applies to it (`ProgressGroupComparison.reasons`). */
   status: 'comparable' | 'partial' | 'unavailable';
   reasons: ProgressComparisonReason[];
   baselineRunId: string;
@@ -64,14 +87,18 @@ export type ProgressComparison = {
   };
   groups: {
     chat: ProgressGroupComparison | null;
+    /** The consumer apps both audits measured (method release spec §5.5). */
+    consumer: ProgressGroupComparison | null;
     agents: ProgressGroupComparison | null;
+    /** The custom surfaces both audits measured (open models spec §5.3). */
+    custom: ProgressGroupComparison | null;
   };
 };
 
 export type ProgressSelection = {
   sectionKey?: string;
   surface?: AeoSurface;
-  scope?: 'all' | 'chat' | 'agents';
+  scope?: 'all' | SurfaceFamily;
 };
 
 const isSlotSelected = (
@@ -86,25 +113,25 @@ const isSlotSelected = (
     return false;
   }
 
-  if (selection.scope === 'chat' && isAgentSurface(slot.surface)) {
-    return false;
-  }
-
-  if (selection.scope === 'agents' && !isAgentSurface(slot.surface)) {
+  if (
+    selection.scope !== undefined &&
+    selection.scope !== 'all' &&
+    surfaceFamilyOf(slot.surface) !== selection.scope
+  ) {
     return false;
   }
 
   return true;
 };
 
+// A slot's outcome for each metric: an unobserved outcome is not positive.
+const isMentioned = (slot: ProgressSlot) => slot.analyzed && slot.mentioned;
+const isCited = (slot: ProgressSlot) => slot.citationObserved && slot.cited;
+
 const countSlots = (slots: readonly ProgressSlot[]): ProgressCounts => {
   const planned = slots.length;
-  const mentioned = slots.filter(
-    (slot) => slot.analyzed && slot.mentioned,
-  ).length;
-  const cited = slots.filter(
-    (slot) => slot.citationObserved && slot.cited,
-  ).length;
+  const mentioned = slots.filter(isMentioned).length;
+  const cited = slots.filter(isCited).length;
   const analyzed = slots.filter((slot) => slot.analyzed).length;
   const citationObserved = slots.filter((slot) => slot.citationObserved).length;
 
@@ -118,6 +145,99 @@ const countSlots = (slots: readonly ProgressSlot[]): ProgressCounts => {
     mentionRate: planned && analyzed ? mentioned / planned : null,
     citationRate: planned && citationObserved ? cited / planned : null,
   };
+};
+
+type MatchedSlot = { baseline: ProgressSlot; current: ProgressSlot };
+
+// The reasons a matched slot raises, each with its test. Every other reason
+// holds for the two measurements as wholes.
+const slotReasonTests = {
+  incomplete_capture_coverage: ({ baseline: a, current: b }) => {
+    return !a.captured || !b.captured;
+  },
+  incomplete_analysis_coverage: ({ baseline: a, current: b }) => {
+    return (
+      !a.analyzed || !b.analyzed || !a.citationObserved || !b.citationObserved
+    );
+  },
+  collection_method_changed: ({ baseline: a, current: b }) => {
+    return (
+      a.collectionMetadataKnown &&
+      b.collectionMetadataKnown &&
+      a.collectionMethodDigest !== b.collectionMethodDigest
+    );
+  },
+  collection_metadata_unknown: ({ baseline: a, current: b }) => {
+    return (
+      (a.captured && !a.collectionMetadataKnown) ||
+      (b.captured && !b.collectionMetadataKnown)
+    );
+  },
+} satisfies Partial<
+  Record<ProgressComparisonReason, (entry: MatchedSlot) => boolean>
+>;
+
+const isSlotReason = (
+  reason: ProgressComparisonReason,
+): reason is keyof typeof slotReasonTests => {
+  return Object.hasOwn(slotReasonTests, reason);
+};
+
+/** A group is judged on its own slots (method release spec §7.2): it keeps
+ * every reason of the comparison but the ones only another group's slots
+ * raise. A scrape that named another model, or one missed answer, then
+ * costs its own group its test and no other. */
+const groupReasonsOf = (
+  reasons: readonly ProgressComparisonReason[],
+  group: readonly MatchedSlot[],
+): ProgressComparisonReason[] => {
+  return reasons.filter(
+    (reason) => !isSlotReason(reason) || group.some(slotReasonTests[reason]),
+  );
+};
+
+/** One stratum per (section, question, surface): matched slots share their
+ * key, so each stratum has the same runs in both audits. */
+const strataOf = (
+  group: readonly MatchedSlot[],
+  isPositive: (slot: ProgressSlot) => boolean,
+): ProgressStratum[] => {
+  const strata = new Map<string, ProgressStratum>();
+
+  for (const { baseline, current } of group) {
+    const key = JSON.stringify([
+      baseline.sectionKey,
+      baseline.questionKey,
+      baseline.surface,
+    ]);
+    const stratum = strata.get(key) ?? { runs: 0, baseline: 0, current: 0 };
+
+    strata.set(key, {
+      runs: stratum.runs + 1,
+      baseline: stratum.baseline + Number(isPositive(baseline)),
+      current: stratum.current + Number(isPositive(current)),
+    });
+  }
+
+  return [...strata.values()];
+};
+
+/** Statistics only for a comparable whole-scope group: a chosen section or
+ * surface would multiply the tests a reader sees (spec §7.2). */
+const statisticsSkipOf = (
+  /** The group's own reasons. */
+  reasons: readonly ProgressComparisonReason[],
+  selection: ProgressSelection,
+): ProgressStatisticSkip | null => {
+  if (reasons.length) {
+    return 'comparison_partial';
+  }
+
+  if (selection.sectionKey || selection.surface) {
+    return 'section_or_surface_selected';
+  }
+
+  return null;
 };
 
 /** Compare only the questions both audits asked and the selected planned
@@ -140,7 +260,7 @@ export const deriveProgressComparison = (
       baselineExcludedSlots: 0,
       currentExcludedSlots: 0,
     },
-    groups: { chat: null, agents: null },
+    groups: { chat: null, consumer: null, agents: null, custom: null },
   };
 
   if (
@@ -258,21 +378,11 @@ export const deriveProgressComparison = (
     return result;
   }
 
-  if (
-    matched.some(({ baseline: a, current: b }) => !a.captured || !b.captured)
-  ) {
+  if (matched.some(slotReasonTests.incomplete_capture_coverage)) {
     result.reasons.push('incomplete_capture_coverage');
   }
 
-  if (
-    matched.some(
-      ({ baseline: a, current: b }) =>
-        !a.analyzed ||
-        !b.analyzed ||
-        !a.citationObserved ||
-        !b.citationObserved,
-    )
-  ) {
+  if (matched.some(slotReasonTests.incomplete_analysis_coverage)) {
     result.reasons.push('incomplete_analysis_coverage');
   }
 
@@ -287,24 +397,11 @@ export const deriveProgressComparison = (
     result.reasons.push('analyzer_changed');
   }
 
-  if (
-    matched.some(
-      ({ baseline: a, current: b }) =>
-        a.collectionMetadataKnown &&
-        b.collectionMetadataKnown &&
-        a.collectionMethodDigest !== b.collectionMethodDigest,
-    )
-  ) {
+  if (matched.some(slotReasonTests.collection_method_changed)) {
     result.reasons.push('collection_method_changed');
   }
 
-  if (
-    matched.some(
-      ({ baseline: a, current: b }) =>
-        (a.captured && !a.collectionMetadataKnown) ||
-        (b.captured && !b.collectionMetadataKnown),
-    )
-  ) {
+  if (matched.some(slotReasonTests.collection_metadata_unknown)) {
     result.reasons.push('collection_metadata_unknown');
   }
 
@@ -327,20 +424,33 @@ export const deriveProgressComparison = (
     result.reasons.push('includes_reused_captures');
   }
 
-  for (const scope of ['chat', 'agents'] as const) {
+  for (const scope of ['chat', 'consumer', 'agents', 'custom'] as const) {
     const group = matched.filter(
-      ({ baseline: slot }) =>
-        isAgentSurface(slot.surface) === (scope === 'agents'),
+      ({ baseline: slot }) => surfaceFamilyOf(slot.surface) === scope,
     );
 
     if (!group.length) {
       continue;
     }
 
+    const reasons = groupReasonsOf(result.reasons, group);
+    const statisticsSkipped = statisticsSkipOf(reasons, selection);
+    const statisticOf = (
+      isPositive: (slot: ProgressSlot) => boolean,
+    ): ProgressStatistic => {
+      return statisticsSkipped === null
+        ? progressStatistic(strataOf(group, isPositive))
+        : {
+            version: progressStatisticsVersion,
+            computed: false,
+            reason: statisticsSkipped,
+          };
+    };
     const baselineCounts = countSlots(group.map((entry) => entry.baseline));
     const currentCounts = countSlots(group.map((entry) => entry.current));
 
     result.groups[scope] = {
+      reasons,
       baseline: baselineCounts,
       current: currentCounts,
       mentionDeltaPp:
@@ -353,6 +463,10 @@ export const deriveProgressComparison = (
         baselineCounts.citationRate !== null
           ? (currentCounts.citationRate - baselineCounts.citationRate) * 100
           : null,
+      statistics: {
+        mention: statisticOf(isMentioned),
+        citation: statisticOf(isCited),
+      },
     };
   }
 

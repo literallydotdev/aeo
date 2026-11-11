@@ -20,6 +20,8 @@ const valueOptions = new Set([
   '--redact',
   '--max-usd',
   '--model',
+  '--effort',
+  '--write-model',
 ]);
 
 export const parseFlags = (argv: readonly string[]): Flags => {

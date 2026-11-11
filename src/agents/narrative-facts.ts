@@ -1,22 +1,59 @@
 import { plannedProbeUnitsForSection } from '../lib/checkpoint';
 import type { AeoAuditConfig, AeoSnapshot, AeoSurface } from '../schema';
-import { allSurfaces, isAgentSurface, surfaceLabels } from '../surfaces';
+import {
+  allSurfaces,
+  isCustomSurface,
+  surfaceFamilyOf,
+  surfaceLabelOf,
+  type SurfaceFamily,
+} from '../surfaces';
 import type { ReportFact } from './facts';
 import { pendingReportCopy } from './copy-schema';
 
-const capturedSurfaceNames = (surfaces: ReadonlySet<AeoSurface>): string => {
-  const captured = allSurfaces.filter((surface) => surfaces.has(surface));
-  const names = (agents: boolean) => {
+const groupNames: Readonly<Record<SurfaceFamily, string>> = {
+  chat: 'chat and search assistants',
+  consumer: 'consumer apps',
+  agents: 'coding agents',
+  custom: 'custom models',
+};
+
+const capturedSurfaceNames = (
+  surfaces: ReadonlySet<AeoSurface>,
+  /** The snapshot's own labels, for surfaces asked of another model. */
+  labels: Readonly<Record<string, string>>,
+): string => {
+  const captured = [
+    ...allSurfaces.filter((surface) => surfaces.has(surface)),
+    ...[...surfaces].filter(isCustomSurface).sort(),
+  ];
+  const names = (family: SurfaceFamily) => {
     const joined = captured
-      .filter((surface) => isAgentSurface(surface) === agents)
-      .map((surface) => surfaceLabels[surface])
+      .filter((surface) => surfaceFamilyOf(surface) === family)
+      .map((surface) => surfaceLabelOf(surface, labels))
       .join(', ');
 
     return joined === '' ? 'none' : joined;
   };
+  // A family added since the sentence was first written is named only when
+  // one of its surfaces was captured: every other run's sentence keeps its
+  // bytes (method release spec §5.5, open models spec §5.3).
+  const added = (['consumer', 'custom'] as const)
+    .map((family) => [family, names(family)] as const)
+    .filter(([, named]) => named !== 'none')
+    .map(([family, named]) => ` Captured ${groupNames[family]}: ${named}.`)
+    .join('');
 
-  return `Captured chat and search assistants: ${names(false)}. Captured coding agents: ${names(true)}.`;
+  return `Captured chat and search assistants: ${names('chat')}. Captured coding agents: ${names('agents')}.${added}`;
 };
+
+// The families' market facts, in catalog order: chat before agents, as
+// every earlier catalog has them.
+const marketFactFamilies = [
+  'chat',
+  'agents',
+  'consumer',
+  'custom',
+] as const satisfies readonly SurfaceFamily[];
 
 /**
  * buildNarrativeFacts builds the introduction facts. Additive fact IDs let
@@ -35,6 +72,7 @@ export const buildNarrativeFacts = (
     surface: null,
     entity: config.brand.name,
   };
+  const labels = snapshot.meta.surfaceLabels ?? {};
   const capturedSurfaces = new Set(
     snapshot.sections.flatMap((section) =>
       section.visibility.matrix.map((row) => row.surface),
@@ -59,7 +97,7 @@ export const buildNarrativeFacts = (
       numerator: capturedSurfaces.size,
       denominator: null,
       unit: 'count',
-      sentence: `This audit of ${config.brand.name} covers the surfaces with captured answers. ${capturedSurfaceNames(capturedSurfaces)} Planned surfaces without captured answers are not included in this list; it does not describe every available AI product.`,
+      sentence: `This audit of ${config.brand.name} covers the surfaces with captured answers. ${capturedSurfaceNames(capturedSurfaces, labels)} Planned surfaces without captured answers are not included in this list; it does not describe every available AI product.`,
     },
     {
       ...base,
@@ -94,7 +132,7 @@ export const buildNarrativeFacts = (
       numerator: sectionSurfaces.size,
       denominator: null,
       unit: 'count',
-      sentence: `For ${config.brand.name}'s ${market} audit section, only surfaces with captured answers are included here. ${capturedSurfaceNames(sectionSurfaces)} This section's captured surfaces can differ from other sections or the planned audit scope.`,
+      sentence: `For ${config.brand.name}'s ${market} audit section, only surfaces with captured answers are included here. ${capturedSurfaceNames(sectionSurfaces, labels)} This section's captured surfaces can differ from other sections or the planned audit scope.`,
     });
     facts.push({
       ...base,
@@ -106,9 +144,9 @@ export const buildNarrativeFacts = (
       unit: 'count',
       sentence: `This audit tested ${config.brand.name} in the ${market} section using these questions: ${JSON.stringify(configured.prompts.map(({ text }) => text))}. These are the configured audit questions, not measured search demand or verified customer conversations. Locale: ${config.geography}, language: ${config.language}.`,
     });
-    for (const group of ['chat', 'agents'] as const) {
+    for (const group of marketFactFamilies) {
       const surfaces = section.visibility.surfaces.filter(
-        (surface) => isAgentSurface(surface) === (group === 'agents'),
+        (surface) => surfaceFamilyOf(surface) === group,
       );
 
       if (!surfaces.length) {
@@ -125,8 +163,7 @@ export const buildNarrativeFacts = (
         agentProbes: config.agentProbes,
         chatProbes: config.chatProbes,
       }).length;
-      const names =
-        group === 'agents' ? 'coding agents' : 'chat and search assistants';
+      const names = groupNames[group];
       const entities = [
         { ...config.brand, prospect: true },
         ...(configured.competitors ?? config.competitors).map((brand) => ({

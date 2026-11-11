@@ -7,16 +7,23 @@ import { stagePrompts } from '../codex-workflow/prompts';
 import { readRunInputs, type RunInputs } from '../codex-workflow/run-inputs';
 import { stageVersions } from '../codex-workflow/schemas';
 import { hasErrorCode } from '../stores/fs-errors';
+import { readFrozenBudget } from '../engine/budget';
+import { readFrozenBindings } from '../engine/run-bindings';
+import { readRunMethod, type RecordedRunMethod } from '../engine/run-method';
 import {
   auditCopyFile,
   authorEvidenceFile,
   authorEvidenceSchema,
+  bankDir,
 } from '../engine/run-configuration';
+import { recordedCalculationVersion } from '../codex-workflow/aggregate';
 import {
   bundlePaths,
   calculationVersion,
   measurementDigest,
   predecessorPrefix,
+  readableCalculationVersions,
+  type CalculationVersion,
   type PlanDocument,
 } from './contracts';
 import { isolationLimitations } from './isolation';
@@ -127,7 +134,27 @@ const stageModelOf = (inputs: RunInputs) => {
     : null;
 };
 
-const methodOf = async (dir: string, inputs: RunInputs, snapshot: unknown) => {
+/** What `dir` records of the method it was run with. */
+export const recordedRunMethod = async (
+  dir: string,
+): Promise<RecordedRunMethod> => {
+  return readRunMethod(dir, path.join(dir, bankDir), {
+    startedBefore: (await readFrozenBudget(dir)) !== undefined,
+  });
+};
+
+const methodOf = async (
+  dir: string,
+  {
+    inputs,
+    snapshot,
+    numbersMadeWith,
+  }: {
+    inputs: RunInputs;
+    snapshot: unknown;
+    numbersMadeWith: CalculationVersion;
+  },
+) => {
   const meta =
     isRecord(snapshot) && isRecord(snapshot.meta) ? snapshot.meta : {};
   const schemas: Record<string, unknown> = {};
@@ -139,9 +166,11 @@ const methodOf = async (dir: string, inputs: RunInputs, snapshot: unknown) => {
     );
   }
 
+  const frozenBindings = await readFrozenBindings(path.join(dir, bankDir));
+  const recorded = await recordedRunMethod(dir);
   const method = {
     version: 1,
-    calculationVersion,
+    calculationVersion: numbersMadeWith,
     modelProfile: inputs.request.modelProfile ?? null,
     grounding: inputs.request.grounding,
     models: meta.models ?? null,
@@ -155,10 +184,33 @@ const methodOf = async (dir: string, inputs: RunInputs, snapshot: unknown) => {
     },
     schemas,
     // The stage instructions every Codex session starts from, by value;
-    // a session's own packet is in the journal.
-    stagePrompts,
-    stageVersions,
+    // a session's own packet is in the journal. They are the ones the run
+    // directory froze (method release spec §3.1). A work directory that
+    // freezes nothing, a hosted or imported one, is stamped with the
+    // exporting engine's, and `stageMethodFrom` says so.
+    stagePrompts:
+      recorded.kind === 'frozen' ? recorded.stagePrompts : stagePrompts,
+    stageVersions:
+      recorded.kind === 'frozen'
+        ? recorded.method.stageVersions
+        : stageVersions,
+    stageMethodFrom:
+      recorded.kind === 'frozen' ? 'run_directory' : 'exporting_engine',
+    // Every version the run froze, with the release that ran it.
+    runMethod: recorded.kind === 'frozen' ? recorded.method : null,
     codexModel: stageModelOf(inputs),
+    // How each planned surface was asked, so the method digest names the
+    // probe models (method release spec §3.2): the run's frozen bindings,
+    // or null for a directory that froze none.
+    probeBindings:
+      frozenBindings === undefined
+        ? null
+        : Object.fromEntries(
+            inputs.surfaces.map((surface) => [
+              surface,
+              frozenBindings[surface] ?? null,
+            ]),
+          ),
   };
 
   return method;
@@ -253,6 +305,8 @@ export type Projection = {
     method: string;
     plan: string;
   };
+  /** The calculation version the run's numbers were made with. */
+  calculationVersion: CalculationVersion;
   execution: 'completed' | 'incomplete';
   needsImprovement: boolean | null;
   findings: CredentialFinding[];
@@ -280,9 +334,23 @@ export const projectWorkdir = async (
 
   const { config, request, surfaces, capture } = inputs;
   const snapshot = await readJson(dir, 'OUT/snapshot.json');
+  const aggregate = await readJson(dir, 'OUT/aggregate.json');
+  // The calculation version the published numbers were made with, as the
+  // aggregate step recorded it (method release spec §6.3); never the
+  // installed engine's. A directory with no aggregate has no numbers yet.
+  const numbersMadeWith =
+    aggregate === undefined
+      ? calculationVersion
+      : recordedCalculationVersion(aggregate);
+
+  if (numbersMadeWith === undefined) {
+    throw new Error(
+      `${path.join(dir, 'OUT', 'aggregate.json')} names no calculation version this release reads (it reads ${readableCalculationVersions.join(' and ')}): a newer release made it, and exports it, or the file is damaged.`,
+    );
+  }
   const plan = capturePlan(config, surfaces, request.sections);
   const runPolicy = runPolicyOf(request);
-  const method = await methodOf(dir, inputs, snapshot);
+  const method = await methodOf(dir, { inputs, snapshot, numbersMadeWith });
   // In the workflow's order: the aggregate assembles runs in record order,
   // so a reordered list would recompute a reordered matrix.
   const captured = inputs.captured;
@@ -333,7 +401,7 @@ export const projectWorkdir = async (
     [bundlePaths.qualify, await readJson(dir, 'OUT/qualify.json')],
     [bundlePaths.review, await readJson(dir, 'OUT/review.json')],
     [bundlePaths.corrections, await readJson(dir, 'OUT/corrections.json')],
-    [bundlePaths.aggregate, await readJson(dir, 'OUT/aggregate.json')],
+    [bundlePaths.aggregate, aggregate],
     [bundlePaths.metrics, await readJson(dir, 'METRICS.json')],
     [bundlePaths.snapshot, snapshot],
     [bundlePaths.labels, await readJson(dir, 'OUT/labels.json')],
@@ -433,6 +501,7 @@ export const projectWorkdir = async (
       method: canonicalDigest(method),
       plan: plan.digest,
     },
+    calculationVersion: numbersMadeWith,
     execution: snapshot === undefined ? 'incomplete' : 'completed',
     needsImprovement:
       typeof quality?.needsImprovement === 'boolean'

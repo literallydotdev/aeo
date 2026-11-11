@@ -10,11 +10,11 @@ import {
 import path from 'node:path';
 import { mintRunId } from '../lib/run-id';
 import { hasErrorCode } from '../stores/fs-errors';
+import { exportBeforeFreezeMessage } from '../engine/run-method';
 import {
   bundleManifestSchema,
   bundlePaths,
   bundleSchemaVersion,
-  calculationVersion,
   canonicalization,
   digestManifest,
   toolId,
@@ -24,7 +24,11 @@ import {
 } from './contracts';
 import { encodeBundleJson, parseBundleJson, sha256Hex } from './json';
 import { openJournal, readJournal } from './journal';
-import { projectWorkdir, type CredentialFinding } from './project';
+import {
+  projectWorkdir,
+  recordedRunMethod,
+  type CredentialFinding,
+} from './project';
 import { redactBundle, type Redactions } from './redact';
 import { runJournalDir } from './recorder';
 import { acquireWriterLock } from './writer-lock';
@@ -237,9 +241,23 @@ const finalizeLockedRevision = async (
     ? await openJournal(path.join(dir, runJournalDir))
     : undefined;
   const latest = (await readFinalizedRevisions(dir)).at(-1);
+  const unchangedEvents = await unchangedEventCount(dir, latest);
+
+  // A local run from before methods were frozen does not say what it was
+  // made with, so this release cannot state it (method release spec §3.1).
+  // A revision the release that ran it finalized is reused as it is, when
+  // the run has not moved on since; otherwise that release exports it.
+  if ((await recordedRunMethod(dir)).kind === 'before_freeze') {
+    if (latest && unchangedEvents !== undefined) {
+      return { ...latest, reused: true };
+    }
+
+    throw new ExportBlockedError(exportBeforeFreezeMessage(dir));
+  }
+
   const projection = await projectWorkdir(dir, {
     secrets,
-    eventLimit: await unchangedEventCount(dir, latest),
+    eventLimit: unchangedEvents,
   });
   const runCredentials = projection.findings.filter(
     (finding) => finding.kind === 'run_credential',
@@ -272,7 +290,9 @@ const finalizeLockedRevision = async (
     bundleSchemaVersion,
     traceSchemaVersion,
     canonicalization,
-    calculationVersion,
+    // The version the numbers were made with, never the installed one's:
+    // the verifier recomputes them with exactly that arithmetic.
+    calculationVersion: projection.calculationVersion,
     tool: {
       id: toolId,
       version: toolVersion,

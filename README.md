@@ -42,8 +42,8 @@ literally-aeo verify audit-run.aeo.zip   # offline verification
   [Codex CLI](https://github.com/openai/codex) that runs them is a pinned
   dependency of the package.
 - An `AI_GATEWAY_API_KEY` (Vercel AI Gateway) for the assistant answers and
-  the host model calls, and a DataForSEO login for Google AI Overviews and
-  factual grounding searches.
+  the host model calls, and a DataForSEO login for Google AI Overviews, the
+  consumer apps and factual grounding searches.
 - For coding-agent surfaces, the CLI of each one you measure (Claude Code,
   Codex, Cursor) and its own login.
 - For `moneyPages`, Playwright's Chromium, which renders each page for the
@@ -56,11 +56,116 @@ literally-aeo verify audit-run.aeo.zip   # offline verification
 ## Model and cost
 
 One model judges the answers, researches the claims and writes the report:
-`"model"` in `audit.json`, a gateway model ID. Leave it out to use the
-recommended model, the strongest the engine supports, because judgment and
-writing quality are the report. `literally-aeo doctor` lists the supported
-models with their list prices and refuses any other. The assistants being
-measured keep their own pinned models; they are what the audit observes.
+`"model"` in `audit.json`, any language model ID on the gateway. Leave it
+out to use the recommended model, because judgment and writing quality are
+the report. The engine ships verified settings for the models
+`literally-aeo doctor` lists. Any other model is priced from the gateway's
+public model list, at the highest price the list shows for it, and that
+price is kept for the whole run. Such a model was never verified on the
+analysis stages, which `doctor` says; it is refused only when the list has
+no price for it. Without network access to the list, set
+`AEO_MODEL_CATALOG` to a saved copy of
+`https://ai-gateway.vercel.sh/v1/models`.
+
+Such a model is asked to reason at `high` effort where it offers that. To
+ask for another level the list names for it, set `"modelEffort"` beside
+`"model"`, for example `"modelEffort": "max"`; `doctor` and `plan` show the
+effort a run will use. A higher effort costs more output and more time,
+which the estimate does not model. A run keeps its effort as it keeps its
+model: `rejudge --model <id> --effort <level>` judges the same answers at
+another one, in a new run directory.
+
+The report's narrative (its title, subtitle and opening paragraphs) is
+written in one request, from the facts the run measured. To have another
+model write it, set `"writeModel"` to any language model ID on the gateway,
+priced like `"model"` above. Everything else stays on `"model"`, the check
+of every claim the writer makes included. `doctor` and `plan` name the
+writer, and a run keeps it: `rejudge --write-model <id>` judges the same
+answers again in a new run directory and has that model write.
+
+Each API chat surface (`chatgpt`, `claude`, `gemini`, `perplexity`) asks a
+pinned model: the gateway model closest to what that product serves its
+free tier by default. To measure another model behind a surface, name it
+in `audit.json`:
+
+```json
+"probes": { "chatgpt": { "model": "openai/gpt-6-sol" } }
+```
+
+Any model works, with no further check. A model of the surface's own
+provider is asked through that provider's web search; a model of another
+provider searches through the gateway's own search tool. Either way it is
+priced from the same model list and named in the surface's label ("ChatGPT
+(API, openai/gpt-6-sol)"). A run keeps the models it started with. Swapping
+a model does not change what the run measures (the questions, surfaces and
+depth), only how; a comparison with an earlier run says the collection
+method changed.
+
+To measure a model as a surface of its own, declare it:
+
+```json
+"customSurfaces": [
+  { "key": "mistral", "label": "Mistral Large 4", "model": "mistral/mistral-large-4" }
+]
+```
+
+Up to eight. A custom surface is asked every question, as often as the chat
+surfaces, in the audit's country and language, through the gateway's search
+tool. It is scored on its own line, under its label and its model, and it
+is never part of the headline rates: those stay the four API chat surfaces
+and Google AI Overviews, so they keep meaning the same thing from one
+report to the next. That tool attaches no source list to an answer, so a
+custom surface's citation rate counts only the links the model writes in
+its answer. A model that cannot call the search tool fails its answers one
+by one; there is no check before the first paid call.
+
+### The consumer apps
+
+The four chat surfaces ask each provider's API, which is the nearest thing
+to its product that can be pinned. To measure the products themselves, list
+them in `audit.json`'s `surfaces`, beside the ones you already measure:
+
+```json
+"surfaces": ["chatgpt", "gemini", "claude", "perplexity", "chatgpt_app", "google_ai_mode"]
+```
+
+`chatgpt_app` is ChatGPT's web interface with its search on, and
+`google_ai_mode` is Google's AI Mode. DataForSEO scrapes each answer from
+the product's page, so a run that lists one needs the DataForSEO login. A
+scrape costs about $0.004; judging the answer costs what judging any other
+answer does, and `literally-aeo plan` shows the total. A report names them
+"ChatGPT (app)" and "AI Mode", beside "ChatGPT (API)". They are measured
+only when listed, and what they measure differs from the API surfaces in
+ways the report states:
+
+- Nothing pins the model. The report shows the model the scraper read off
+  ChatGPT's page, and none for AI Mode. Whether the scraper's session is
+  logged in is not documented, so which tier of the product answered is not
+  known.
+- A ChatGPT answer is the text and tables of the page; everything else on
+  it, such as images, shopping results and advertisements, is left out. A
+  citation counts the sources the scraper lists as cited or relied on, and
+  the links in the answer.
+- AI Mode always answers in the product, so a scrape that comes back empty
+  is a failed answer, retried once and then counted as missing. It is never
+  an answer that did not mention you. Links that lead back into Google's
+  own search and shopping results are left out of an AI Mode answer: they
+  are not sources, and are not counted as citations.
+- Each question is asked once per app, or as often as `chatProbes` says.
+- They are scored as a group of their own, with their own pair of rates.
+  The headline stays the four API chat surfaces and Google AI Overviews, so
+  adding a consumer app changes no headline rate, no other surface's rates
+  and no competitor split. The source mix and the outreach list count every
+  captured answer, so they include its answers. A comparison with a run
+  that did not measure it reports that the scope changed.
+- Both scrapes were captured in US English only (November 2026).
+  DataForSEO lists every market an audit can name
+  ([Country and language](#country-and-language)) for the ChatGPT scrape.
+  For AI Mode it lists Portuguese only as `pt-BR`: an audit in `pt` or
+  `pt-PT` that lists AI Mode is refused before anything is spent.
+  DataForSEO publishes no list of the countries where Google serves AI
+  Mode: in one where it does not, every answer of that app fails and the
+  run stops at its coverage check.
 
 `literally-aeo plan` estimates what a run costs, as a range per kind of
 work: the assistant answers, the analysis stages, the other model calls and
@@ -73,24 +178,88 @@ directory.
 Nothing is sent to Literally.dev: no telemetry, no account, no upload.
 A run contacts only the providers you configure and the sites it checks.
 
+## Country and language
+
+A run measures the United States in English unless `audit.json` says
+otherwise:
+
+```json
+"geography": "gb",
+"language": "en"
+```
+
+- **Countries:** `us`, `gb`, `ca`, `au`, `de`, `fr`, `es`, `it`, `nl`,
+  `br`, `in`, `jp`, `se`, `no`, `dk`.
+- **Languages:** `en`, `es`, `fr`, `de`, `pt`, `pt-BR`, `pt-PT`, `ja`,
+  `zh-CN`, `zh-TW`, `ko`, `it`, `nl`. Chinese is named by its script,
+  `zh-CN` (Simplified) or `zh-TW` (Traditional): Google's list has no
+  plain `zh`.
+
+Every language is one DataForSEO lists for Google (read on 11 November
+2026). Another market is refused before anything is spent, never measured
+as the United States in English.
+
+The market decides where these search: Google AI Overviews, the consumer
+apps, the grounding searches and the search of a custom surface. The four
+API chat surfaces and the coding agents are not placed in a country: they
+get each question as the audit writes it, so write the questions in the
+language you measure.
+
 ## How deep each question goes
 
 By default each question is asked twice on every assistant, and once on
-Google AI Overviews. To measure fewer questions more deeply, set the depth
-in `audit.json`:
+Google AI Overviews and on each consumer app. To measure fewer questions
+more deeply, set the depth in `audit.json`:
 
 ```json
 "chatProbes": { "runsPerPrompt": 12 },
 "agentProbes": { "runsPerPrompt": 12 }
 ```
 
-`chatProbes` covers the chat assistants, AI Overviews included, and
-`agentProbes` the coding agents; each takes 1 to 25 runs per question.
-`literally-aeo plan` shows the answers and the cost a depth plans before
-anything is spent. Depth is part of what a run measures, so keep it the
-same across the runs you mean to compare: a progress comparison between
+`chatProbes` covers the chat assistants, AI Overviews and the consumer apps
+included, and `agentProbes` the coding agents; each takes 1 to 25 runs per
+question. `literally-aeo plan` shows the answers and the cost a depth plans
+before anything is spent. Depth is part of what a run measures, so keep it
+the same across the runs you mean to compare: a progress comparison between
 runs at different depths reports that the scope changed, not a change in
 visibility.
+
+## How sure a number is
+
+A rate is a share of the planned answers: "mentioned in 2 of 8". With so few
+answers, a bare "25%" says more than was measured. Every rate therefore
+carries its counts and an approximate 95% interval (a Wilson score
+interval), and the report and the viewer show the interval beside the rate.
+
+- The interval describes answer-to-answer variation for these questions at
+  the time of the audit. It is not a market share and not a forecast.
+- An answer that was planned and not captured counts as "not mentioned" in
+  the rate, and the interval widens to allow for either outcome.
+- It assumes repeated runs of one question are independent. Runs minutes
+  apart can share a search index or a cache; if they return near-duplicate
+  answers, the interval is too narrow. Perplexity often lists the same
+  sources in both runs of a question: those two runs are one observation of
+  whether you are cited, not two, and the interval does not allow for that.
+- A comparison of two runs says whether each change is larger than
+  answer-to-answer variation, by an exact test, with its p-value. Each
+  group of surfaces is tested on its own answers: a missed answer or a
+  changed model in one group takes the test from that group only. It never
+  says why a number changed, or that the change will last.
+
+Every report carries a methodology section, built by the engine and not
+written by a model: the models asked, what is not measured, and what the
+numbers mean.
+
+## A run keeps its method
+
+A run directory records, before its first paid call, how it measures: the
+calculation and prompt versions, the model behind each surface, and the
+price of any model the engine has no entry for. Running it again resumes it
+the same way. A release that measures another way refuses to resume it, and
+says which release finishes it. `rejudge` judges its answers under the
+installed release in a new directory. An exported bundle states the method
+the run was made with, from what the directory recorded, whichever release
+exports it.
 
 ## What a run produces
 

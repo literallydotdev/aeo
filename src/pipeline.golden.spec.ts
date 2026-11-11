@@ -26,7 +26,7 @@ import type { ProbeAttemptStart } from './probes/probe-trace';
 import { aeoAuditConfigSchema, type AeoSurface } from './schema';
 import { MemoryProbeStore } from './stores/memory';
 import type { CapturedUnitRecord } from './stores/ports';
-import { defaultProbeBindings } from './probes/bindings';
+import { legacyProbeBindings } from './probes/legacy-bindings';
 
 // ============================================================================
 // Golden pins of what a capture records per surface (probe adapters spec
@@ -36,7 +36,8 @@ import { defaultProbeBindings } from './probes/bindings';
 // AI SDK and a fake DataForSEO, coding agents through the fake CLI. The
 // expected values in probes/__fixtures__/golden/capture-records.json record
 // 0.2.2; a failing pin is a behaviour change to find, never a file to
-// regenerate.
+// regenerate. 0.2.2 probed with the legacy bindings, so the pins run on
+// them; the method release's own bindings are tested in bindings.spec.ts.
 // ============================================================================
 
 type StreamOptions = { model: unknown };
@@ -182,7 +183,7 @@ describe('pipeline - captureSectionProbes() golden pins', () => {
       runId: 'golden-run',
       probeStore: store,
       probeDependencies: {
-        bindings: defaultProbeBindings,
+        bindings: legacyProbeBindings,
         gateway: fakeGateway,
         dataForSeo: createDataForSeoProbeClient({
           login: 'golden-login',

@@ -400,6 +400,23 @@ const readBoundedBody = async (
   return Buffer.concat(chunks);
 };
 
+/** How long a research tool call may take when it reads a page. */
+const pageReadTimeoutMs = 15_000;
+
+/** How long a search may take. It waits for DataForSEO's live scrape of
+ * Google, which did not answer inside 15 seconds on any of the five
+ * searches of a recorded author session (2026-11-11): the session wrote its
+ * proposal from the pages it read alone. */
+export const searchTimeoutMs = 60_000;
+
+/** researchToolTimeoutOf is how long one research tool call may take: a
+ * search waits for a live scrape, reading a page does not. */
+export const researchToolTimeoutOf = (action: {
+  tool: ResearchAction['tool'];
+}): number => {
+  return action.tool === 'search_sources' ? searchTimeoutMs : pageReadTimeoutMs;
+};
+
 /** createDataForSeoSearchAdapter builds an explicit, metered discovery adapter; returned snippets are never grounding sources. */
 export const createDataForSeoSearchAdapter = (args: {
   login: string;
@@ -421,7 +438,7 @@ export const createDataForSeoSearchAdapter = (args: {
     search: async (query, signal) => {
       const boundedSignal = AbortSignal.any([
         signal,
-        AbortSignal.timeout(15_000),
+        AbortSignal.timeout(searchTimeoutMs),
       ]);
 
       const response = await fetch(

@@ -11,7 +11,11 @@ import {
   groundingFixture,
   measurementGroundingFixture,
 } from './__fixtures__/grounding';
-import { buildFactCatalog, projectWriterFactCatalog } from './facts';
+import {
+  buildFactCatalog,
+  methodologyNote,
+  projectWriterFactCatalog,
+} from './facts';
 import { validateAgentCopy, type RecommendationInput } from './copy-validation';
 
 describe('facts - buildFactCatalog()', () => {
@@ -37,6 +41,23 @@ describe('facts - buildFactCatalog()', () => {
     // the standard depth plans 10 and 20.
     expect(mentionsOn('google_ai_overview')).toMatchObject({ denominator: 50 });
     expect(mentionsOn('codex')).toMatchObject({ denominator: 6 });
+  });
+});
+
+describe('facts - methodologyNote()', () => {
+  it("should name the measured surfaces as the report shows them, the run's own label first", () => {
+    const snapshot = aeoSnapshotSchema.parse({
+      ...snapshotFixture,
+      meta: {
+        ...snapshotFixture.meta,
+        surfaces: ['chatgpt', 'google_ai_overview', 'chatgpt_app', 'codex'],
+        surfaceLabels: { chatgpt: 'ChatGPT (API, openai/gpt-test-1)' },
+      },
+    });
+
+    expect(methodologyNote(snapshot)).toMatch(
+      /^Measured surfaces: ChatGPT \(API, openai\/gpt-test-1\), AI Overview, ChatGPT \(app\), Codex\. Models: /,
+    );
   });
 });
 

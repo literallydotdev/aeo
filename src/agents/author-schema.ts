@@ -3,6 +3,7 @@ import {
   aeoAuditConfigSchema,
   aeoSectionConfigSchema,
   agentProbeConfigSchema,
+  authoredSurfacesSchema,
 } from '../schema';
 import { proposedProductFactSchema } from '../grounding/schema';
 
@@ -24,8 +25,14 @@ export const authorOutputSchema = aeoAuditConfigSchema
     // Depth decides what a run costs, so the operator sets it in audit.json
     // with the estimate in front of them, never the author.
     chatProbes: true,
+    // A custom surface is a model the operator chooses and binds; the
+    // author could name one and bind nothing.
+    customSurfaces: true,
   })
   .extend({
+    // The author decides the coding agents. The consumer apps are opted
+    // into by the operator, in audit.json or the hosted config.
+    surfaces: authoredSurfacesSchema,
     // The agent batch the author could always propose: 1 or 2 runs per
     // prompt. A deeper one is the operator's call, as chat depth is.
     agentProbes: agentProbeConfigSchema

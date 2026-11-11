@@ -3,6 +3,7 @@ import path from 'node:path';
 import { z } from 'zod';
 import { writeFileAtomically } from '../codex-workflow/pending';
 import { isRecord } from '../lib/type-guards';
+import type { ReasoningEffort } from '../models/profiles';
 
 // ============================================================================
 // What a local run keeps about its own configuration
@@ -12,6 +13,10 @@ import { isRecord } from '../lib/type-guards';
 // ============================================================================
 
 export const auditCopyFile = 'AUDIT.json';
+/** Inside a run directory: the probe bank, the analysis cache, the report
+ * store, and what the run froze before its first paid call (budget, method,
+ * bindings). */
+export const bankDir = 'BANK';
 export const authorEvidenceFile = 'AUTHOR-EVIDENCE.json';
 
 const referenceSchema = z.looseObject({
@@ -49,17 +54,41 @@ export const readRecordedAuthorEvidence = async (
     : authorEvidenceSchema.parse(JSON.parse(text));
 };
 
+/** The report's models as a command names them outside audit.json. */
+export type ModelOverride = {
+  model: string;
+  modelEffort?: ReasoningEffort;
+  writeModel?: string;
+};
+
 /** recordRunConfiguration writes the run's audit.json and author evidence
  * into its directory, replacing what an earlier invocation wrote. */
-/** The operator's configuration with the model the run actually used. */
-const configWithModel = (text: string, model: string): string => {
+/** The operator's configuration with the models the run actually used,
+ * asked as the run asked them: another model never inherits the effort the
+ * file names for its own. A writer the command does not name stays the
+ * file's. */
+const configWithModel = (
+  text: string,
+  { model, modelEffort, writeModel }: ModelOverride,
+): string => {
   const config: unknown = JSON.parse(text);
 
   if (!isRecord(config)) {
     throw new Error('The configuration to record is not a JSON object.');
   }
 
-  return `${JSON.stringify({ ...config, model }, null, 2)}\n`;
+  const { modelEffort: _fileEffort, ...rest } = config;
+
+  return `${JSON.stringify(
+    {
+      ...rest,
+      model,
+      ...(modelEffort !== undefined && { modelEffort }),
+      ...(writeModel !== undefined && { writeModel }),
+    },
+    null,
+    2,
+  )}\n`;
 };
 
 export const recordRunConfiguration = async ({
@@ -71,9 +100,10 @@ export const recordRunConfiguration = async ({
   dir: string;
   configFile: string;
   evidence: RecordedAuthorEvidence;
-  /** A model named outside the file (`rejudge --model`): the recorded
-   * configuration is the one the run ran with, not the file's. */
-  model?: string;
+  /** Models named outside the file (`rejudge --model`, with its
+   * `--effort`, and `--write-model`): the recorded configuration is the
+   * one the run ran with, not the file's. */
+  model?: ModelOverride;
 }): Promise<void> => {
   const text = await readFile(configFile, 'utf8');
 

@@ -58,8 +58,9 @@ way to start:
 - **Vercel AI Gateway** (`AI_GATEWAY_API_KEY`): pays for the assistant
   answers the audit measures and every model call that judges them.
 - **DataForSEO** (`DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD`): pays for
-  Google AI Overviews, the searches that check the product claims answers
-  make, and the research behind the proposed config.
+  Google AI Overviews, the consumer apps if the audit lists one, the
+  searches that check the product claims answers make, and the research
+  behind the proposed config.
 
 Copy `.env.example` to `.env` (`cp .env.example .env`) and ask the user to
 open `.env` in their editor and paste the values. Then run
@@ -111,14 +112,38 @@ It researches the company and proposes `draft/audit.json`, with
 
 Read `draft/audit.json` and present it as a short list, never as JSON: the
 sections, the buyer questions in each, the competitors, and the surfaces
-(the assistants that will be asked). Apply the user's edits to
+(the assistants that will be asked). `draft/author-record.json` says under
+`surfaces.because` why the coding agents were proposed or left out; say
+it. Apply the user's edits to
 `draft/audit.json` yourself. The optional `model` field names the model
 that judges and writes the report; leave it out to use the recommended
-one, which `literally-aeo doctor` lists with every supported model. If the
-user would rather measure fewer questions more deeply, set
+one. It may be any language model ID on the gateway: `literally-aeo doctor`
+lists the models the engine ships verified settings for, and says of any
+other what it was priced at and that it is unverified. The optional
+`writeModel` field names another gateway model to write the report's
+narrative, one request; everything else stays on `model`. To measure another
+model behind an API chat surface, set
+`"probes": { "chatgpt": { "model": "<gateway model ID>" } }`; to measure a
+model as a surface of its own, add
+`"customSurfaces": [{ "key": "…", "label": "…", "model": "<gateway model ID>" }]`.
+Leave both out unless the user asks: the defaults are what the report's
+headline means. The proposed config never lists a consumer app. Tell the
+user they can also measure the products themselves, ChatGPT's web
+interface (`chatgpt_app`) and Google AI Mode (`google_ai_mode`): each
+answer is scraped by DataForSEO, the model is whatever the product served
+and nothing pins it, and they are scored as a group of their own, apart
+from the headline. A scrape costs about $0.004, and each answer is judged
+like any other, so checkpoint 6 shows what one adds. If the user wants
+one, add it to `surfaces`. The audit measures the United States in
+English unless `geography` and `language` say otherwise; a market that
+cannot be placed is refused, with the codes that can (Chinese is `zh-CN`
+or `zh-TW`, and AI Mode takes Portuguese only as `pt-BR`). The API chat
+surfaces and the coding agents get each question as written, so the
+questions are in the language measured. If the user would rather measure
+fewer questions more deeply, set
 `chatProbes.runsPerPrompt` and `agentProbes.runsPerPrompt` (1 to 25 runs
 of each question per assistant); left out, each question is asked twice
-(once on AI Overviews). Run
+(once on AI Overviews and on each consumer app). Run
 `literally-aeo doctor --config draft/audit.json --env-file .env --json`
 after editing. Money pages must be on the company's site or its
 subdomains; for a page on another host the user owns (a docs site, say),
@@ -169,7 +194,10 @@ nothing is asked again, and only the judging is paid for. Without
 `--max-usd` it prints its estimate and spends nothing; show that, get an
 amount approved, and run it again with `--max-usd <approved amount>`. A run
 never changes its own model: editing `model` in `audit.json` over an
-existing run directory is refused.
+existing run directory is refused. The same holds for `writeModel`, the
+model an audit may name to write the report's narrative in place of
+`model`: `--write-model <id>` on `rejudge` names another for the new run
+directory.
 
 ## Checkpoint 8: explain the result
 

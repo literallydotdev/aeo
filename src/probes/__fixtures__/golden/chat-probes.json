@@ -1186,7 +1186,8 @@
             ]
           },
           "requestedModel": "openai/gpt-5.4-mini",
-          "costUsd": 0.012
+          "costUsd": 0.012,
+          "fromFollowUp": true
         }
       }
     ],
@@ -1230,7 +1231,8 @@
             "requestedModel": "openai/gpt-5.4-mini",
             "reportedModel": null,
             "noOverview": false,
-            "costUsd": 0.012
+            "costUsd": 0.012,
+            "fromFollowUp": true
           }
         },
         "objects": [
@@ -1346,7 +1348,8 @@
           "outcome": "succeeded",
           "text": "Acme Files is the simplest choice.\n\nSources used by search:\n- Follow-up source: https://follow-up.example/",
           "retrieval": null,
-          "requestedModel": "openai/gpt-5.4-mini"
+          "requestedModel": "openai/gpt-5.4-mini",
+          "fromFollowUp": true
         }
       }
     ],
@@ -1389,7 +1392,8 @@
             "requestedModel": "openai/gpt-5.4-mini",
             "reportedModel": null,
             "noOverview": false,
-            "costUsd": null
+            "costUsd": null,
+            "fromFollowUp": true
           }
         },
         "objects": [

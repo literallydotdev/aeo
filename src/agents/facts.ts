@@ -2,7 +2,10 @@ import { createHash } from 'node:crypto';
 import { canonicalJson } from '../lib/canonical-json';
 import { isDomainCited } from '../analysis/domain-match';
 import { plannedProbeUnitsForSection } from '../lib/checkpoint';
+import { intervalPercents } from '../report/core/rate-interval';
+import type { AeoRateEvidence } from '../report/core/schema';
 import type { AeoAuditConfig, AeoSnapshot } from '../schema';
+import { surfaceLabelOf } from '../surfaces';
 import type {
   ClaimAssessment,
   ClaimCandidate,
@@ -14,7 +17,11 @@ import type {
 import { validateGroundingBundle } from '../grounding/validation';
 import { buildNarrativeFacts } from './narrative-facts';
 
-export const factCatalogVersion = 2;
+// 3 (the 0.4.0 method release): the chat surfaces' labels say "(API)"
+// (method release spec §4.3), and they enter the captured-surfaces
+// sentence; a surface the snapshot labels is named by that label; and every
+// rate with evidence gains an `interval:` fact (§6.4).
+export const factCatalogVersion = 3;
 
 type FactBase = {
   factId: string;
@@ -91,6 +98,93 @@ export const projectWriterFactCatalog = (
   };
 };
 
+type IntervalScope = {
+  /** The fact ID's scope: a surface ID, or `chat`, `agents` or `consumer`. */
+  scope: string;
+  /** How a sentence names it. */
+  name: string;
+  mentions: AeoRateEvidence | undefined;
+  citations: AeoRateEvidence | undefined;
+};
+
+/**
+ * intervalFacts states the approximate 95% interval of each rate the
+ * snapshot carries evidence for (method release spec §6.4): one fact per
+ * scope and metric. Each sentence stands alone; none compares two rates.
+ */
+const intervalFacts = ({
+  runId,
+  sectionKey,
+  brand,
+  summary,
+  nameOf,
+}: {
+  runId: string;
+  sectionKey: string;
+  brand: string;
+  summary: AeoSnapshot['sections'][number]['visibility']['summary'];
+  nameOf: (surface: string) => string;
+}): ReportFact[] => {
+  const scopes: IntervalScope[] = [
+    {
+      scope: 'chat',
+      name: 'chat and search assistants together',
+      mentions: summary.prospectShareOfVoiceEvidence,
+      citations: summary.prospectCitationRateEvidence,
+    },
+    {
+      scope: 'agents',
+      name: 'coding agents together',
+      mentions: summary.agentShareOfVoiceEvidence,
+      citations: summary.agentCitationRateEvidence,
+    },
+    {
+      scope: 'consumer',
+      name: 'consumer apps together',
+      mentions: summary.consumerShareOfVoiceEvidence,
+      citations: summary.consumerCitationRateEvidence,
+    },
+    ...Object.entries(summary.byModel).map(([surface, rates]) => ({
+      scope: surface,
+      name: nameOf(surface),
+      mentions: rates.shareOfVoiceEvidence,
+      citations: rates.citationRateEvidence,
+    })),
+  ];
+
+  return scopes.flatMap(({ scope, name, mentions, citations }) =>
+    (
+      [
+        ['mentions', mentions],
+        ['citations', citations],
+      ] as const
+    ).flatMap(([metric, evidence]): ReportFact[] => {
+      if (!evidence) {
+        return [];
+      }
+
+      const { low, high } = intervalPercents(evidence);
+      const missing = evidence.planned - evidence.captured;
+
+      return [
+        {
+          kind: 'measurement',
+          factId: `interval:${sectionKey}:${scope}:${metric}`,
+          runId,
+          section: sectionKey,
+          surface: null,
+          entity: brand,
+          metric: `${metric}_interval`,
+          numerator: evidence.count,
+          denominator: evidence.planned,
+          unit: 'planned_answers',
+          sentence: `For ${sectionKey.replaceAll('_', ' ')}, ${name} ${metric === 'mentions' ? 'mentioned' : 'cited'} ${brand} in between ${low}% and ${high}% of planned answers (approximate 95% interval, from ${evidence.count} of ${evidence.planned}).${missing > 0 ? ` ${missing} planned answers were not captured, and the interval allows for either outcome in each.` : ''} The interval describes answer-to-answer variation for these questions at the time of the audit, not market share.`,
+        },
+      ];
+    }),
+  );
+};
+
 export type BuildFactCatalogOptions = {
   snapshot: AeoSnapshot;
   config: AeoAuditConfig;
@@ -115,6 +209,13 @@ export const buildFactCatalog = ({
   }
 
   const facts: ReportFact[] = [];
+  const labels = snapshot.meta.surfaceLabels ?? {};
+  // A surface the snapshot labels itself (a custom one, or one asked of
+  // another model) is named by that label; any other keeps the name every
+  // earlier sentence gave it.
+  const nameOf = (surface: string): string => {
+    return labels[surface] ?? surface.replaceAll('_', ' ');
+  };
 
   for (const section of snapshot.sections) {
     const configured = config.sections.find(
@@ -155,10 +256,20 @@ export const buildFactCatalog = ({
           numerator,
           denominator: count,
           unit: 'planned_answers',
-          sentence: `For ${section.key.replaceAll('_', ' ')}, ${surface.replaceAll('_', ' ')} ${metric === 'mentions' ? 'mentioned' : 'cited'} ${config.brand.name} in ${numerator} of ${count} planned answers (${percent}%). ${rows.length} answers were captured; missing answers remain in the denominator.`,
+          sentence: `For ${section.key.replaceAll('_', ' ')}, ${nameOf(surface)} ${metric === 'mentions' ? 'mentioned' : 'cited'} ${config.brand.name} in ${numerator} of ${count} planned answers (${percent}%). ${rows.length} answers were captured; missing answers remain in the denominator.`,
         });
       }
     }
+
+    facts.push(
+      ...intervalFacts({
+        runId,
+        sectionKey: section.key,
+        brand: config.brand.name,
+        summary: section.visibility.summary,
+        nameOf,
+      }),
+    );
   }
 
   for (const bot of snapshot.technicalChecks?.crawlerAccess?.bots ?? []) {
@@ -325,8 +436,10 @@ export const methodologyNote = (snapshot: AeoSnapshot): string => {
     meta.migrations
       ?.map((migration) => `${migration.id} (${migration.appliedAt})`)
       .join(', ') ?? '';
+  // By the names the report shows, so the API surface of a product and its
+  // scraped app are told apart here as everywhere else.
   const parts = [
-    `Measured surfaces: ${surfaces.map((surface) => surface.replaceAll('_', ' ')).join(', ')}.`,
+    `Measured surfaces: ${surfaces.map((surface) => surfaceLabelOf(surface, meta.surfaceLabels)).join(', ')}.`,
     `Models: analyzer ${meta.models?.analyzer ?? 'not recorded'}; perception ${meta.models?.perception ?? 'not recorded'}.`,
     `Answer analyzer version: ${meta.analyzerVersion ?? 'not recorded'}. Domain classifier version: ${meta.domainClassifierVersion ?? 'not recorded'}.`,
     `Data migrations: ${migrationList === '' ? 'none recorded' : migrationList}.`,

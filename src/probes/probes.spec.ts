@@ -17,6 +17,7 @@ import { defaultProbeBindings } from './bindings';
 
 type StreamOptions = {
   toolChoice?: string;
+  maxOutputTokens?: number;
   onError?: (event: { error: unknown }) => void;
 };
 
@@ -112,6 +113,84 @@ describe('probes - runProbesForPrompts()', () => {
     expect(provider.streamText).toHaveBeenCalledTimes(6);
   });
 
+  it.each([
+    // The free-tier model reasons and searches through 2,000 tokens before
+    // it writes: its adapter version gives both streams eight times that.
+    {
+      name: 'the default ChatGPT binding',
+      surface: 'chatgpt',
+      bindings: defaultProbeBindings,
+      allowance: 16_000,
+    },
+    {
+      name: 'a directory frozen on the released OpenAI adapter',
+      surface: 'chatgpt',
+      bindings: {
+        ...defaultProbeBindings,
+        chatgpt: { adapter: 'gateway.openai@1', model: 'openai/gpt-6-luna' },
+      },
+      allowance: 2000,
+    },
+    {
+      name: 'the default Gemini binding',
+      surface: 'gemini',
+      bindings: defaultProbeBindings,
+      allowance: 2000,
+    },
+    // The default Claude model's answers were cut off at 2,000.
+    {
+      name: 'the default Claude binding',
+      surface: 'claude',
+      bindings: defaultProbeBindings,
+      allowance: 16_000,
+    },
+    {
+      name: 'a directory frozen on the released Anthropic adapter',
+      surface: 'claude',
+      bindings: {
+        ...defaultProbeBindings,
+        claude: {
+          adapter: 'gateway.anthropic@1',
+          model: 'anthropic/claude-sonnet-5',
+        },
+      },
+      allowance: 2000,
+    },
+  ] as const)(
+    'should give $name its own output allowance, on the search call and on its follow-up',
+    async ({ surface, bindings, allowance }) => {
+      provider.streamText.mockImplementation((options) =>
+        options.toolChoice === 'none'
+          ? answered({
+              text: 'Acme Files.',
+              sources: [],
+              providerMetadata: undefined,
+            })
+          : searched(),
+      );
+
+      const run = runProbesForPrompts({
+        geography: 'us',
+        language: 'en',
+        prompts: [{ id: 'p1', promptText: 'Which agency?', category: 'x' }],
+        surfaces: [surface],
+        chatProbes: undefined,
+        dependencies: { bindings, gateway: provider.gateway },
+        filter: (unit) => unit.runIndex === 1,
+      });
+
+      await vi.runAllTimersAsync();
+      const [outcome] = await run;
+
+      expect(outcome).toMatchObject({ status: 'captured' });
+      expect(
+        provider.streamText.mock.calls.map(
+          ([options]) => options.maxOutputTokens,
+        ),
+      ).toEqual([allowance, allowance]);
+    },
+  );
+
   it('should read a failure of the search call through its own stream as well', async () => {
     provider.streamText.mockImplementation((options) =>
       failed(
@@ -188,12 +267,60 @@ describe('probes - runProbesForPrompts()', () => {
       });
     };
 
+    it('should record that the follow-up wrote an answer, and nothing of the kind when the search call wrote it', async () => {
+      const chatgptUnit = (trace: ProbeTrace) => {
+        return runProbesForPrompts({
+          geography: 'us',
+          language: 'en',
+          prompts: [{ id: 'p1', promptText: 'Which agency?', category: 'x' }],
+          surfaces: ['chatgpt'],
+          chatProbes: undefined,
+          dependencies: {
+            bindings: defaultProbeBindings,
+            gateway: provider.gateway,
+          },
+          filter: (unit) => unit.runIndex === 1,
+          trace,
+        });
+      };
+      const written = answered({
+        steps: [],
+        text: 'Acme is a good agency.',
+        sources: [],
+        finishReason: 'stop',
+        toolCalls: [],
+        response: { messages: [] },
+        providerMetadata: undefined,
+      });
+      const byFollowUp = fakeTrace();
+      const bySearchCall = fakeTrace();
+
+      // The search call returns no prose; the follow-up writes the answer.
+      provider.streamText.mockImplementation((options) =>
+        options.toolChoice === 'none' ? written : searched(),
+      );
+      const followedUp = chatgptUnit(byFollowUp.trace);
+      await vi.runAllTimersAsync();
+      await followedUp;
+
+      provider.streamText.mockImplementation(() => written);
+      const direct = chatgptUnit(bySearchCall.trace);
+      await vi.runAllTimersAsync();
+      await direct;
+
+      expect(byFollowUp.ends).toEqual([
+        expect.objectContaining({ outcome: 'succeeded', fromFollowUp: true }),
+      ]);
+      expect(bySearchCall.ends).toHaveLength(1);
+      expect(bySearchCall.ends[0]).not.toHaveProperty('fromFollowUp');
+    });
+
     it('should record the attempt with the answer and the model the provider named', async () => {
       provider.streamText.mockImplementation(() =>
         answered({
           text: 'Acme is a good agency.',
           sources: [],
-          response: { modelId: 'perplexity/sonar-pro-2026-10' },
+          response: { modelId: 'perplexity/sonar-2026-10' },
         }),
       );
       const { trace, starts, ends } = fakeTrace();
@@ -205,19 +332,19 @@ describe('probes - runProbesForPrompts()', () => {
           surface: 'perplexity',
           promptId: 'p1',
           attempt: 1,
-          requestedModel: 'perplexity/sonar-pro',
+          requestedModel: 'perplexity/sonar',
         }),
       ]);
       expect(ends).toEqual([
         expect.objectContaining({
           outcome: 'succeeded',
           text: 'Acme is a good agency.',
-          reportedModel: 'perplexity/sonar-pro-2026-10',
+          reportedModel: 'perplexity/sonar-2026-10',
         }),
       ]);
       expect(outcome).toMatchObject({
         status: 'captured',
-        probe: { reportedModel: 'perplexity/sonar-pro-2026-10' },
+        probe: { reportedModel: 'perplexity/sonar-2026-10' },
       });
     });
 

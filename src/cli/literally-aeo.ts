@@ -27,7 +27,7 @@ Usage:
   literally-aeo plan [--config audit.json] [--output audit-run]
   literally-aeo run [--config audit.json] [--env-file .env] [--output audit-run] [--max-usd N] [--budget-file limits.json]
   literally-aeo author --brief brief.json [--estimate] [--max-usd N] [--model <id>] [--output audit-draft] [--env-file .env]
-  literally-aeo rejudge <run-dir> --output <new-run-dir> [--model <id>] [--max-usd N] [--config audit.json] [--env-file .env]
+  literally-aeo rejudge <run-dir> --output <new-run-dir> [--model <id>] [--effort <level>] [--write-model <id>] [--max-usd N] [--config audit.json] [--env-file .env]
   literally-aeo view <archive|bundle-dir|run-dir> [--working] [--port N]
   literally-aeo export <run-dir> [--output <file.aeo.zip>] [--env-file <file>] [--accept-findings] [--redact redactions.json]
   literally-aeo verify <archive|bundle-dir|run-dir>
@@ -37,11 +37,13 @@ Usage:
 Every command takes --json (a versioned result on stdout) and --quiet.
 
 init writes an example audit.json and .env.example, never over a file.
-doctor checks the model, the CLIs, settings and run directory a run needs,
-offline; settings are named, never shown, and an unsupported model is
-refused with the supported list. plan prints what a run would measure, its
+doctor checks the model, the CLIs, settings and run directory a run needs;
+settings are named, never shown, and a model the gateway's model list has
+no price for is refused. plan prints what a run would measure, its
 estimated cost as a range, and whether the run directory is new, resumable
-or completed, offline. run measures: it captures every planned answer
+or completed. Both are offline, except that a model the engine ships no
+settings for is priced from the gateway's free public model list
+(AEO_MODEL_CATALOG names a saved copy). run measures: it captures every planned answer
 (reusing what the run directory already holds), judges, reviews and writes
 the report; running it again resumes. A new run starts only under an
 approved cap, --max-usd or runPolicy.budget.maxUsd, which covers every
@@ -55,7 +57,9 @@ what that costs and spends nothing, and the session needs --max-usd. A run
 of that file bundles the record and the diff from proposal to final.
 rejudge judges a finished run's captures again in a new run directory,
 carrying the original revision as its predecessor; nothing is probed
-again, and --model judges with another model. view serves the
+again, and --model judges with another model, --effort at another
+reasoning effort the gateway lists for it, and --write-model has another
+model write the narrative. view serves the
 report and its evidence on this machine only (127.0.0.1, a one-time link);
 a run directory without a finalized revision shows its working state,
 labelled as such. export packs a run directory into a portable archive;

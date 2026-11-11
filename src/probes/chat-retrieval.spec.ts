@@ -3,6 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   extractAnthropicRetrieval,
+  extractGatewaySearchRetrieval,
   extractGeminiRetrieval,
   extractOpenAiRetrieval,
   retrievalResultUrls,
@@ -228,6 +229,33 @@ describe('chat-retrieval - extractGeminiRetrieval()', () => {
       exposure: 'partial',
       calls: [],
     });
+  });
+});
+
+describe('chat-retrieval - extractGatewaySearchRetrieval()', () => {
+  it('should record every search of a captured answer with the results the tool returned', () => {
+    const log = extractGatewaySearchRetrieval(fixture('gateway-search').steps);
+
+    expect(log.exposure).toBe('full');
+    expect(log.calls.map((call) => call.query)).toEqual([
+      'current Node.js LTS version 2025 latest LTS release active LTS codename',
+      'nodejs.org release schedule LTS current version November 2025',
+      'Node.js 24 LTS 22 LTS which is current LTS version October 2025 release schedule',
+      '"Node.js 26" LTS "Lithium" latest version v26.13.0 Active LTS October 2026 supported until April 2029',
+      'nodejs.org download "Get Node.js" "LTS" recommended version today latest LTS line which major version',
+    ]);
+    // The results the fixture keeps of each search (see the README).
+    expect(log.calls.map((call) => call.resultUrls?.length)).toEqual([
+      9, 10, 7, 6, 8,
+    ]);
+    expect(log.calls[0]).toMatchObject({
+      kind: 'search',
+      url: null,
+      resultsComplete: true,
+    });
+    expect(log.calls[0]?.resultUrls).toContain(
+      'https://nodejs.org/en/about/previous-releases',
+    );
   });
 });
 
