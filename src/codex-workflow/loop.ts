@@ -35,7 +35,9 @@ import { CopyVerificationUnavailableError } from './copy-recovery';
 import { copyEditHistory, editCopyDraft, readCopyEdits } from './copy-editor';
 import { validateStage } from './checks';
 import {
+  draftCopy,
   materializeCopyInputs,
+  readCopyDocuments,
   readSnapshot,
   validateCopyDraft,
   copywriterFiles,
@@ -341,7 +343,7 @@ export const withCopy = async <
 ): Promise<T> => {
   const snapshot = await readSnapshot(ctx.dir);
 
-  await materializeCopyInputs({
+  const copyFiles = await materializeCopyInputs({
     dir: ctx.dir,
     config: inputs.config,
     snapshot,
@@ -413,6 +415,24 @@ export const withCopy = async <
 
   return {
     ...ctx,
+    // One request carries what the writer is given, as it stands on disk.
+    draftCopy: async () => {
+      const { draft, usage } = await draftCopy({
+        role: internalModels.profile.roles.copy,
+        documents: await readCopyDocuments(ctx.dir, copyFiles),
+        accounting: internalModels.accounting,
+        signal: ctx.signal,
+      });
+
+      return {
+        draft,
+        usage: {
+          inputTokens: usage.inputTokens ?? 0,
+          cachedInputTokens: usage.cachedInputTokens ?? 0,
+          outputTokens: usage.outputTokens ?? 0,
+        },
+      };
+    },
     validateCopy: async (
       initialDraft,
       { round = 1, previousFindings, reviewed } = {},

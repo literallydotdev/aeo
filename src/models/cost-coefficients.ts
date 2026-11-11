@@ -49,6 +49,10 @@ import type { TokenUsage } from './pricing';
 // billed, and its research fetched pages without one paid search, so both
 // low ends came down. The probe figures are now the costs the gateway
 // reported, with room above the dearest.
+//
+// The copy's first draft is one request since the same release (method
+// release spec §4.5), not the write session calibration 1 measured, so it
+// is estimated among the host's calls and no longer among the stages.
 // ============================================================================
 
 export const costCoefficientsVersion = 3;
@@ -60,20 +64,25 @@ export type TokenRange = {
 
 export type Range<T> = { low: T; high: T };
 
-/** Codex stage tokens. `perAnswer` covers every stage that reads answer
- * files; `perRun` the write stage, which reads the whole report. */
+/** Codex stage tokens, for the stages that read answer files: analyze,
+ * qualify and review. */
 export const stageTokens = {
   perAnswer: {
     low: { input: 30_000, output: 4000 },
     high: { input: 90_000, output: 16_000 },
   },
-  perRun: {
-    low: { input: 250_000, output: 10_000 },
-    high: { input: 900_000, output: 40_000 },
-  },
   /** The share of stage input served from cache: high is cheap. The
    * supported models reported none through the gateway in the spike. */
   cachedShare: { low: 0, high: 0.8 },
+} as const;
+
+/** The copywriter's one request per run. Not measured yet: the documents
+ * two recorded runs gave their writer came to 8,000 and 16,000 tokens, and
+ * the draft itself is some hundreds of words; the high end is a larger
+ * audit's documents and a model that reasons at length before it answers. */
+export const copyRequestTokens = {
+  low: { input: 8000, output: 1000 },
+  high: { input: 30_000, output: 12_000 },
 } as const;
 
 /** The one author session. */
@@ -180,9 +189,9 @@ export const probeSearchUsd = 0.01;
 export const gatewaySearchUsd = 0.005;
 
 /** The calibrated workload a Codex session is: a batch of answer files
- * (analyze, qualify, review), the whole report (write) or a brief
- * (author). Each stage's descriptor names its own. */
-export type SessionCost = 'answers' | 'report' | 'brief';
+ * (analyze, qualify, review) or a brief (author). Each stage that runs a
+ * session names its own; the copywriter runs none. */
+export type SessionCost = 'answers' | 'brief';
 
 /**
  * sessionReservation is what one Codex session is reserved at before it
@@ -207,7 +216,6 @@ export const sessionReservation = ({
   };
   const tokens = {
     answers: batch,
-    report: stageTokens.perRun.high,
     brief: authorTokens.session.high,
   }[cost];
 

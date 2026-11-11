@@ -211,7 +211,9 @@ export const stageVersions: Record<StageName, number> = {
   analyze: 2,
   qualify: 3,
   review: 1,
-  write: 1,
+  // 2: the draft comes from one request that carries every document, not
+  // from a session that reads them file by file (method release spec §4.5).
+  write: 2,
   author: 1,
 };
 

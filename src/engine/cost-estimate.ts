@@ -2,6 +2,7 @@ import { authorToolCaps } from '../codex-workflow/author-tools';
 import {
   authorSearchLowUsd,
   authorTokens,
+  copyRequestTokens,
   costCoefficientsVersion,
   hostTokensPerAnswer,
   searchUsdPerAnswer,
@@ -125,17 +126,20 @@ export const estimateRunCost = ({
       model,
       scaled(stageTokens.perAnswer.low, answers),
       cachedShare.high,
-    ) + tokensCost(model, stageTokens.perRun.low, cachedShare.high),
+    ),
     tokensCost(
       model,
       scaled(stageTokens.perAnswer.high, answers),
       cachedShare.low,
-    ) + tokensCost(model, stageTokens.perRun.high, cachedShare.low),
+    ),
   );
   const hostTokens = hostTokensPerAnswer[grounding];
+  // The calls per answer, and the copywriter's one request.
   const hostCalls = rangeOf(
-    tokensCost(model, scaled(hostTokens.low, answers), 0),
-    tokensCost(model, scaled(hostTokens.high, answers), 0),
+    tokensCost(model, scaled(hostTokens.low, answers), 0) +
+      tokensCost(model, copyRequestTokens.low, 0),
+    tokensCost(model, scaled(hostTokens.high, answers), 0) +
+      tokensCost(model, copyRequestTokens.high, 0),
   );
   const search =
     grounding === 'full'

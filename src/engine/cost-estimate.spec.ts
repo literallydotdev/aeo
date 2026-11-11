@@ -4,7 +4,11 @@ import {
   createMemoryModelAccounting,
 } from '../models/accounting';
 import { authorToolCaps } from '../codex-workflow/author-tools';
-import { probeUsd, sessionReservation } from '../models/cost-coefficients';
+import {
+  copyRequestTokens,
+  probeUsd,
+  sessionReservation,
+} from '../models/cost-coefficients';
 import { tokenCostUsd } from '../models/pricing';
 import { defaultProbeBindings } from '../probes/bindings';
 import {
@@ -61,9 +65,14 @@ const replayed = async (
     return chargedTotal([ledger.state.calls[callId] ?? never()]).usd;
   };
 
-  const stages =
-    (await charge('analyze', 'stage:analyze', run.stageTokens.perAnswer)) +
-    (await charge('write', 'stage:write', run.stageTokens.perRun));
+  // The recorded runs wrote their copy in a session (`perRun`). The draft
+  // is one request now, estimated among the host's calls, so only the
+  // stages that still run sessions are held to the stages' estimate.
+  const stages = await charge(
+    'analyze',
+    'stage:analyze',
+    run.stageTokens.perAnswer,
+  );
   const hostCalls = await charge('host', 'perception', {
     ...run.hostTokens,
     cachedInput: 0,
@@ -243,22 +252,33 @@ describe('cost-estimate - reservations under the recommended cap', () => {
   );
 
   it.each(supportedModels.map((model) => [model.id] as const))(
-    "should reserve the write session within the estimate's high end for the stages on %s",
+    "should estimate the copywriter's one request among the host's calls on %s, and no write session among the stages",
     (modelId) => {
       const model = resolveSupportedModel(modelId);
-      const estimate = estimateRunCost({
-        plan: planOf(4),
+      const none = estimateRunCost({
+        plan: planOf(0),
         bindings: defaultProbeBindings,
         model,
         grounding: 'full',
       });
+      const request = (tokens: { input: number; output: number }) => {
+        return (
+          Math.round(
+            tokenCostUsd(model.pricingUsdPerMillion, {
+              inputTokens: tokens.input,
+              cachedInputTokens: 0,
+              outputTokens: tokens.output,
+            }) * 100,
+          ) / 100
+        );
+      };
 
-      const write = tokenCostUsd(
-        model.pricingUsdPerMillion,
-        sessionReservation({ cost: 'report', answers: 0 }),
-      );
-
-      expect(write).toBeLessThanOrEqual(estimate.categories.stages.high);
+      // A run with no answer still writes its report: one request.
+      expect(none.categories.stages).toEqual({ low: 0, high: 0 });
+      expect(none.categories.hostCalls).toEqual({
+        low: request(copyRequestTokens.low),
+        high: request(copyRequestTokens.high),
+      });
     },
   );
 });

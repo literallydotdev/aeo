@@ -5,7 +5,10 @@ import {
   type CopyValidationResult,
 } from '../agents/copy-validation';
 import type { AeoReportCopy } from '../agents/copy-schema';
-import { copywriterDocuments } from '../agents/copywriter-input';
+import {
+  copywriterDocuments,
+  quotedAnswerHeading,
+} from '../agents/copywriter-input';
 import { buildFactCatalog } from '../agents/facts';
 import {
   createRecommendationVerifier,
@@ -19,9 +22,18 @@ import {
 } from '../schema';
 import type { ModelCallAccounting } from '../models/accounting';
 import type { InternalModelRoleConfig } from '../models/profiles';
+import {
+  generateStructured,
+  structuredCallReservation,
+  type StructuredCallUsage,
+  type StructuredTransport,
+} from '../models/structured';
 import { engineResources } from '../engine/resources';
 import { getEnvironment } from '../lib/env';
+import { isRecord } from '../lib/type-guards';
 import { hostStepAccounting } from './host-models';
+import { stagePrompts } from './prompts';
+import { writeOutputSchema, type WriteOutput } from './schemas';
 
 // ============================================================================
 // The copy stage's host half (specs/aeo-codex-workflow-spec.md §4, §6):
@@ -140,6 +152,154 @@ export const materializeCopyInputs = async (args: {
   }
 
   return written.sort();
+};
+
+/** The documents under COPY/ as one request carries them: each by the name
+ * it has there, complete. `files` is what materializeCopyInputs wrote, so a
+ * file an earlier pass left behind is never read. */
+export const readCopyDocuments = async (
+  dir: string,
+  files: readonly string[],
+): Promise<Record<string, string>> => {
+  const entries = await Promise.all(
+    files.map(async (file) => {
+      const name = path.posix.relative(copyDir, file);
+
+      return [name, await readFile(path.join(dir, file), 'utf8')] as const;
+    }),
+  );
+
+  return Object.fromEntries(entries);
+};
+
+type CopyDocuments = Readonly<Record<string, string>>;
+
+/** What a request too large for its role gives up, in this order. The
+ * measured facts, the assessments and the rules are never given up: a
+ * request that cannot carry those is refused, and the report ships on its
+ * facts. */
+const copyDraftTrims: readonly {
+  name: string;
+  apply: (documents: CopyDocuments) => CopyDocuments;
+}[] = [
+  {
+    name: 'quoted answer material',
+    apply: (documents) => {
+      const snapshot = documents['SNAPSHOT.md'];
+      const cut = snapshot?.lastIndexOf(quotedAnswerHeading) ?? -1;
+
+      return snapshot === undefined || cut < 0
+        ? documents
+        : { ...documents, 'SNAPSHOT.md': snapshot.slice(0, cut) };
+    },
+  },
+  {
+    name: 'company notes',
+    apply: (documents) => {
+      return Object.fromEntries(
+        Object.entries(documents).filter(
+          ([name]) => !name.startsWith('company/'),
+        ),
+      );
+    },
+  },
+  {
+    name: 'unverified claim observations',
+    apply: (documents) => {
+      const facts: unknown = JSON.parse(documents['FACTS.json'] ?? 'null');
+
+      if (!isRecord(facts) || !Array.isArray(facts.facts)) {
+        return documents;
+      }
+
+      return {
+        ...documents,
+        'FACTS.json': JSON.stringify({
+          ...facts,
+          facts: facts.facts.filter(
+            (fact) => !isRecord(fact) || fact.kind !== 'observed_claim',
+          ),
+        }),
+      };
+    },
+  },
+];
+
+/**
+ * copyDraftCall is the one request that writes the report's narrative
+ * (method release spec §4.5): the write stage's instructions, every
+ * document under COPY/ and the draft's schema, on the run's copy role. No
+ * tools and no files: what the writer may say is what the request holds.
+ */
+export const copyDraftCall = (args: {
+  role: InternalModelRoleConfig;
+  documents: CopyDocuments;
+}) => {
+  const call = (documents: CopyDocuments, omitted: readonly string[]) => {
+    return {
+      role: args.role,
+      schema: writeOutputSchema,
+      system: stagePrompts.write,
+      prompt: JSON.stringify({
+        documents,
+        ...(omitted.length > 0 && { omitted }),
+      }),
+    };
+  };
+
+  let { documents } = args;
+  const omitted: string[] = [];
+
+  for (const trim of [undefined, ...copyDraftTrims]) {
+    if (trim) {
+      documents = trim.apply(documents);
+      omitted.push(trim.name);
+    }
+
+    const candidate = call(documents, omitted);
+
+    try {
+      structuredCallReservation(candidate);
+
+      return { ...candidate, omitted };
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== 'model_input_limit') {
+        throw error;
+      }
+    }
+  }
+
+  throw new Error('model_input_limit');
+};
+
+/** draftCopy asks the copy role for the draft, once. The answer is held to
+ * the draft's schema by the call; the host's verdict on it (facts, banlist,
+ * premises, the premise verifier) is validateCopyDraft's. */
+export const draftCopy = async (
+  args: {
+    role: InternalModelRoleConfig;
+    documents: CopyDocuments;
+    accounting: ModelCallAccounting;
+    signal?: AbortSignal;
+  },
+  transport?: StructuredTransport,
+): Promise<{
+  draft: WriteOutput;
+  usage: StructuredCallUsage;
+  omitted: readonly string[];
+}> => {
+  const { omitted, ...call } = copyDraftCall(args);
+  const result = await generateStructured(
+    {
+      roleName: 'copy',
+      accounting: args.accounting,
+      signal: args.signal,
+      ...call,
+    },
+    transport,
+  );
+
+  return { draft: result.output, usage: result.usage, omitted };
 };
 
 /** The host's verdict on a draft: schema, facts, banlist, premises, and
