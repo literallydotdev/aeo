@@ -649,6 +649,31 @@ describe('budget - resolveRunBudget()', () => {
     expect(raised.amended?.from.maxUsd).toBe(40);
   });
 
+  it('should freeze the effort audit.json names with the model, and refuse a resume that asks for another', async () => {
+    await resolveRunBudget(root, policy, {
+      model: 'acme/model',
+      modelEffort: 'max',
+    });
+
+    await expect(
+      resolveRunBudget(root, policy, {
+        model: 'acme/model',
+        modelEffort: 'max',
+      }),
+    ).resolves.toMatchObject({ model: 'acme/model' });
+    await expect(
+      resolveRunBudget(root, policy, { model: 'acme/model' }),
+    ).rejects.toThrow(
+      /judges with acme\/model at effort max; audit\.json now asks for the engine's own effort\. A run never changes how its model is asked/,
+    );
+    await expect(
+      resolveRunBudget(root, policy, {
+        model: 'acme/model',
+        modelEffort: 'low',
+      }),
+    ).rejects.toBeInstanceOf(RunModelChangedError);
+  });
+
   it('should refuse a resume whose audit.json names another model', async () => {
     await resolveRunBudget(root, policy, { model });
 
@@ -877,12 +902,50 @@ describe('run-configuration - recordRunConfiguration()', () => {
       dir,
       configFile,
       evidence: { kind: 'manual' },
-      model: 'anthropic/claude-sonnet-5.5',
+      model: { model: 'anthropic/claude-sonnet-5.5' },
     });
 
     const recorded = await readAuditFile(path.join(dir, auditCopyFile));
 
     expect(recorded.model).toBe('anthropic/claude-sonnet-5.5');
     expect(recorded.brand).toEqual(exampleFile.brand);
+  });
+
+  it('should record the effort a rejudgment asked its model for, never the one the source file named for its own', async () => {
+    const configFile = path.join(root, 'source-audit.json');
+    const atMax = path.join(root, 'rejudged-max');
+    const plain = path.join(root, 'rejudged-plain');
+
+    await mkdir(atMax, { recursive: true });
+    await mkdir(plain, { recursive: true });
+    await writeFile(
+      configFile,
+      JSON.stringify({
+        ...exampleFile,
+        model: 'acme/model',
+        modelEffort: 'low',
+      }),
+    );
+
+    await recordRunConfiguration({
+      dir: atMax,
+      configFile,
+      evidence: { kind: 'manual' },
+      model: { model: 'acme/other', modelEffort: 'max' },
+    });
+    await recordRunConfiguration({
+      dir: plain,
+      configFile,
+      evidence: { kind: 'manual' },
+      model: { model: 'acme/other' },
+    });
+
+    expect(await readAuditFile(path.join(atMax, auditCopyFile))).toMatchObject({
+      model: 'acme/other',
+      modelEffort: 'max',
+    });
+    expect(
+      await readAuditFile(path.join(plain, auditCopyFile)),
+    ).not.toHaveProperty('modelEffort');
   });
 });

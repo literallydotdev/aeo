@@ -12,6 +12,7 @@ import {
   type ModelCatalogSource,
 } from '../models/catalog';
 import { reportModelOf } from '../models/open-model';
+import type { ReasoningEffort } from '../models/profiles';
 import {
   findSupportedModel,
   resolveSupportedModel,
@@ -143,6 +144,9 @@ type ResolveOptions = {
   /** False for a read-only command (a plan, an estimate, doctor): what the
    * catalog says now is used, and nothing is written. */
   freeze: boolean;
+  /** The reasoning effort the audit names for its report model
+   * (`modelEffort`); absent leaves the engine's own choice. */
+  effort?: ReasoningEffort;
 };
 
 /**
@@ -198,14 +202,26 @@ export const resolveReportModel = async (
   bankPath: string,
   options: ResolveOptions,
 ): Promise<SupportedModel> => {
-  if (id === undefined) {
-    return resolveSupportedModel();
-  }
-
-  const own = findSupportedModel(id);
+  const own =
+    id === undefined ? resolveSupportedModel() : findSupportedModel(id);
 
   if (own) {
+    // The engine verified its own models at one effort; another would run
+    // them on settings nobody checked while calling them verified.
+    if (
+      options.effort !== undefined &&
+      options.effort !== own.stageReasoningEffort
+    ) {
+      throw new ModelCatalogError(
+        `${own.id} runs at effort ${own.stageReasoningEffort}, the one literally-aeo verified it at. modelEffort applies to a model the engine ships no settings for; please leave it out, or name such a model.`,
+      );
+    }
+
     return own;
+  }
+
+  if (id === undefined) {
+    throw new ModelCatalogError('No report model could be resolved.');
   }
 
   const [entry] = await resolveRunModels(bankPath, [id], options);
@@ -214,5 +230,5 @@ export const resolveReportModel = async (
     throw new ModelCatalogError(`${id} could not be priced.`);
   }
 
-  return reportModelOf(entry.model, entry.readAt.slice(0, 10));
+  return reportModelOf(entry.model, entry.readAt.slice(0, 10), options.effort);
 };

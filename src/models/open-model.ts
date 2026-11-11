@@ -1,4 +1,5 @@
 import { ModelCatalogError, type CatalogModel } from './catalog';
+import type { ReasoningEffort } from './profiles';
 import type { SupportedModel } from './supported-models';
 
 // ============================================================================
@@ -11,17 +12,20 @@ import type { SupportedModel } from './supported-models';
 // ============================================================================
 
 /** The effort every role and the Codex stages ask of a model that offers
- * it; a model that offers none is asked for none. */
+ * it, unless the audit names another; a model that offers none is asked
+ * for none. */
 const preferredEffort = 'high';
 
 /**
  * reportModelOf is the entry a run uses for a model the engine has none of
  * its own for: its catalog prices, as read on `pricedOn`, and settings
- * derived from what the catalog says of it.
+ * derived from what the catalog says of it. An `effort` the audit names
+ * must be one the catalog lists for the model.
  */
 export const reportModelOf = (
   model: CatalogModel,
   pricedOn: string,
+  effort?: ReasoningEffort,
 ): SupportedModel => {
   const { contextWindow, maxOutputTokens } = model;
 
@@ -31,7 +35,22 @@ export const reportModelOf = (
     );
   }
 
-  const thinksHard = model.reasoningEfforts.includes(preferredEffort);
+  if (effort !== undefined && !model.reasoningEfforts.includes(effort)) {
+    const offered =
+      model.reasoningEfforts.length === 0
+        ? 'it lists no reasoning effort'
+        : `it lists ${model.reasoningEfforts.join(', ')}`;
+
+    throw new ModelCatalogError(
+      `${model.id} is not offered at effort ${JSON.stringify(effort)} on the gateway's model list: ${offered}. Please set modelEffort to one of those, or leave it out.`,
+    );
+  }
+
+  const asked =
+    effort ??
+    (model.reasoningEfforts.includes(preferredEffort)
+      ? preferredEffort
+      : undefined);
 
   return {
     id: model.id,
@@ -41,12 +60,11 @@ export const reportModelOf = (
     contextWindow,
     maxOutputTokens,
     thinkingInOutput: model.reasoning,
-    providerOptions: thinksHard
-      ? { gateway: { reasoning: { effort: preferredEffort } } }
-      : {},
-    // Codex is always given an effort; a model without `high` gets the
-    // lowest the stage runtime accepts.
-    stageReasoningEffort: thinksHard ? preferredEffort : 'medium',
+    providerOptions:
+      asked === undefined ? {} : { gateway: { reasoning: { effort: asked } } },
+    // Codex is always given an effort; a model that offers none gets a
+    // moderate one.
+    stageReasoningEffort: asked ?? 'medium',
     stageRuntimeVerifiedAt: null,
   };
 };

@@ -11,6 +11,7 @@ import {
 } from '../grounding/guarded-request';
 import type { ModelBudgetLimits } from '../models/accounting';
 import { localModelProfile } from '../models/local-profile';
+import { reasoningEffortSchema } from '../models/profiles';
 import {
   resolveSupportedModel,
   type SupportedModel,
@@ -191,6 +192,10 @@ export const auditFileSchema = z
     // Absent means the engine's recommended model. Probe surfaces are what
     // is measured and keep their own pinned models.
     model: z.string().trim().min(1).optional(),
+    // How hard that model is asked to think: an effort the gateway's model
+    // list names for it. Absent means `high` where the model offers it.
+    // Only for a model the engine ships no verified settings for.
+    modelEffort: reasoningEffortSchema.optional(),
     // Another model behind an API chat surface (open models spec §4): any
     // language model the gateway's model list prices. Absent means the
     // surface's pinned free-tier model. Never part of the measurement

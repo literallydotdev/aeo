@@ -67,6 +67,14 @@ no price for it. Without network access to the list, set
 `AEO_MODEL_CATALOG` to a saved copy of
 `https://ai-gateway.vercel.sh/v1/models`.
 
+Such a model is asked to reason at `high` effort where it offers that. To
+ask for another level the list names for it, set `"modelEffort"` beside
+`"model"`, for example `"modelEffort": "max"`; `doctor` and `plan` show the
+effort a run will use. A higher effort costs more output and more time,
+which the estimate does not model. A run keeps its effort as it keeps its
+model: `rejudge --model <id> --effort <level>` judges the same answers at
+another one, in a new run directory.
+
 Each API chat surface (`chatgpt`, `claude`, `gemini`, `perplexity`) asks a
 pinned model: the gateway model closest to what that product serves its
 free tier by default. To measure another model behind a surface, name it

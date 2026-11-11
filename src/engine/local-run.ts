@@ -283,8 +283,15 @@ const openLockedLocalRun = async (
   // asked first, so the refused directory gains no price for that model.
   const namedModel = file.model ?? recommendedModelId;
 
-  if (frozenBudget?.model !== undefined && frozenBudget.model !== namedModel) {
-    await resolveRunBudget(dir, file.runPolicy.budget, { model: namedModel });
+  if (
+    frozenBudget?.model !== undefined &&
+    (frozenBudget.model !== namedModel ||
+      frozenBudget.modelEffort !== file.modelEffort)
+  ) {
+    await resolveRunBudget(dir, file.runPolicy.budget, {
+      model: namedModel,
+      ...(file.modelEffort !== undefined && { modelEffort: file.modelEffort }),
+    });
   }
 
   const bindings = await resolveRunBindings(bank, {
@@ -296,7 +303,10 @@ const openLockedLocalRun = async (
     now: new Date(),
     freeze: true,
   };
-  const model = await resolveReportModel(file.model, bank, pricing);
+  const model = await resolveReportModel(file.model, bank, {
+    ...pricing,
+    ...(file.modelEffort !== undefined && { effort: file.modelEffort }),
+  });
   // A bound model the engine has no flat figure for is reserved at its
   // catalog price, frozen here with the report model's.
   const probeModels = new Map(
@@ -310,6 +320,7 @@ const openLockedLocalRun = async (
   );
   const budget = await resolveRunBudget(dir, file.runPolicy.budget, {
     model: model.id,
+    ...(file.modelEffort !== undefined && { modelEffort: file.modelEffort }),
     ...(maxUsd !== undefined && { maxUsd }),
     ...(amendment && { amendment }),
   });

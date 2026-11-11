@@ -204,6 +204,43 @@ describe('run-models - resolveReportModel()', () => {
     });
   });
 
+  it('should derive the settings at the effort the audit names, when the model offers it', async () => {
+    const { source } = catalog(entry('acme/model', '0.000001'));
+    const options = { source, now, freeze: false };
+
+    const low = await resolveReportModel('acme/model', bank, {
+      ...options,
+      effort: 'low',
+    });
+
+    expect(low).toMatchObject({
+      providerOptions: { gateway: { reasoning: { effort: 'low' } } },
+      stageReasoningEffort: 'low',
+    });
+    await expect(
+      resolveReportModel('acme/model', bank, { ...options, effort: 'max' }),
+    ).rejects.toThrow(/not offered at effort "max".*it lists low, high/);
+  });
+
+  it("should refuse another effort for one of the engine's own models, which it verified at one", async () => {
+    const { source, list } = catalog();
+    const options = { source, now, freeze: false };
+
+    await expect(
+      resolveReportModel(undefined, bank, { ...options, effort: 'max' }),
+    ).rejects.toThrow(
+      /anthropic\/claude-opus-5\.5 runs at effort high, the one literally-aeo verified it at/,
+    );
+    // Naming the effort it already runs at changes nothing.
+    await expect(
+      resolveReportModel('anthropic/claude-sonnet-5.5', bank, {
+        ...options,
+        effort: 'high',
+      }),
+    ).resolves.toMatchObject({ id: 'anthropic/claude-sonnet-5.5' });
+    expect(list).not.toHaveBeenCalled();
+  });
+
   it('should refuse a model outside its own list when the command has no catalog', async () => {
     await expect(
       resolveReportModel('acme/model', bank, {

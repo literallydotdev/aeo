@@ -3,6 +3,10 @@ import path from 'node:path';
 import { z } from 'zod';
 import { writeFileAtomically } from '../codex-workflow/pending';
 import type { ModelBudgetLimits } from '../models/accounting';
+import {
+  reasoningEffortSchema,
+  type ReasoningEffort,
+} from '../models/profiles';
 import { hasErrorCode } from '../stores/fs-errors';
 
 // ============================================================================
@@ -53,6 +57,9 @@ const budgetStateSchema = z
      * budget. Absent on a directory from before model selection: the first
      * resume records the model it continues with. */
     model: z.string().min(1).optional(),
+    /** The effort audit.json names for that model, frozen with it. Absent
+     * when the audit names none. */
+    modelEffort: reasoningEffortSchema.optional(),
     amendments: z.array(
       z
         .object({
@@ -105,6 +112,10 @@ export class BudgetCapMissingError extends Error {
   }
 }
 
+const effortPhrase = (effort: ReasoningEffort | undefined): string => {
+  return effort === undefined ? "the engine's own effort" : `effort ${effort}`;
+};
+
 /** Thrown before any paid work when audit.json names another model than
  * the run directory froze. */
 export class RunModelChangedError extends Error {
@@ -137,6 +148,8 @@ export const readFrozenBudget = async (
 type ResolveRunBudgetOptions = {
   /** The gateway model audit.json resolves to. */
   model: string;
+  /** The effort audit.json names for it, if any. */
+  modelEffort?: ReasoningEffort;
   /** The cap approved on the command line (`--max-usd`). On a new run it
    * sets the cap; on a resume it raises it, recorded like a --budget-file. */
   maxUsd?: number;
@@ -155,11 +168,27 @@ type ResolveRunBudgetOptions = {
 export const resolveRunBudget = async (
   dir: string,
   policy: BudgetPolicy,
-  { model, maxUsd, amendment, now = () => new Date() }: ResolveRunBudgetOptions,
+  {
+    model,
+    modelEffort,
+    maxUsd,
+    amendment,
+    now = () => new Date(),
+  }: ResolveRunBudgetOptions,
 ): Promise<RunBudget> => {
   const file = path.join(dir, budgetFile);
   const existing = await readFrozenBudget(dir);
   const at = now();
+
+  if (
+    existing?.model !== undefined &&
+    existing.model === model &&
+    existing.modelEffort !== modelEffort
+  ) {
+    throw new RunModelChangedError(
+      `This run directory judges with ${model} at ${effortPhrase(existing.modelEffort)}; audit.json now asks for ${effortPhrase(modelEffort)}. A run never changes how its model is asked. To judge the same answers at another effort, rejudge them into a new directory: literally-aeo rejudge ${dir} --output <new-run-dir> --model ${model} --effort <level>`,
+    );
+  }
 
   if (existing?.model !== undefined && existing.model !== model) {
     throw new RunModelChangedError(
@@ -184,6 +213,7 @@ export const resolveRunBudget = async (
       current: frozen,
       deadlineAt: hoursFrom(at, policy.maxHours),
       model,
+      ...(modelEffort !== undefined && { modelEffort }),
       amendments: [],
     };
   };
@@ -192,7 +222,13 @@ export const resolveRunBudget = async (
   let amended: RunBudget['amended'];
   const modelAdopted = state.model === undefined;
 
-  state = { ...state, model };
+  // A directory from before model selection adopts the effort with the
+  // model it continues with.
+  state = {
+    ...state,
+    model,
+    ...(modelAdopted && modelEffort !== undefined && { modelEffort }),
+  };
 
   // On a resume --max-usd raises the cap like a --budget-file does.
   const change: BudgetAmendment = {

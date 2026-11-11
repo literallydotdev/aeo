@@ -272,6 +272,7 @@ export const modelCheck = (
     ok: true,
     detail: [
       `${model.id}${named ? '' : ' (recommended; audit.json names none)'}`,
+      `asked at effort ${model.stageReasoningEffort}`,
       ...priced,
       model.stageRuntimeVerifiedAt === null
         ? 'not yet verified on the Codex stage runtime through the gateway'

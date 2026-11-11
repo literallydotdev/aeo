@@ -53,6 +53,7 @@ import {
   bankDir,
   readRecordedAuthorEvidence,
   recordRunConfiguration,
+  type ModelOverride,
   type RecordedAuthorEvidence,
 } from '../engine/run-configuration';
 import { engineResources } from '../engine/resources';
@@ -66,6 +67,10 @@ import {
   type CatalogModel,
   type ModelCatalogSource,
 } from '../models/catalog';
+import {
+  reasoningEffortSchema,
+  type ReasoningEffort,
+} from '../models/profiles';
 import type { SupportedModel } from '../models/supported-models';
 import { resolveReportModel, resolveRunModels } from '../engine/run-models';
 import { hasErrorCode } from '../stores/fs-errors';
@@ -125,15 +130,36 @@ const probesFor = async (
  * freezes the model's price itself, once its directory is known to be its
  * own (openLocalRun); everything before that only reads. */
 const reportModelFor = (
-  id: string | undefined,
+  named: { model?: string; modelEffort?: ReasoningEffort },
   dir: string,
   settings: Settings,
 ): Promise<SupportedModel> => {
-  return resolveReportModel(id, path.join(dir, bankDir), {
+  return resolveReportModel(named.model, path.join(dir, bankDir), {
     source: catalogOf(settings),
     now: new Date(),
     freeze: false,
+    ...(named.modelEffort !== undefined && { effort: named.modelEffort }),
   });
+};
+
+/** The effort named with --effort, if any: one of the levels an audit
+ * may name, refused here rather than passed on as typed. */
+const effortOf = (flags: Flags): ReasoningEffort | undefined => {
+  const value = flags.options.get('--effort');
+
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const parsed = reasoningEffortSchema.safeParse(value);
+
+  if (!parsed.success) {
+    throw new Error(
+      `--effort takes one of ${reasoningEffortSchema.options.join(', ')}; got ${JSON.stringify(value)}.`,
+    );
+  }
+
+  return parsed.data;
 };
 
 const configPathOf = (flags: Flags) => {
@@ -240,7 +266,7 @@ export const runDoctor = async (flags: Flags) => {
   // A model that cannot be priced is doctor's finding, not its crash: the
   // rest of the checks still run, against the plan the recommended model
   // would make.
-  const model = await reportModelFor(file.model, dir, settings).then(
+  const model = await reportModelFor(file, dir, settings).then(
     (resolved): PreflightModel => {
       return {
         outcome: 'resolved',
@@ -299,7 +325,7 @@ export const runPlan = async (flags: Flags) => {
   const file = await readAuditFile(configPathOf(flags));
   const dir = runDirOf(flags);
   const settings = await readSettings(flags.options.get('--env-file'));
-  const model = await reportModelFor(file.model, dir, settings);
+  const model = await reportModelFor(file, dir, settings);
   const { config, request, plan, digests } = planLocalRun(
     file,
     'planned',
@@ -336,6 +362,7 @@ export const runPlan = async (flags: Flags) => {
   const summary = {
     brand: config.brand.name,
     model: model.id,
+    modelEffort: model.stageReasoningEffort,
     sections: config.sections.map((section) => ({
       key: section.key,
       questions: section.prompts.length,
@@ -363,7 +390,7 @@ export const runPlan = async (flags: Flags) => {
   writeOut(
     [
       formatLine('Brand', summary.brand),
-      formatLine('Model', summary.model),
+      formatLine('Model', `${summary.model}, at effort ${summary.modelEffort}`),
       ...summary.sections.map((section) =>
         formatLine(`Section ${section.key}`, `${section.questions} questions`),
       ),
@@ -404,7 +431,7 @@ export const runRun = async (flags: Flags) => {
   const file = await readAuditFile(configPathOf(flags));
   const dir = runDirOf(flags);
   const settings = await readSettings(flags.options.get('--env-file'));
-  const model = await reportModelFor(file.model, dir, settings);
+  const model = await reportModelFor(file, dir, settings);
   const { plan, request } = planLocalRun(file, 'planned', model);
   const budgetFile = flags.options.get('--budget-file');
   const amendment = budgetFile
@@ -509,7 +536,11 @@ export const runAuthor = async (flags: Flags, usage: string) => {
   const settings = await readSettings(flags.options.get('--env-file'));
   const modelOption = flags.options.get('--model');
   const estimate = estimateAuthorCost(
-    await reportModelFor(modelOption, dir, settings),
+    await reportModelFor(
+      modelOption === undefined ? {} : { model: modelOption },
+      dir,
+      settings,
+    ),
   );
   const maxUsd = maxUsdOf(flags);
 
@@ -658,16 +689,24 @@ export const runRejudge = async (flags: Flags, usage: string) => {
     configOption === undefined
       ? await readRecordedAuthorEvidence(sourceDir)
       : undefined;
-  // --model judges the same captures with another model: the method
-  // changes, the measurement does not, and the lineage records both.
+  // --model judges the same captures with another model, --effort at
+  // another effort: the method changes, the measurement does not, and the
+  // lineage records both. Another model never inherits the effort the
+  // configuration names for its own.
   const modelOption = flags.options.get('--model');
+  const effortOption = effortOf(flags);
   const configured = await readAuditFile(configFile);
-  const file =
-    modelOption === undefined
-      ? configured
-      : { ...configured, model: modelOption };
+  const { modelEffort: configuredEffort, ...withoutEffort } = configured;
+  const namedEffort =
+    effortOption ?? (modelOption === undefined ? configuredEffort : undefined);
+  const file: AuditFile = {
+    ...withoutEffort,
+    ...(modelOption !== undefined && { model: modelOption }),
+    ...(namedEffort !== undefined && { modelEffort: namedEffort }),
+  };
+  const overridden = modelOption !== undefined || effortOption !== undefined;
   const settings = await readSettings(flags.options.get('--env-file'));
-  const model = await reportModelFor(file.model, dir, settings);
+  const model = await reportModelFor(file, dir, settings);
   const { plan, request } = planLocalRun(file, 'planned', model);
   const maxUsd = maxUsdOf(flags);
   const refused = await refuseWithoutCap({
@@ -731,7 +770,15 @@ export const runRejudge = async (flags: Flags, usage: string) => {
     dir,
     settings,
     maxUsd,
-    ...(modelOption !== undefined && { modelOverride: file.model }),
+    ...(overridden &&
+      file.model !== undefined && {
+        modelOverride: {
+          model: file.model,
+          ...(file.modelEffort !== undefined && {
+            modelEffort: file.modelEffort,
+          }),
+        },
+      }),
     evidence,
     derivedFromRunId: lineage.runId,
   });
@@ -745,8 +792,9 @@ type ExecuteRunOptions = {
   settings: Settings;
   /** The cap approved on the command line. */
   maxUsd?: number;
-  /** The model a rejudgment names outside the configuration file. */
-  modelOverride?: string;
+  /** The model, and its effort, a rejudgment names outside the
+   * configuration file. */
+  modelOverride?: ModelOverride;
   amendment?: BudgetAmendment;
   /** Author evidence already recorded; read beside configFile otherwise. */
   evidence?: RecordedAuthorEvidence;

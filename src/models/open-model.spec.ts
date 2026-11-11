@@ -44,6 +44,41 @@ describe('open-model - reportModelOf()', () => {
     expect(budgeted.providerOptions).toEqual({});
   });
 
+  it('should ask a model for the effort the audit names, in its calls and in the Codex stages', () => {
+    const maximal = reportModelOf(
+      listed({ reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'] }),
+      '2026-11-10',
+      'max',
+    );
+    const profile = localModelProfile(maximal, { searchProvider: 'disabled' });
+
+    expect(maximal).toMatchObject({
+      providerOptions: { gateway: { reasoning: { effort: 'max' } } },
+      stageReasoningEffort: 'max',
+      // Naming an effort verifies nothing.
+      stageRuntimeVerifiedAt: null,
+    });
+    expect(profile.roles.analyzer.providerOptions).toEqual({
+      gateway: { reasoning: { effort: 'max' } },
+    });
+    expect(profile.stages).toMatchObject({ reasoningEffort: 'max' });
+  });
+
+  it('should refuse an effort the catalog does not list for the model, naming the ones it does', () => {
+    expect(() => reportModelOf(listed(), '2026-11-10', 'max')).toThrow(
+      new ModelCatalogError(
+        'acme/model is not offered at effort "max" on the gateway\'s model list: it lists low, high. Please set modelEffort to one of those, or leave it out.',
+      ),
+    );
+    expect(() =>
+      reportModelOf(
+        listed({ reasoning: false, reasoningEfforts: [] }),
+        '2026-11-10',
+        'high',
+      ),
+    ).toThrow(/it lists no reasoning effort/);
+  });
+
   it('should build a profile the engine accepts, a free model included', () => {
     const free = reportModelOf(
       listed({ pricingUsdPerMillion: { input: 0, output: 0, cachedInput: 0 } }),

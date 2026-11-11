@@ -77,7 +77,7 @@ describe('preflight - modelCheck()', () => {
       name: 'model',
       ok: true,
       detail:
-        "acme/model; priced from the gateway's model list on 2026-11-10, at up to 1.1 in / 2.2 out USD per million tokens; not yet verified on the Codex stage runtime through the gateway",
+        "acme/model; asked at effort high; priced from the gateway's model list on 2026-11-10, at up to 1.1 in / 2.2 out USD per million tokens; not yet verified on the Codex stage runtime through the gateway",
     });
   });
 });
