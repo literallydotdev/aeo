@@ -37,7 +37,8 @@ import type { TokenUsage } from './pricing';
 // Version 3 (open models spec §7) adds what one probe is assumed to use,
 // by adapter: tokens and searches. A probe of a model the engine has no
 // flat figure for costs those at the model's catalog price. The flat
-// figures are unchanged.
+// figures are unchanged, except Anthropic's: the new default model's first
+// recorded answer spent most of the old high end on a single search.
 // ============================================================================
 
 export const costCoefficientsVersion = 3;
@@ -99,7 +100,11 @@ export const searchUsdPerAnswer = { low: 0.001, high: 0.01 } as const;
 export const probeUsd: Readonly<Record<ProbeAdapterId, Range<number>>> = {
   [ProbeAdapterId.GATEWAY_OPENAI]: { low: 0.01, high: 0.05 },
   [ProbeAdapterId.GATEWAY_GOOGLE]: { low: 0.02, high: 0.06 },
-  [ProbeAdapterId.GATEWAY_ANTHROPIC]: { low: 0.02, high: 0.08 },
+  // The adapter allows five searches. A recorded answer with one search
+  // cost $0.056 (anthropic/claude-sonnet-5, 2026-11-11: 19,000 tokens in at
+  // $0.038, $0.008 out, $0.01 for the search), so the high end is five
+  // searches of that size and a full answer, with room.
+  [ProbeAdapterId.GATEWAY_ANTHROPIC]: { low: 0.05, high: 0.3 },
   [ProbeAdapterId.GATEWAY_PERPLEXITY]: { low: 0.01, high: 0.03 },
   // Never read: the engine binds no model of its own to this adapter, so a
   // probe through it is always priced from the catalog (probeEstimateUsd).
