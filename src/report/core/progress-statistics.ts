@@ -24,7 +24,8 @@ export type ProgressStratum = {
   current: number;
 };
 
-/** Why a group carries no statistic. */
+/** Why a group carries no statistic. `comparison_partial`: the comparison
+ * of that group is partial, on the reasons the group itself carries. */
 export type ProgressStatisticSkip =
   'comparison_partial' | 'section_or_surface_selected' | 'too_large_to_compute';
 

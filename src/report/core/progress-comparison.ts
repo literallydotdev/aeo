@@ -39,6 +39,10 @@ export type ProgressCounts = {
 };
 
 export type ProgressGroupComparison = {
+  /** Why this group's comparison is partial: what holds for the two audits
+   * as wholes, and what its own matched slots show. Empty when the group
+   * is comparable, whatever the slots of another group show. */
+  reasons: ProgressComparisonReason[];
   baseline: ProgressCounts;
   current: ProgressCounts;
   mentionDeltaPp: number | null;
@@ -68,6 +72,8 @@ export type ProgressComparisonReason =
   | 'includes_reused_captures';
 
 export type ProgressComparison = {
+  /** The selection as a whole: `partial` when any group of it is. Each
+   * group says what applies to it (`ProgressGroupComparison.reasons`). */
   status: 'comparable' | 'partial' | 'unavailable';
   reasons: ProgressComparisonReason[];
   baselineRunId: string;
@@ -143,6 +149,53 @@ const countSlots = (slots: readonly ProgressSlot[]): ProgressCounts => {
 
 type MatchedSlot = { baseline: ProgressSlot; current: ProgressSlot };
 
+// The reasons a matched slot raises, each with its test. Every other reason
+// holds for the two measurements as wholes.
+const slotReasonTests = {
+  incomplete_capture_coverage: ({ baseline: a, current: b }) => {
+    return !a.captured || !b.captured;
+  },
+  incomplete_analysis_coverage: ({ baseline: a, current: b }) => {
+    return (
+      !a.analyzed || !b.analyzed || !a.citationObserved || !b.citationObserved
+    );
+  },
+  collection_method_changed: ({ baseline: a, current: b }) => {
+    return (
+      a.collectionMetadataKnown &&
+      b.collectionMetadataKnown &&
+      a.collectionMethodDigest !== b.collectionMethodDigest
+    );
+  },
+  collection_metadata_unknown: ({ baseline: a, current: b }) => {
+    return (
+      (a.captured && !a.collectionMetadataKnown) ||
+      (b.captured && !b.collectionMetadataKnown)
+    );
+  },
+} satisfies Partial<
+  Record<ProgressComparisonReason, (entry: MatchedSlot) => boolean>
+>;
+
+const isSlotReason = (
+  reason: ProgressComparisonReason,
+): reason is keyof typeof slotReasonTests => {
+  return Object.hasOwn(slotReasonTests, reason);
+};
+
+/** A group is judged on its own slots (method release spec §7.2): it keeps
+ * every reason of the comparison but the ones only another group's slots
+ * raise. A scrape that named another model, or one missed answer, then
+ * costs its own group its test and no other. */
+const groupReasonsOf = (
+  reasons: readonly ProgressComparisonReason[],
+  group: readonly MatchedSlot[],
+): ProgressComparisonReason[] => {
+  return reasons.filter(
+    (reason) => !isSlotReason(reason) || group.some(slotReasonTests[reason]),
+  );
+};
+
 /** One stratum per (section, question, surface): matched slots share their
  * key, so each stratum has the same runs in both audits. */
 const strataOf = (
@@ -172,6 +225,7 @@ const strataOf = (
 /** Statistics only for a comparable whole-scope group: a chosen section or
  * surface would multiply the tests a reader sees (spec §7.2). */
 const statisticsSkipOf = (
+  /** The group's own reasons. */
   reasons: readonly ProgressComparisonReason[],
   selection: ProgressSelection,
 ): ProgressStatisticSkip | null => {
@@ -324,21 +378,11 @@ export const deriveProgressComparison = (
     return result;
   }
 
-  if (
-    matched.some(({ baseline: a, current: b }) => !a.captured || !b.captured)
-  ) {
+  if (matched.some(slotReasonTests.incomplete_capture_coverage)) {
     result.reasons.push('incomplete_capture_coverage');
   }
 
-  if (
-    matched.some(
-      ({ baseline: a, current: b }) =>
-        !a.analyzed ||
-        !b.analyzed ||
-        !a.citationObserved ||
-        !b.citationObserved,
-    )
-  ) {
+  if (matched.some(slotReasonTests.incomplete_analysis_coverage)) {
     result.reasons.push('incomplete_analysis_coverage');
   }
 
@@ -353,24 +397,11 @@ export const deriveProgressComparison = (
     result.reasons.push('analyzer_changed');
   }
 
-  if (
-    matched.some(
-      ({ baseline: a, current: b }) =>
-        a.collectionMetadataKnown &&
-        b.collectionMetadataKnown &&
-        a.collectionMethodDigest !== b.collectionMethodDigest,
-    )
-  ) {
+  if (matched.some(slotReasonTests.collection_method_changed)) {
     result.reasons.push('collection_method_changed');
   }
 
-  if (
-    matched.some(
-      ({ baseline: a, current: b }) =>
-        (a.captured && !a.collectionMetadataKnown) ||
-        (b.captured && !b.collectionMetadataKnown),
-    )
-  ) {
+  if (matched.some(slotReasonTests.collection_metadata_unknown)) {
     result.reasons.push('collection_metadata_unknown');
   }
 
@@ -393,20 +424,6 @@ export const deriveProgressComparison = (
     result.reasons.push('includes_reused_captures');
   }
 
-  const statisticsSkipped = statisticsSkipOf(result.reasons, selection);
-  const statisticOf = (
-    group: readonly MatchedSlot[],
-    isPositive: (slot: ProgressSlot) => boolean,
-  ): ProgressStatistic => {
-    return statisticsSkipped === null
-      ? progressStatistic(strataOf(group, isPositive))
-      : {
-          version: progressStatisticsVersion,
-          computed: false,
-          reason: statisticsSkipped,
-        };
-  };
-
   for (const scope of ['chat', 'consumer', 'agents', 'custom'] as const) {
     const group = matched.filter(
       ({ baseline: slot }) => surfaceFamilyOf(slot.surface) === scope,
@@ -416,10 +433,24 @@ export const deriveProgressComparison = (
       continue;
     }
 
+    const reasons = groupReasonsOf(result.reasons, group);
+    const statisticsSkipped = statisticsSkipOf(reasons, selection);
+    const statisticOf = (
+      isPositive: (slot: ProgressSlot) => boolean,
+    ): ProgressStatistic => {
+      return statisticsSkipped === null
+        ? progressStatistic(strataOf(group, isPositive))
+        : {
+            version: progressStatisticsVersion,
+            computed: false,
+            reason: statisticsSkipped,
+          };
+    };
     const baselineCounts = countSlots(group.map((entry) => entry.baseline));
     const currentCounts = countSlots(group.map((entry) => entry.current));
 
     result.groups[scope] = {
+      reasons,
       baseline: baselineCounts,
       current: currentCounts,
       mentionDeltaPp:
@@ -433,8 +464,8 @@ export const deriveProgressComparison = (
           ? (currentCounts.citationRate - baselineCounts.citationRate) * 100
           : null,
       statistics: {
-        mention: statisticOf(group, isMentioned),
-        citation: statisticOf(group, isCited),
+        mention: statisticOf(isMentioned),
+        citation: statisticOf(isCited),
       },
     };
   }

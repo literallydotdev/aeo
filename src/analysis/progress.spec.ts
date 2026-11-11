@@ -51,6 +51,13 @@ const config = (): AeoAuditConfig => {
   });
 };
 
+type CollectionMetadata = {
+  requestedModel: string | null;
+  reportedModel: string | null;
+  parameters: Record<string, unknown>;
+  adapter?: string;
+};
+
 const fixture = (
   options: {
     runId?: string;
@@ -63,14 +70,12 @@ const fixture = (
     cited?: number[];
     noOverview?: boolean;
     origins?: Array<string | null>;
+    /** One method for every answer, or one per surface: a surface the
+     * function leaves undefined keeps the fixture's own. */
     collection?:
       | 'unknown'
-      | {
-          requestedModel: string | null;
-          reportedModel: string | null;
-          parameters: Record<string, unknown>;
-          adapter?: string;
-        };
+      | CollectionMetadata
+      | ((surface: AeoSurface) => CollectionMetadata | undefined);
   } = {},
 ): Omit<ProgressMeasurementInput, 'captureManifest'> & {
   captureManifest?: CaptureManifest;
@@ -94,6 +99,24 @@ const fixture = (
     }),
   );
 
+  const captureMetadataOf = (
+    surface: AeoSurface,
+  ): CollectionMetadata | undefined => {
+    const { collection } = options;
+
+    if (collection === 'unknown') {
+      return undefined;
+    }
+
+    return (
+      (typeof collection === 'function' ? collection(surface) : collection) ?? {
+        requestedModel: `observed/${surface}`,
+        reportedModel: null,
+        parameters: { geography: cfg.geography, language: cfg.language },
+      }
+    );
+  };
+
   const records: CapturedUnitRecord[] = units.flatMap((unit, index) =>
     options.missing?.includes(index)
       ? []
@@ -106,17 +129,7 @@ const fixture = (
               options.origins?.[index] === null
                 ? undefined
                 : (options.origins?.[index] ?? runId),
-            captureMetadata:
-              options.collection === 'unknown'
-                ? undefined
-                : (options.collection ?? {
-                    requestedModel: `observed/${unit.surface}`,
-                    reportedModel: null,
-                    parameters: {
-                      geography: cfg.geography,
-                      language: cfg.language,
-                    },
-                  }),
+            captureMetadata: captureMetadataOf(unit.surface),
             probe: {
               promptId: unit.promptId,
               promptText: unit.promptText,
@@ -1177,6 +1190,56 @@ describe('progress - deriveProgressComparison() with consumer apps', () => {
     ).toBe('comparable');
   });
 
+  it("should leave the chat group its test when only the scraper's model changed", () => {
+    const scraped = (runId: string, reportedModel: string) => {
+      return projectProgressMeasurement(
+        fixture({
+          runId,
+          config: cfg,
+          surfaces: ['google_ai_overview', 'chatgpt_app'],
+          // AI Overview keeps the fixture's own collection method.
+          collection: (surface) =>
+            surface === 'chatgpt_app'
+              ? {
+                  requestedModel: null,
+                  reportedModel,
+                  parameters: {},
+                  adapter: 'dataforseo.chatgpt_app@1',
+                }
+              : undefined,
+        }),
+      );
+    };
+    const pair = {
+      baseline: scraped('baseline', 'gpt-6'),
+      current: scraped('current', 'gpt-6-mini'),
+    };
+
+    const result = deriveProgressComparison(pair);
+
+    // The comparison says what changed; each group says whether it
+    // changed there.
+    expect(result).toMatchObject({
+      status: 'partial',
+      reasons: ['collection_method_changed'],
+    });
+    expect(result.groups.consumer).toMatchObject({
+      reasons: ['collection_method_changed'],
+      statistics: {
+        mention: { computed: false, reason: 'comparison_partial' },
+        citation: { computed: false, reason: 'comparison_partial' },
+      },
+    });
+    expect(result.groups.chat).toMatchObject({
+      reasons: [],
+      statistics: { mention: { computed: true }, citation: { computed: true } },
+    });
+    // What a comparison of the chat scope alone gives.
+    expect(result.groups.chat).toEqual(
+      deriveProgressComparison(pair, { scope: 'chat' }).groups.chat,
+    );
+  });
+
   it('should report an audit that added a consumer app as a change of scope, not of visibility', () => {
     const baseline = audit('baseline', ['google_ai_overview'], []);
     const current = audit(
@@ -1283,6 +1346,52 @@ describe('progress - deriveProgressComparison() statistics', () => {
       mention: { version: 1, computed: false, reason: 'comparison_partial' },
       citation: { version: 1, computed: false, reason: 'comparison_partial' },
     });
+  });
+
+  it('should test a group whose own answers are all there when another group missed one', () => {
+    // Unit 0 is AI Overview's one run; units 1 and 2 are Codex's two.
+    const surfaces: AeoSurface[] = ['google_ai_overview', 'codex'];
+
+    const result = compare(
+      fixture({ surfaces, mentioned: [1, 2] }),
+      fixture({ runId: 'current', surfaces, missing: [0] }),
+    );
+
+    expect(result.status).toBe('partial');
+    expect(result.reasons).toEqual([
+      'incomplete_capture_coverage',
+      'incomplete_analysis_coverage',
+    ]);
+    expect(result.groups.chat).toMatchObject({
+      reasons: ['incomplete_capture_coverage', 'incomplete_analysis_coverage'],
+      statistics: {
+        mention: { computed: false, reason: 'comparison_partial' },
+      },
+    });
+    expect(result.groups.agents).toMatchObject({
+      reasons: [],
+      statistics: { mention: { computed: true }, citation: { computed: true } },
+    });
+  });
+
+  it('should NOT test any group when what changed holds for the two audits as wholes', () => {
+    const surfaces: AeoSurface[] = ['google_ai_overview', 'codex'];
+    const baseline = projectProgressMeasurement(fixture({ surfaces }));
+    const current = projectProgressMeasurement(
+      fixture({ runId: 'current', surfaces }),
+    );
+    current.analyzer.version = 5;
+
+    const result = deriveProgressComparison({ baseline, current });
+
+    for (const group of [result.groups.chat, result.groups.agents]) {
+      expect(group).toMatchObject({
+        reasons: ['analyzer_changed'],
+        statistics: {
+          mention: { computed: false, reason: 'comparison_partial' },
+        },
+      });
+    }
   });
 
   it('should NOT test a chosen section or surface, only a whole scope', () => {

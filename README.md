@@ -196,7 +196,9 @@ interval), and the report and the viewer show the interval beside the rate.
   sources in both runs of a question: those two runs are one observation of
   whether you are cited, not two, and the interval does not allow for that.
 - A comparison of two runs says whether each change is larger than
-  answer-to-answer variation, by an exact test, with its p-value. It never
+  answer-to-answer variation, by an exact test, with its p-value. Each
+  group of surfaces is tested on its own answers: a missed answer or a
+  changed model in one group takes the test from that group only. It never
   says why a number changed, or that the change will last.
 
 Every report carries a methodology section, built by the engine and not
