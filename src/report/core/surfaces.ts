@@ -117,6 +117,15 @@ export const surfaceLabels: Record<string, string> = {
   google_ai_mode: 'AI Mode',
 };
 
+/** The name a report shows for a surface: the run's own label first (a
+ * custom surface, or one asked of another model), then the engine's. */
+export const surfaceLabelOf = (
+  surface: string,
+  runLabels: Readonly<Record<string, string>> = {},
+): string => {
+  return runLabels[surface] ?? surfaceLabels[surface] ?? surface;
+};
+
 export const isAgentSurface = (surface: string): surface is AeoAgentSurface => {
   return agentSurfaces.some((agentSurface) => agentSurface === surface);
 };

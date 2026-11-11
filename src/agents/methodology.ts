@@ -3,6 +3,7 @@ import type { AeoSurface, AeoVisibility } from '../schema';
 import {
   consumerSurfaces,
   isCustomSurface,
+  surfaceLabelOf,
   surfaceLabels as builtInLabels,
   type AeoConsumerSurface,
 } from '../surfaces';
@@ -33,13 +34,6 @@ export type MethodologyInput = {
   /** The snapshot's own labels (custom surfaces, swapped models). */
   labels: Readonly<Record<string, string>>;
   sections: readonly { visibility: AeoVisibility }[];
-};
-
-const labelOf = (
-  surface: AeoSurface,
-  labels: Readonly<Record<string, string>>,
-): string => {
-  return labels[surface] ?? builtInLabels[surface] ?? surface;
 };
 
 // A scraper's model name is whatever its page showed: the sentence that
@@ -128,7 +122,7 @@ export const buildMethodology = ({
 
   if (custom.length > 0) {
     sentences.push(
-      `Custom models (${custom.map((surface) => labelOf(surface, labels)).join('; ')}) were chosen by this audit's author. Each is asked every question through the gateway's own web search tool, which is not the search its maker's product uses. The tool attaches no source list to an answer, so a custom model's citation rate counts only the links the model writes in its answer. They are scored on their own lines and are not part of the headline rates.`,
+      `Custom models (${custom.map((surface) => surfaceLabelOf(surface, labels)).join('; ')}) were chosen by this audit's author. Each is asked every question through the gateway's own web search tool, which is not the search its maker's product uses. The tool attaches no source list to an answer, so a custom model's citation rate counts only the links the model writes in its answer. They are scored on their own lines and are not part of the headline rates.`,
     );
   }
 

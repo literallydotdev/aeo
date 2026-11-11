@@ -4,7 +4,7 @@ import {
   allSurfaces,
   isCustomSurface,
   surfaceFamilyOf,
-  surfaceLabels,
+  surfaceLabelOf,
   type SurfaceFamily,
 } from '../surfaces';
 import type { ReportFact } from './facts';
@@ -29,7 +29,7 @@ const capturedSurfaceNames = (
   const names = (family: SurfaceFamily) => {
     const joined = captured
       .filter((surface) => surfaceFamilyOf(surface) === family)
-      .map((surface) => labels[surface] ?? surfaceLabels[surface] ?? surface)
+      .map((surface) => surfaceLabelOf(surface, labels))
       .join(', ');
 
     return joined === '' ? 'none' : joined;

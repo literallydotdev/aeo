@@ -5,6 +5,7 @@ import { plannedProbeUnitsForSection } from '../lib/checkpoint';
 import { intervalPercents } from '../report/core/rate-interval';
 import type { AeoRateEvidence } from '../report/core/schema';
 import type { AeoAuditConfig, AeoSnapshot } from '../schema';
+import { surfaceLabelOf } from '../surfaces';
 import type {
   ClaimAssessment,
   ClaimCandidate,
@@ -435,8 +436,10 @@ export const methodologyNote = (snapshot: AeoSnapshot): string => {
     meta.migrations
       ?.map((migration) => `${migration.id} (${migration.appliedAt})`)
       .join(', ') ?? '';
+  // By the names the report shows, so the API surface of a product and its
+  // scraped app are told apart here as everywhere else.
   const parts = [
-    `Measured surfaces: ${surfaces.map((surface) => surface.replaceAll('_', ' ')).join(', ')}.`,
+    `Measured surfaces: ${surfaces.map((surface) => surfaceLabelOf(surface, meta.surfaceLabels)).join(', ')}.`,
     `Models: analyzer ${meta.models?.analyzer ?? 'not recorded'}; perception ${meta.models?.perception ?? 'not recorded'}.`,
     `Answer analyzer version: ${meta.analyzerVersion ?? 'not recorded'}. Domain classifier version: ${meta.domainClassifierVersion ?? 'not recorded'}.`,
     `Data migrations: ${migrationList === '' ? 'none recorded' : migrationList}.`,
