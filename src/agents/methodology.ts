@@ -95,6 +95,21 @@ export const buildMethodology = ({
       'Beside each rate, the approximate 95% interval (a Wilson score interval) describes answer-to-answer variation for these questions at the time of the audit. It is not a market share, not uncertainty about which questions buyers ask, and not a forecast. Where answers were not captured, the interval allows for either outcome in each of them.',
       'The interval assumes that repeated runs of one question are independent. Runs minutes apart can share a search index or a provider cache; if they return near-duplicate answers, the interval is too narrow.',
     );
+
+    // Measured on recorded runs (method release spec §6.1): both runs of a
+    // question listed the same sources in 18 of 19 pairs of the self-audit
+    // this repository replays, and in about half of the pairs elsewhere.
+    // Only Perplexity's own models answer that way; another provider's
+    // model behind the surface attaches no source list at all.
+    if (
+      (askedModels.perplexity ?? []).some((model) =>
+        model.startsWith('perplexity/'),
+      )
+    ) {
+      sentences.push(
+        `${builtInLabels.perplexity} often lists the same sources in both runs of a question. Those two runs are then one observation of whether the company is cited, not two, and the interval of a citation rate that includes it does not allow for that.`,
+      );
+    }
   }
 
   if (apiSurfaces.length > 0) {

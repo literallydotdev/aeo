@@ -76,6 +76,26 @@ describe('methodology - buildMethodology()', () => {
     );
   });
 
+  it("should say that Perplexity's two runs of a question are often one observation of a citation, only where its own model answered", () => {
+    const repeated =
+      'Perplexity (API) often lists the same sources in both runs of a question. Those two runs are then one observation of whether the company is cited, not two, and the interval of a citation rate that includes it does not allow for that.';
+    const asked = (model: string) => {
+      return buildMethodology(
+        input({
+          surfaces: ['chatgpt', 'perplexity'],
+          askedModels: {
+            chatgpt: ['openai/default-1'],
+            perplexity: [model],
+          },
+        }),
+      );
+    };
+
+    expect(asked('perplexity/default-1')).toContain(repeated);
+    expect(asked('acme/model-1')).not.toContain(repeated);
+    expect(buildMethodology(input())).not.toContain(repeated);
+  });
+
   it('should say nothing of API chat models or intervals a run does not have', () => {
     const sentences = buildMethodology(
       input({

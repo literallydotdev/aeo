@@ -146,7 +146,9 @@ interval), and the report and the viewer show the interval beside the rate.
   the rate, and the interval widens to allow for either outcome.
 - It assumes repeated runs of one question are independent. Runs minutes
   apart can share a search index or a cache; if they return near-duplicate
-  answers, the interval is too narrow.
+  answers, the interval is too narrow. Perplexity often lists the same
+  sources in both runs of a question: those two runs are one observation of
+  whether you are cited, not two, and the interval does not allow for that.
 - A comparison of two runs says whether each change is larger than
   answer-to-answer variation, by an exact test, with its p-value. It never
   says why a number changed, or that the change will last.
