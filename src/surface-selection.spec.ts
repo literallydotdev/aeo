@@ -159,6 +159,32 @@ describe('runner - planRun()', () => {
     ).toThrow(/chatgpt_app cannot be placed there/);
   });
 
+  it('should refuse to plan a consumer app in a mapped market its scrape does not list, before anything is reserved', () => {
+    const inLanguage = (language: string) => {
+      return aeoAuditConfigSchema.parse({ ...base, geography: 'br', language });
+    };
+
+    // DataForSEO lists Portuguese for the ChatGPT scrape, and only its
+    // Brazilian variant, which no audit can name, for AI Mode.
+    expect(() =>
+      planRun(inLanguage('pt'), request(['chatgpt', 'chatgpt_app'])),
+    ).not.toThrow();
+    expect(() =>
+      planRun(inLanguage('pt'), request(['chatgpt_app', 'google_ai_mode'])),
+    ).toThrow(
+      'google_ai_mode cannot be measured in language "pt": DataForSEO does not list it for that app (its lists were read on 2026-11-11). Please leave it out of the run.',
+    );
+    expect(() =>
+      planRun(inLanguage('zh'), request(['chatgpt_app', 'google_ai_mode'])),
+    ).toThrow(
+      /^chatgpt_app cannot be measured in language "zh".* google_ai_mode cannot be measured in language "zh".* Please leave them out of the run\.$/,
+    );
+    // The other surfaces DataForSEO places are not held to those lists.
+    expect(() =>
+      planRun(inLanguage('zh'), request(['chatgpt', 'google_ai_overview'])),
+    ).not.toThrow();
+  });
+
   it("should keep the request's surfaces as the operator's override on a skip config", () => {
     const skip = aeoAuditConfigSchema.parse({
       ...base,

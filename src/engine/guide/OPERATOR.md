@@ -132,8 +132,9 @@ answer is scraped by DataForSEO, the model is whatever the product served
 and nothing pins it, and they are scored as a group of their own, apart
 from the headline. A scrape costs about $0.004, and each answer is judged
 like any other, so checkpoint 6 shows what one adds. If the user wants
-one, add it to `surfaces`. If the
-user would rather measure fewer questions more deeply, set
+one, add it to `surfaces`. A config is refused when it lists one in a
+language its scrape does not take: Chinese for either, Portuguese for AI
+Mode. If the user would rather measure fewer questions more deeply, set
 `chatProbes.runsPerPrompt` and `agentProbes.runsPerPrompt` (1 to 25 runs
 of each question per assistant); left out, each question is asked twice
 (once on AI Overviews and on each consumer app). Run

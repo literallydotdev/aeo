@@ -15,7 +15,10 @@ import {
   resolveSupportedModel,
   type SupportedModel,
 } from '../models/supported-models';
-import { resolveDataForSeoLocale } from '../probes/dataforseo-locale';
+import {
+  consumerMarketProblem,
+  resolveDataForSeoLocale,
+} from '../probes/dataforseo-locale';
 import {
   customSurfaceId,
   modelAdapterIds,
@@ -35,6 +38,7 @@ import {
   defaultMaxPlannedUnits,
   defaultSurfaces,
   isAgentSurface,
+  isConsumerSurface,
   isCustomSurface,
   maxCustomSurfaces,
   runRequestSchema,
@@ -248,6 +252,18 @@ export const auditFileSchema = z
         context.addIssue({
           code: 'custom',
           message: `surfaces names ${surface}, which customSurfaces does not declare.`,
+          path: ['surfaces', index],
+        });
+      }
+
+      const marketProblem = isConsumerSurface(surface)
+        ? consumerMarketProblem(surface, file.geography, file.language)
+        : undefined;
+
+      if (marketProblem !== undefined) {
+        context.addIssue({
+          code: 'custom',
+          message: `${marketProblem} Please leave it out of surfaces.`,
           path: ['surfaces', index],
         });
       }

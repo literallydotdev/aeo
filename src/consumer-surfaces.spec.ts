@@ -47,6 +47,12 @@ import {
   RunBindingsError,
 } from './probes/bindings';
 import { createDataForSeoProbeClient } from './probes/dataforseo';
+import {
+  consumerMarketProblem,
+  consumerScrapeMarkets,
+  dataForSeoLanguageCodes,
+  dataForSeoLocationCodes,
+} from './probes/dataforseo-locale';
 import { legacyProbeBindings } from './probes/legacy-bindings';
 import type { ProbeAttemptEnd, ProbeAttemptStart } from './probes/probe-trace';
 import { runProbesForPrompts } from './probes/probes';
@@ -158,6 +164,69 @@ describe('audit-file - a listed consumer app', () => {
         probes: { chatgpt_app: { model: 'openai/gpt-test-1' } },
       }).success,
     ).toBe(false);
+  });
+});
+
+describe('dataforseo-locale - the markets a consumer scrape lists', () => {
+  it('should pin only codes the engine maps, and every mapped location for the ChatGPT scrape', () => {
+    const mappedLocations = new Set(Object.values(dataForSeoLocationCodes));
+    const mappedLanguages = new Set(Object.values(dataForSeoLanguageCodes));
+
+    for (const surface of consumerSurfaces) {
+      const { locationCodes, languageCodes } = consumerScrapeMarkets[surface];
+
+      expect(
+        [...languageCodes].filter((code) => !mappedLanguages.has(code)),
+      ).toEqual([]);
+      expect(
+        [...(locationCodes ?? [])].filter((code) => !mappedLocations.has(code)),
+      ).toEqual([]);
+    }
+
+    expect(consumerScrapeMarkets.chatgpt_app.locationCodes).toEqual(
+      mappedLocations,
+    );
+    // The vendor publishes no list of where Google serves AI Mode.
+    expect(consumerScrapeMarkets.google_ai_mode.locationCodes).toBeNull();
+  });
+
+  it('should name the half of a market a scrape does not list, and nothing for a market it lists or one no table maps', () => {
+    expect(consumerMarketProblem('chatgpt_app', 'US', 'English')).toBe(
+      undefined,
+    );
+    expect(consumerMarketProblem('chatgpt_app', 'br', 'pt')).toBe(undefined);
+    expect(consumerMarketProblem('google_ai_mode', 'br', 'pt')).toBe(
+      'google_ai_mode cannot be measured in language "pt": DataForSEO does not list it for that app (its lists were read on 2026-11-11).',
+    );
+    expect(consumerMarketProblem('chatgpt_app', 'us', 'Chinese')).toContain(
+      'in language "Chinese"',
+    );
+    // Refused for every placed surface, by the rule that maps markets.
+    expect(consumerMarketProblem('chatgpt_app', 'global', 'en')).toBe(
+      undefined,
+    );
+  });
+
+  it('should refuse an audit file that lists a consumer app in a market its scrape does not list, at the app', () => {
+    const inPortuguese = (surfaces: string[]) => {
+      return auditFileSchema.safeParse({
+        ...exampleAuditFile,
+        geography: 'br',
+        language: 'pt',
+        surfaces,
+      });
+    };
+
+    const refused = inPortuguese(['chatgpt', 'chatgpt_app', 'google_ai_mode']);
+
+    expect(refused.error?.issues).toMatchObject([
+      {
+        path: ['surfaces', 2],
+        message:
+          'google_ai_mode cannot be measured in language "pt": DataForSEO does not list it for that app (its lists were read on 2026-11-11). Please leave it out of surfaces.',
+      },
+    ]);
+    expect(inPortuguese(['chatgpt', 'chatgpt_app']).success).toBe(true);
   });
 });
 

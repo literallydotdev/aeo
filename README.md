@@ -139,9 +139,14 @@ ways the report states:
   and no competitor split. The source mix and the outreach list count every
   captured answer, so they include its answers. A comparison with a run
   that did not measure it reports that the scope changed.
-- Both scrapes were captured in US English only (November 2026).
-  DataForSEO lists the markets each one serves; in a market it refuses,
-  every answer of that app fails and the run stops at its coverage check.
+- Both scrapes were captured in US English only (November 2026). Of the
+  markets the engine places, DataForSEO lists every one for the ChatGPT
+  scrape except Chinese, and every one for AI Mode except Chinese and
+  Portuguese (its lists, read on 11 November 2026). An audit that lists an
+  app in a language its scrape does not take is refused before anything is
+  spent. DataForSEO publishes no list of the countries where Google serves
+  AI Mode: in one where it does not, every answer of that app fails and the
+  run stops at its coverage check.
 
 `literally-aeo plan` estimates what a run costs, as a range per kind of
 work: the assistant answers, the analysis stages, the other model calls and

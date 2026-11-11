@@ -20,7 +20,10 @@ import {
 import { createLog } from './lib/log';
 import type { AgentCliVersions } from './probes/agent-clis';
 import type { ProbeLimiter } from './probes/limits';
-import { resolveDataForSeoLocale } from './probes/dataforseo-locale';
+import {
+  consumerMarketProblem,
+  resolveDataForSeoLocale,
+} from './probes/dataforseo-locale';
 import type { PartialFailure } from './probes/web-tool-guard';
 import type { SectionRunResult } from './pipeline';
 import {
@@ -167,6 +170,22 @@ export const planRun = (
   ) {
     throw new RunRequestError(
       `No search market for geography ${JSON.stringify(config.geography)} and language ${JSON.stringify(config.language)}: ${placed.join(', ')} cannot be placed there. Please fix the config's geography and language (supported codes include us and en), or leave ${placed.join(' and ')} out of the run.`,
+    );
+  }
+
+  // A consumer scrape takes fewer markets than the table maps. One it does
+  // not list would fail every answer of that app at run time, each paid
+  // for nothing: it is refused here instead.
+  const unlisted = surfaces
+    .filter(isConsumerSurface)
+    .flatMap(
+      (surface) =>
+        consumerMarketProblem(surface, config.geography, config.language) ?? [],
+    );
+
+  if (unlisted.length > 0) {
+    throw new RunRequestError(
+      `${unlisted.join(' ')} Please leave ${unlisted.length === 1 ? 'it' : 'them'} out of the run.`,
     );
   }
 
