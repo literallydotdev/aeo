@@ -206,9 +206,11 @@ export const defaultProbeBindings: Readonly<
   },
   // "The default model for Free and Pro plans" since 30 June 2026
   // (anthropic.com/news/claude-sonnet-5). Anthropic has not said that
-  // Sonnet 5.5 replaced it on the Free plan.
+  // Sonnet 5.5 replaced it on the Free plan. Its answers to buyer questions
+  // run past the released adapter's allowance, so it is asked through the
+  // version with room for them.
   claude: {
-    adapter: ProbeAdapterId.GATEWAY_ANTHROPIC,
+    adapter: ProbeAdapterId.GATEWAY_ANTHROPIC_2,
     model: 'anthropic/claude-sonnet-5',
   },
   // Without a plan, "Auto" sends "most prompts" to Flash-Lite, a change
@@ -262,6 +264,8 @@ export const probeAdapterProfiles: Readonly<
     gatewayChatProfiles[ProbeAdapterId.GATEWAY_GOOGLE],
   [ProbeAdapterId.GATEWAY_ANTHROPIC]:
     gatewayChatProfiles[ProbeAdapterId.GATEWAY_ANTHROPIC],
+  [ProbeAdapterId.GATEWAY_ANTHROPIC_2]:
+    gatewayChatProfiles[ProbeAdapterId.GATEWAY_ANTHROPIC_2],
   [ProbeAdapterId.GATEWAY_PERPLEXITY]: gatewayPerplexityProfile,
   [ProbeAdapterId.DATAFORSEO_AI_OVERVIEW]: dataForSeoAiOverviewProfile,
   [ProbeAdapterId.DATAFORSEO_AI_MODE]: dataForSeoAiModeProfile,
@@ -293,6 +297,7 @@ export const modelAdapterIds = [
   ProbeAdapterId.GATEWAY_OPENAI_2,
   ProbeAdapterId.GATEWAY_GOOGLE,
   ProbeAdapterId.GATEWAY_ANTHROPIC,
+  ProbeAdapterId.GATEWAY_ANTHROPIC_2,
   ProbeAdapterId.GATEWAY_PERPLEXITY,
   ProbeAdapterId.GATEWAY_SEARCH,
 ] as const;
@@ -308,7 +313,7 @@ const isModelAdapterId = (adapter: string): adapter is ModelAdapterId => {
 const adapterByProvider: Readonly<Record<string, ModelAdapterId>> = {
   openai: ProbeAdapterId.GATEWAY_OPENAI_2,
   google: ProbeAdapterId.GATEWAY_GOOGLE,
-  anthropic: ProbeAdapterId.GATEWAY_ANTHROPIC,
+  anthropic: ProbeAdapterId.GATEWAY_ANTHROPIC_2,
   perplexity: ProbeAdapterId.GATEWAY_PERPLEXITY,
 };
 
@@ -677,6 +682,7 @@ export const createChatAdapter = (
     case ProbeAdapterId.GATEWAY_OPENAI_2:
     case ProbeAdapterId.GATEWAY_GOOGLE:
     case ProbeAdapterId.GATEWAY_ANTHROPIC:
+    case ProbeAdapterId.GATEWAY_ANTHROPIC_2:
     case ProbeAdapterId.GATEWAY_SEARCH:
       return createGatewayChatAdapter(binding.adapter, {
         surface,

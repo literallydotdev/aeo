@@ -24,6 +24,9 @@ export const ProbeAdapterId = {
   GATEWAY_OPENAI_2: 'gateway.openai@2',
   GATEWAY_GOOGLE: 'gateway.google@1',
   GATEWAY_ANTHROPIC: 'gateway.anthropic@1',
+  // With the same room: under @1's 2,000 tokens the default model's
+  // answers to buyer questions were cut off mid-sentence.
+  GATEWAY_ANTHROPIC_2: 'gateway.anthropic@2',
   GATEWAY_PERPLEXITY: 'gateway.perplexity@1',
   // Any gateway model, searching through the gateway's own search tool.
   GATEWAY_SEARCH: 'gateway.search@1',

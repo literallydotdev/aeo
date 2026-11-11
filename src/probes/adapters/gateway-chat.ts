@@ -41,15 +41,21 @@ const log = createLog('AISearchProbes');
 export const probeMaxOutputTokens = 2000;
 
 /**
- * The output allowance of gateway.openai@2. A model that reasons bills its
- * thinking and its tool calls as output, and under 2,000 tokens the
- * free-tier model ran out while it was still searching. In the first run
- * on buyer questions (2026-11-11) the search call ended on its token limit
- * with no text at least four times, each answer then written by the
- * follow-up, which searches nothing; 6 of that run's 12 answers carried no
- * source at all, where the same questions on the earlier model gave none
- * without a source in 38. Eight times the room costs at most $0.008 a
- * call at that model's output price.
+ * The output allowance of gateway.openai@2, gateway.anthropic@2 and
+ * gateway.search@1: room for the models of 2026 to finish an answer to a
+ * buyer question. Measured on six such questions (2026-11-11, method
+ * release spec §4.4), under the released 2,000 tokens:
+ *
+ * - openai/gpt-6-luna bills its thinking and its tool calls as output, and
+ *   ran out while it was still searching. The search call ended on its
+ *   token limit with no text, the follow-up, which searches nothing, wrote
+ *   the answer, and 6 of 12 answers carried no source at all. The same
+ *   questions on the earlier model gave none without a source in 38.
+ * - anthropic/claude-sonnet-5 was cut off mid-sentence in 4 of 6 answers.
+ *
+ * With this allowance the first model finished all six answers in at most
+ * 2,918 output tokens, each with its sources. The other two default models
+ * finished inside 2,000 (1,027 at most), and keep it.
  */
 export const roomyProbeMaxOutputTokens = 16_000;
 // A search-required call plus a synthesis follow-up: bounded by the runner
@@ -321,6 +327,7 @@ export type GatewayChatAdapterId =
   | typeof ProbeAdapterId.GATEWAY_OPENAI_2
   | typeof ProbeAdapterId.GATEWAY_GOOGLE
   | typeof ProbeAdapterId.GATEWAY_ANTHROPIC
+  | typeof ProbeAdapterId.GATEWAY_ANTHROPIC_2
   | typeof ProbeAdapterId.GATEWAY_SEARCH;
 
 // A two-letter language, alone or with its region ("pt", "pt-BR").
@@ -363,6 +370,7 @@ const gatewayChatMethods: Record<GatewayChatAdapterId, GatewayChatMethod> = {
     extractRetrieval: (result) =>
       extractGeminiRetrieval(result.providerMetadata),
   },
+  // Kept as released, like gateway.openai@1.
   [ProbeAdapterId.GATEWAY_ANTHROPIC]: {
     profile: gatewayChatProfile(ProbeAdapterId.GATEWAY_ANTHROPIC, 'full'),
     maxOutputTokens: probeMaxOutputTokens,
@@ -371,11 +379,20 @@ const gatewayChatMethods: Record<GatewayChatAdapterId, GatewayChatMethod> = {
     }),
     extractRetrieval: (result) => extractAnthropicRetrieval(result.steps),
   },
+  [ProbeAdapterId.GATEWAY_ANTHROPIC_2]: {
+    profile: gatewayChatProfile(ProbeAdapterId.GATEWAY_ANTHROPIC_2, 'full'),
+    maxOutputTokens: roomyProbeMaxOutputTokens,
+    tools: () => ({
+      web_search: anthropic.tools.webSearch_20250305({ maxUses: 5 }),
+    }),
+    extractRetrieval: (result) => extractAnthropicRetrieval(result.steps),
+  },
   // Any gateway model (open models spec §5.2): the search is the gateway's
-  // own tool, so it does not depend on the model's provider.
+  // own tool, so it does not depend on the model's provider. Any model may
+  // reason, so it has the room from its first release.
   [ProbeAdapterId.GATEWAY_SEARCH]: {
     profile: gatewayChatProfile(ProbeAdapterId.GATEWAY_SEARCH, 'full'),
-    maxOutputTokens: probeMaxOutputTokens,
+    maxOutputTokens: roomyProbeMaxOutputTokens,
     tools: (market) => ({ [gatewaySearchToolName]: gatewaySearchTool(market) }),
     extractRetrieval: (result) => extractGatewaySearchRetrieval(result.steps),
   },
@@ -390,6 +407,8 @@ export const gatewayChatProfiles = {
     gatewayChatMethods[ProbeAdapterId.GATEWAY_GOOGLE].profile,
   [ProbeAdapterId.GATEWAY_ANTHROPIC]:
     gatewayChatMethods[ProbeAdapterId.GATEWAY_ANTHROPIC].profile,
+  [ProbeAdapterId.GATEWAY_ANTHROPIC_2]:
+    gatewayChatMethods[ProbeAdapterId.GATEWAY_ANTHROPIC_2].profile,
   [ProbeAdapterId.GATEWAY_SEARCH]:
     gatewayChatMethods[ProbeAdapterId.GATEWAY_SEARCH].profile,
 } satisfies Record<GatewayChatAdapterId, ProbeAdapterProfile>;

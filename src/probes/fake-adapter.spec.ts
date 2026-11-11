@@ -298,9 +298,9 @@ describe('probes - a registered adapter', () => {
       ),
     ).toHaveLength(2);
     // Reserved at the catalog price: no cost was reported, so each call
-    // keeps its high estimate (75,000 in, 6,000 out, ten $0.005 searches).
+    // keeps its high estimate (75,000 in, 8,000 out, ten $0.005 searches).
     expect(
       Object.values(ledger.state.calls).map((call) => call.reservedUsd),
-    ).toEqual([0.26, 0.26]);
+    ).toEqual([0.28, 0.28]);
   });
 });

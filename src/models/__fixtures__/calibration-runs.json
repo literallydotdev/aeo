@@ -1,5 +1,5 @@
 {
-  "note": "Token usage of four local runs of Literally.dev's own self-audit (2026-11-04), from their journals: every Codex session's reported usage, split into the stages that read answers and the write stage, and the host calls' settled usage. Token counts only; calibration 1 of src/models/cost-coefficients.ts.",
+  "note": "Token usage of local runs of Literally.dev's own self-audit, from their journals: every Codex session's reported usage, split into the stages that read answers and the write stage, and the host calls' settled usage. Token counts only. Four runs of 2026-11-04 (calibration 1 of src/models/cost-coefficients.ts) and one of 2026-11-11 (calibration 2): the first on a supported model with full grounding, with no stage input served from cache.",
   "runs": [
     {
       "name": "extraction-16",
@@ -40,6 +40,16 @@
         "perRun": { "input": 452038, "cachedInput": 417280, "output": 22521 }
       },
       "hostTokens": { "input": 123521, "output": 208801 }
+    },
+    {
+      "name": "full-30",
+      "answers": 30,
+      "grounding": "full",
+      "stageTokens": {
+        "perAnswer": { "input": 914384, "cachedInput": 0, "output": 60952 },
+        "perRun": { "input": 363337, "cachedInput": 0, "output": 11155 }
+      },
+      "hostTokens": { "input": 175900, "output": 10988 }
     }
   ]
 }

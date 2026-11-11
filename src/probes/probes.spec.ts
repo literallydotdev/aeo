@@ -137,10 +137,23 @@ describe('probes - runProbesForPrompts()', () => {
       bindings: defaultProbeBindings,
       allowance: 2000,
     },
+    // The default Claude model's answers were cut off at 2,000.
     {
       name: 'the default Claude binding',
       surface: 'claude',
       bindings: defaultProbeBindings,
+      allowance: 16_000,
+    },
+    {
+      name: 'a directory frozen on the released Anthropic adapter',
+      surface: 'claude',
+      bindings: {
+        ...defaultProbeBindings,
+        claude: {
+          adapter: 'gateway.anthropic@1',
+          model: 'anthropic/claude-sonnet-5',
+        },
+      },
       allowance: 2000,
     },
   ] as const)(

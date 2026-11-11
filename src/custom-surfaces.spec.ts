@@ -151,6 +151,9 @@ describe('bindings - a custom surface', () => {
     expect(adapter.request('Which store?')).toMatchObject({
       parameters: {
         model: 'acme/grok-5',
+        // Any model may reason: room to finish, from the adapter's first
+        // release.
+        maxOutputTokens: 16_000,
         toolChoice: 'required',
         tools: [
           {
@@ -222,10 +225,10 @@ describe('bindings - a custom surface', () => {
       ]),
     );
 
-    // 8,000 tokens in, 500 out and one $0.005 search; 75,000 in, 6,000
+    // 8,000 tokens in, 500 out and one $0.005 search; 75,000 in, 8,000
     // out and ten.
     expect(estimate.low).toBeCloseTo(0.016 + 0.005 + 0.005, 10);
-    expect(estimate.high).toBeCloseTo(0.15 + 0.06 + 0.05, 10);
+    expect(estimate.high).toBeCloseTo(0.15 + 0.08 + 0.05, 10);
   });
 
   it('should always carry its own label, with the model its answers were asked of', () => {

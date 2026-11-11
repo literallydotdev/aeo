@@ -40,6 +40,15 @@ import type { TokenUsage } from './pricing';
 // figures are unchanged, except Anthropic's: the new default model's first
 // recorded answer spent most of the old high end on a single search. It
 // also adds the two consumer-app scrapes (method release spec §5).
+//
+// Calibration 2 (2026-11-11), still version 3: the first recorded run on
+// the supported models with full grounding (30 answers, the fifth run of
+// calibration-runs.json) and 24 probes of the default bindings on six
+// buyer questions. That run's host calls used 5,900 input and 370 output
+// tokens per answer, a fifteenth of the output the earlier runs' model
+// billed, and its research fetched pages without one paid search, so both
+// low ends came down. The probe figures are now the costs the gateway
+// reported, with room above the dearest.
 // ============================================================================
 
 export const costCoefficientsVersion = 3;
@@ -88,30 +97,40 @@ export const hostTokensPerAnswer = {
     high: { input: 8000, output: 12_000 },
   },
   full: {
-    low: { input: 6000, output: 6000 },
+    low: { input: 5000, output: 300 },
     high: { input: 24_000, output: 18_000 },
   },
 } as const;
 
-/** Grounding search per captured answer under full grounding. */
-export const searchUsdPerAnswer = { low: 0.001, high: 0.01 } as const;
+/** Grounding search per captured answer under full grounding. Research
+ * that reads the pages it already holds searches nothing. */
+export const searchUsdPerAnswer = { low: 0, high: 0.01 } as const;
 
 /** One probe unit, by adapter, in USD. The coding-agent CLIs run on the
  * operator's own plan and bill nothing to the run's cap. */
 export const probeUsd: Readonly<Record<ProbeAdapterId, Range<number>>> = {
   [ProbeAdapterId.GATEWAY_OPENAI]: { low: 0.01, high: 0.05 },
-  // The first run on buyer questions (openai/gpt-6-luna, 2026-11-11, 12
-  // answers) cost $0.022 to $0.078 an answer under @1: the model searches
-  // five to seven times where the earlier one searched once or twice. The
-  // high end leaves room above the dearest of them.
+  // openai/gpt-6-luna on buyer questions (2026-11-11): $0.022 to $0.078 an
+  // answer, the same under @1 (12 answers) and under @2 (6). The model
+  // searches two to seven times and reads 21,000 to 64,000 tokens, where
+  // the earlier one searched once or twice. The high end leaves room above
+  // the dearest of them.
   [ProbeAdapterId.GATEWAY_OPENAI_2]: { low: 0.02, high: 0.1 },
+  // google/gemini-3.5-flash-lite on the same questions: $0.030 to $0.044.
   [ProbeAdapterId.GATEWAY_GOOGLE]: { low: 0.02, high: 0.06 },
   // The adapter allows five searches. A recorded answer with one search
   // cost $0.056 (anthropic/claude-sonnet-5, 2026-11-11: 19,000 tokens in at
   // $0.038, $0.008 out, $0.01 for the search), so the high end is five
   // searches of that size and a full answer, with room.
   [ProbeAdapterId.GATEWAY_ANTHROPIC]: { low: 0.05, high: 0.3 },
-  [ProbeAdapterId.GATEWAY_PERPLEXITY]: { low: 0.01, high: 0.03 },
+  // The same model on buyer questions, under @1 (2026-11-11, 6 answers):
+  // $0.114 to $0.281, two to four searches and 36,000 to 109,000 tokens in.
+  // No answer is recorded under @2 yet. The high end is five searches, the
+  // input of the dearest answer and a quarter more, and the whole 16,000
+  // tokens of output.
+  [ProbeAdapterId.GATEWAY_ANTHROPIC_2]: { low: 0.1, high: 0.5 },
+  // perplexity/sonar on the same questions: $0.003 to $0.007.
+  [ProbeAdapterId.GATEWAY_PERPLEXITY]: { low: 0.003, high: 0.03 },
   // Never read: the engine binds no model of its own to this adapter, so a
   // probe through it is always priced from the catalog (probeEstimateUsd).
   [ProbeAdapterId.GATEWAY_SEARCH]: { low: 0.02, high: 0.1 },
@@ -126,14 +145,16 @@ export const probeUsd: Readonly<Record<ProbeAdapterId, Range<number>>> = {
   [ProbeAdapterId.CLI_CURSOR]: { low: 0, high: 0 },
 };
 
-/** What one probe of a model-API adapter is assumed to use: as rough as the
- * flat figures above, and replaced with them once runs are recorded. The
- * input is mostly the search results the provider feeds the model. */
+/** What one probe of a model-API adapter is assumed to use, for a model
+ * the engine has no flat figure for. The range holds the 24 probes of the
+ * default bindings on buyer questions (2026-11-11): 6,000 to 109,000
+ * tokens in, mostly the search results the provider feeds the model, 200
+ * to 2,900 out, and up to seven searches. The output's high end leaves
+ * room for a model that reasons more: it bills its thinking as output. */
 export const probeUsage = {
-  input: { low: 8000, high: 30_000 },
-  // A reasoning model bills its thinking as output.
-  output: { low: 500, high: 4000 },
-  searches: { low: 1, high: 3 },
+  input: { low: 6000, high: 120_000 },
+  output: { low: 200, high: 8000 },
+  searches: { low: 1, high: 7 },
 } as const;
 
 /** What one probe through the gateway's own search tool is assumed to
@@ -144,7 +165,7 @@ export const probeUsage = {
  * that probe, until more are recorded. */
 export const gatewaySearchProbeUsage = {
   input: { low: 8000, high: 75_000 },
-  output: { low: 500, high: 6000 },
+  output: { low: 500, high: 8000 },
   searches: { low: 1, high: 10 },
 } as const;
 

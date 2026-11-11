@@ -104,8 +104,8 @@ describe('cost-estimate - estimateRunCost()', () => {
       high: probeUsd['gateway.openai@2'].high * 4,
     });
     expect(rebound.categories.probes).toEqual({
-      low: probeUsd['gateway.anthropic@1'].low * 4,
-      high: probeUsd['gateway.anthropic@1'].high * 4,
+      low: probeUsd['gateway.anthropic@2'].low * 4,
+      high: probeUsd['gateway.anthropic@2'].high * 4,
     });
   });
 
@@ -137,10 +137,10 @@ describe('cost-estimate - estimateRunCost()', () => {
       probeModels: new Map([[listed.id, listed]]),
     });
 
-    // One probe: 8,000 to 30,000 tokens in, 500 to 4,000 out, 1 to 3
+    // One probe: 6,000 to 120,000 tokens in, 200 to 8,000 out, 1 to 7
     // searches. At $2 and $10 per million and $0.02 a search that is
-    // $0.041 to $0.16, four times, to the cent.
-    expect(estimate.categories.probes).toEqual({ low: 0.16, high: 0.64 });
+    // $0.034 to $0.46, four times, to the cent.
+    expect(estimate.categories.probes).toEqual({ low: 0.14, high: 1.84 });
     expect(() =>
       estimateRunCost({
         plan,
@@ -168,7 +168,14 @@ describe('cost-estimate - estimateRunCost()', () => {
       'hostCalls',
       'search',
     ]);
-    expect(ranges.filter((range) => range.low <= 0)).toEqual([]);
+    // Every category can cost something. Research that reads the pages it
+    // already holds searches nothing, so search alone starts at zero.
+    expect(ranges.filter((range) => range.high <= 0)).toEqual([]);
+    expect(
+      Object.entries(estimate.categories)
+        .filter(([, range]) => range.low <= 0)
+        .map(([category]) => category),
+    ).toEqual(['search']);
     expect(ranges.filter((range) => range.high < range.low)).toEqual([]);
     expect(estimate.recommendedCapUsd).toBeGreaterThanOrEqual(estimate.high);
   });

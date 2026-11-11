@@ -34,8 +34,9 @@ describe('bindings - defaultProbeBindings', () => {
       ...legacyProbeBindings,
       // Through the adapter version with room for a model that reasons.
       chatgpt: { adapter: 'gateway.openai@2', model: 'openai/gpt-6-luna' },
+      // Its answers run past the released adapter's allowance too.
       claude: {
-        adapter: 'gateway.anthropic@1',
+        adapter: 'gateway.anthropic@2',
         model: 'anthropic/claude-sonnet-5',
       },
       gemini: {
