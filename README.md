@@ -42,8 +42,8 @@ literally-aeo verify audit-run.aeo.zip   # offline verification
   [Codex CLI](https://github.com/openai/codex) that runs them is a pinned
   dependency of the package.
 - An `AI_GATEWAY_API_KEY` (Vercel AI Gateway) for the assistant answers and
-  the host model calls, and a DataForSEO login for Google AI Overviews and
-  factual grounding searches.
+  the host model calls, and a DataForSEO login for Google AI Overviews, the
+  consumer apps and factual grounding searches.
 - For coding-agent surfaces, the CLI of each one you measure (Claude Code,
   Codex, Cursor) and its own login.
 - For `moneyPages`, Playwright's Chromium, which renders each page for the
@@ -103,6 +103,38 @@ custom surface's citation rate counts only the links the model writes in
 its answer. A model that cannot call the search tool fails its answers one
 by one; there is no check before the first paid call.
 
+### The consumer apps
+
+The four chat surfaces ask each provider's API, which is the nearest thing
+to its product that can be pinned. To measure the products themselves, list
+them in `audit.json`'s `surfaces`, beside the ones you already measure:
+
+```json
+"surfaces": ["chatgpt", "gemini", "claude", "perplexity", "chatgpt_app", "google_ai_mode"]
+```
+
+`chatgpt_app` is ChatGPT's web interface with its search on, and
+`google_ai_mode` is Google's AI Mode. DataForSEO scrapes each answer from
+the product's page, for about $0.004 an answer, so a run that lists one
+needs the DataForSEO login. They are measured only when listed, and what
+they measure differs from the API surfaces in ways the report states:
+
+- Nothing pins the model. The report shows the model the scraper read off
+  ChatGPT's page, and none for AI Mode. Whether the scraper's session is
+  logged in is not documented, so which tier of the product answered is not
+  known.
+- A ChatGPT answer is the text and tables of the page. A citation counts
+  the sources the scraper lists as cited or relied on, and the links in the
+  answer.
+- AI Mode always answers in the product, so a scrape that comes back empty
+  is a failed answer, retried once and then counted as missing. It is never
+  an answer that did not mention you.
+- Each question is asked once per app, or as often as `chatProbes` says.
+- They are scored as a group of their own, with their own pair of rates.
+  The headline stays the four API chat surfaces and Google AI Overviews, so
+  adding a consumer app changes no earlier number. A comparison with a run
+  that did not measure it reports that the scope changed.
+
 `literally-aeo plan` estimates what a run costs, as a range per kind of
 work: the assistant answers, the analysis stages, the other model calls and
 the searches. A run does not start without a cap you approve
@@ -117,19 +149,19 @@ A run contacts only the providers you configure and the sites it checks.
 ## How deep each question goes
 
 By default each question is asked twice on every assistant, and once on
-Google AI Overviews. To measure fewer questions more deeply, set the depth
-in `audit.json`:
+Google AI Overviews and on each consumer app. To measure fewer questions
+more deeply, set the depth in `audit.json`:
 
 ```json
 "chatProbes": { "runsPerPrompt": 12 },
 "agentProbes": { "runsPerPrompt": 12 }
 ```
 
-`chatProbes` covers the chat assistants, AI Overviews included, and
-`agentProbes` the coding agents; each takes 1 to 25 runs per question.
-`literally-aeo plan` shows the answers and the cost a depth plans before
-anything is spent. Depth is part of what a run measures, so keep it the
-same across the runs you mean to compare: a progress comparison between
+`chatProbes` covers the chat assistants, AI Overviews and the consumer apps
+included, and `agentProbes` the coding agents; each takes 1 to 25 runs per
+question. `literally-aeo plan` shows the answers and the cost a depth plans
+before anything is spent. Depth is part of what a run measures, so keep it
+the same across the runs you mean to compare: a progress comparison between
 runs at different depths reports that the scope changed, not a change in
 visibility.
 

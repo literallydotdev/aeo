@@ -58,8 +58,9 @@ way to start:
 - **Vercel AI Gateway** (`AI_GATEWAY_API_KEY`): pays for the assistant
   answers the audit measures and every model call that judges them.
 - **DataForSEO** (`DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD`): pays for
-  Google AI Overviews, the searches that check the product claims answers
-  make, and the research behind the proposed config.
+  Google AI Overviews, the consumer apps if the audit lists one, the
+  searches that check the product claims answers make, and the research
+  behind the proposed config.
 
 Copy `.env.example` to `.env` (`cp .env.example .env`) and ask the user to
 open `.env` in their editor and paste the values. Then run
@@ -111,7 +112,9 @@ It researches the company and proposes `draft/audit.json`, with
 
 Read `draft/audit.json` and present it as a short list, never as JSON: the
 sections, the buyer questions in each, the competitors, and the surfaces
-(the assistants that will be asked). Apply the user's edits to
+(the assistants that will be asked). `draft/author-record.json` says under
+`surfaces.because` why the coding agents were proposed or left out; say
+it. Apply the user's edits to
 `draft/audit.json` yourself. The optional `model` field names the model
 that judges and writes the report; leave it out to use the recommended
 one. It may be any language model ID on the gateway: `literally-aeo doctor`
@@ -122,11 +125,17 @@ model behind an API chat surface, set
 model as a surface of its own, add
 `"customSurfaces": [{ "key": "…", "label": "…", "model": "<gateway model ID>" }]`.
 Leave both out unless the user asks: the defaults are what the report's
-headline means. If the
+headline means. The proposed config never lists a consumer app. Tell the
+user they can also measure the products themselves, ChatGPT's web
+interface (`chatgpt_app`) and Google AI Mode (`google_ai_mode`): each
+answer is scraped by DataForSEO for about $0.004, the model is whatever
+the product served and nothing pins it, and they are scored as a group of
+their own, apart from the headline. If the user wants one, add it to
+`surfaces`. If the
 user would rather measure fewer questions more deeply, set
 `chatProbes.runsPerPrompt` and `agentProbes.runsPerPrompt` (1 to 25 runs
 of each question per assistant); left out, each question is asked twice
-(once on AI Overviews). Run
+(once on AI Overviews and on each consumer app). Run
 `literally-aeo doctor --config draft/audit.json --env-file .env --json`
 after editing. Money pages must be on the company's site or its
 subdomains; for a page on another host the user owns (a docs site, say),
