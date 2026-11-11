@@ -44,6 +44,7 @@ import {
 import {
   researchActionSchema,
   researchToolResultSchema,
+  researchToolTimeoutOf,
   type ExecutableResearchAction,
   type GroundingTools,
   type ResearchAction,
@@ -876,7 +877,7 @@ export const runGroundingResearch = async (
                     Math.max(
                       1,
                       Math.min(
-                        15_000,
+                        researchToolTimeoutOf(action),
                         Date.parse(session.deadlineAt) - Date.now(),
                       ),
                     ),
