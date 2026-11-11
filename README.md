@@ -140,13 +140,13 @@ ways the report states:
   and no competitor split. The source mix and the outreach list count every
   captured answer, so they include its answers. A comparison with a run
   that did not measure it reports that the scope changed.
-- Both scrapes were captured in US English only (November 2026). Of the
-  markets the engine places, DataForSEO lists every one for the ChatGPT
-  scrape except Chinese, and every one for AI Mode except Chinese and
-  Portuguese (its lists, read on 11 November 2026). An audit that lists an
-  app in a language its scrape does not take is refused before anything is
-  spent. DataForSEO publishes no list of the countries where Google serves
-  AI Mode: in one where it does not, every answer of that app fails and the
+- Both scrapes were captured in US English only (November 2026).
+  DataForSEO lists every market an audit can name
+  ([Country and language](#country-and-language)) for the ChatGPT scrape.
+  For AI Mode it lists Portuguese only as `pt-BR`: an audit in `pt` or
+  `pt-PT` that lists AI Mode is refused before anything is spent.
+  DataForSEO publishes no list of the countries where Google serves AI
+  Mode: in one where it does not, every answer of that app fails and the
   run stops at its coverage check.
 
 `literally-aeo plan` estimates what a run costs, as a range per kind of
@@ -159,6 +159,33 @@ directory.
 
 Nothing is sent to Literally.dev: no telemetry, no account, no upload.
 A run contacts only the providers you configure and the sites it checks.
+
+## Country and language
+
+A run measures the United States in English unless `audit.json` says
+otherwise:
+
+```json
+"geography": "gb",
+"language": "en"
+```
+
+- **Countries:** `us`, `gb`, `ca`, `au`, `de`, `fr`, `es`, `it`, `nl`,
+  `br`, `in`, `jp`, `se`, `no`, `dk`.
+- **Languages:** `en`, `es`, `fr`, `de`, `pt`, `pt-BR`, `pt-PT`, `ja`,
+  `zh-CN`, `zh-TW`, `ko`, `it`, `nl`. Chinese is named by its script,
+  `zh-CN` (Simplified) or `zh-TW` (Traditional): Google's list has no
+  plain `zh`.
+
+Every language is one DataForSEO lists for Google (read on 11 November
+2026). Another market is refused before anything is spent, never measured
+as the United States in English.
+
+The market decides where these search: Google AI Overviews, the consumer
+apps, the grounding searches and the search of a custom surface. The four
+API chat surfaces and the coding agents are not placed in a country: they
+get each question as the audit writes it, so write the questions in the
+language you measure.
 
 ## How deep each question goes
 

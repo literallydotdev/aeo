@@ -35,28 +35,48 @@ export const dataForSeoLocationCodes: Readonly<Record<string, number>> = {
   'dk': 2208,
 };
 
+// When DataForSEO's own lists of locations and languages were read: each is
+// a request it does not charge for.
+const listsReadOn = '2026-11-11';
+
+// Every code is on DataForSEO's list of Google's languages
+// (GET /v3/serp/google/languages), the list Google AI Overviews and the
+// grounding searches are placed by. It holds Chinese only as zh-CN
+// (Simplified) and zh-TW (Traditional): an audit names the one it means,
+// and a plain "zh" is refused like any language no row maps, never sent to
+// Google as a code it does not list.
 export const dataForSeoLanguageCodes: Readonly<Record<string, string>> = {
-  en: 'en',
-  english: 'en',
-  es: 'es',
-  spanish: 'es',
-  fr: 'fr',
-  french: 'fr',
-  de: 'de',
-  german: 'de',
-  pt: 'pt',
-  portuguese: 'pt',
-  ja: 'ja',
-  japanese: 'ja',
-  zh: 'zh',
-  chinese: 'zh',
-  ko: 'ko',
-  korean: 'ko',
-  it: 'it',
-  italian: 'it',
-  nl: 'nl',
-  dutch: 'nl',
+  'en': 'en',
+  'english': 'en',
+  'es': 'es',
+  'spanish': 'es',
+  'fr': 'fr',
+  'french': 'fr',
+  'de': 'de',
+  'german': 'de',
+  'pt': 'pt',
+  'portuguese': 'pt',
+  'pt-br': 'pt-BR',
+  'pt-pt': 'pt-PT',
+  'ja': 'ja',
+  'japanese': 'ja',
+  'zh-cn': 'zh-CN',
+  'zh-tw': 'zh-TW',
+  'ko': 'ko',
+  'korean': 'ko',
+  'it': 'it',
+  'italian': 'it',
+  'nl': 'nl',
+  'dutch': 'nl',
 };
+
+const supportedGeographies = Object.keys(dataForSeoLocationCodes).filter(
+  (key) => key.length === 2,
+);
+const supportedLanguages = [...new Set(Object.values(dataForSeoLanguageCodes))];
+
+/** The markets an audit can name, for the message that refuses another. */
+export const supportedMarkets = `Supported geographies: ${supportedGeographies.join(', ')}. Supported languages: ${supportedLanguages.join(', ')}.`;
 
 /** resolveDataForSeoLocale maps a config's market, or undefined when either
  * half has no code: the caller decides, never a silent default here. */
@@ -83,9 +103,6 @@ export const resolveDataForSeoLocale = (
     : { locationCode, languageCode };
 };
 
-/** When DataForSEO's lists of what each consumer scrape takes were read. */
-const consumerScrapeListsReadOn = '2026-11-11';
-
 type ConsumerScrapeMarkets = {
   /** The location codes the scrape lists, or `null` when the vendor
    * publishes no list of its own for it. */
@@ -94,7 +111,7 @@ type ConsumerScrapeMarkets = {
 };
 
 // What DataForSEO lists for each consumer scrape, of the markets the tables
-// above map. Read from its own lists, each a request it does not charge for:
+// above map. Read from its own lists:
 //
 //   GET /v3/ai_optimization/chat_gpt/llm_scraper/locations
 //   GET /v3/ai_optimization/chat_gpt/llm_scraper/languages
@@ -104,10 +121,9 @@ type ConsumerScrapeMarkets = {
 // seen to answer in: only US English has been captured. A market that is
 // mapped later is refused for these two until its codes are read here.
 //
-// - Chinese is listed for both scrapes only as zh-CN and zh-TW, and
-//   Portuguese for AI Mode only as pt-BR. The tables above map neither
-//   variant, so those markets are refused, never measured in a variant the
-//   audit did not name.
+// - The ChatGPT scrape lists every market the tables map.
+// - AI Mode lists Portuguese only as pt-BR. An audit in "pt" or "pt-PT" is
+//   refused for it, never measured in a variant the audit did not name.
 // - AI Mode takes Google's locations, as AI Overview does. The vendor
 //   publishes no list of the countries where Google serves AI Mode, so no
 //   location is pinned for it.
@@ -125,7 +141,11 @@ export const consumerScrapeMarkets: Readonly<
       'fr',
       'de',
       'pt',
+      'pt-BR',
+      'pt-PT',
       'ja',
+      'zh-CN',
+      'zh-TW',
       'ko',
       'it',
       'nl',
@@ -133,7 +153,19 @@ export const consumerScrapeMarkets: Readonly<
   },
   google_ai_mode: {
     locationCodes: null,
-    languageCodes: new Set(['en', 'es', 'fr', 'de', 'ja', 'ko', 'it', 'nl']),
+    languageCodes: new Set([
+      'en',
+      'es',
+      'fr',
+      'de',
+      'pt-BR',
+      'ja',
+      'zh-CN',
+      'zh-TW',
+      'ko',
+      'it',
+      'nl',
+    ]),
   },
 };
 
@@ -153,16 +185,18 @@ export const consumerMarketProblem = (
   }
 
   const { locationCodes, languageCodes } = consumerScrapeMarkets[surface];
-  const unlisted = [
+  const problems = [
     ...(locationCodes === null || locationCodes.has(locale.locationCode)
       ? []
-      : [`geography ${JSON.stringify(geography)}`]),
+      : [
+          `${surface} cannot be measured in geography ${JSON.stringify(geography)}: DataForSEO does not list it for that app (read on ${listsReadOn}).`,
+        ]),
     ...(languageCodes.has(locale.languageCode)
       ? []
-      : [`language ${JSON.stringify(language)}`]),
+      : [
+          `${surface} cannot be measured in language ${JSON.stringify(language)}: of the languages an audit can name, DataForSEO lists ${[...languageCodes].join(', ')} for that app (read on ${listsReadOn}).`,
+        ]),
   ];
 
-  return unlisted.length === 0
-    ? undefined
-    : `${surface} cannot be measured in ${unlisted.join(' and ')}: DataForSEO does not list it for that app (its lists were read on ${consumerScrapeListsReadOn}).`;
+  return problems.length === 0 ? undefined : problems.join(' ');
 };

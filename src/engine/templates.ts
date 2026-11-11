@@ -38,6 +38,10 @@ export const exampleAuditFile = {
     },
   ],
   surfaces: ['chatgpt', 'gemini', 'claude', 'perplexity'],
+  // The market the search surfaces are placed in: the defaults, shown so
+  // they are there to edit.
+  geography: 'us',
+  language: 'en',
   moneyPages: ['https://northwind.example/pricing'],
   productBrief:
     'Northwind Data is a managed Postgres service for small teams: automatic backups, branching and usage-based pricing.',

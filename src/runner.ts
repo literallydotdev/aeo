@@ -23,6 +23,7 @@ import type { ProbeLimiter } from './probes/limits';
 import {
   consumerMarketProblem,
   resolveDataForSeoLocale,
+  supportedMarkets,
 } from './probes/dataforseo-locale';
 import type { PartialFailure } from './probes/web-tool-guard';
 import type { SectionRunResult } from './pipeline';
@@ -169,7 +170,7 @@ export const planRun = (
     !resolveDataForSeoLocale(config.geography, config.language)
   ) {
     throw new RunRequestError(
-      `No search market for geography ${JSON.stringify(config.geography)} and language ${JSON.stringify(config.language)}: ${placed.join(', ')} cannot be placed there. Please fix the config's geography and language (supported codes include us and en), or leave ${placed.join(' and ')} out of the run.`,
+      `No search market for geography ${JSON.stringify(config.geography)} and language ${JSON.stringify(config.language)}: ${placed.join(', ')} cannot be placed there. Please fix the config's geography and language, or leave ${placed.join(' and ')} out of the run. ${supportedMarkets}`,
     );
   }
 

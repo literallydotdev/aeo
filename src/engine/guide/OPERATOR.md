@@ -132,9 +132,13 @@ answer is scraped by DataForSEO, the model is whatever the product served
 and nothing pins it, and they are scored as a group of their own, apart
 from the headline. A scrape costs about $0.004, and each answer is judged
 like any other, so checkpoint 6 shows what one adds. If the user wants
-one, add it to `surfaces`. A config is refused when it lists one in a
-language its scrape does not take: Chinese for either, Portuguese for AI
-Mode. If the user would rather measure fewer questions more deeply, set
+one, add it to `surfaces`. The audit measures the United States in
+English unless `geography` and `language` say otherwise; a market that
+cannot be placed is refused, with the codes that can (Chinese is `zh-CN`
+or `zh-TW`, and AI Mode takes Portuguese only as `pt-BR`). The API chat
+surfaces and the coding agents get each question as written, so the
+questions are in the language measured. If the user would rather measure
+fewer questions more deeply, set
 `chatProbes.runsPerPrompt` and `agentProbes.runsPerPrompt` (1 to 25 runs
 of each question per assistant); left out, each question is asked twice
 (once on AI Overviews and on each consumer app). Run

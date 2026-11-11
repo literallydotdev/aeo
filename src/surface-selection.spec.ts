@@ -164,25 +164,41 @@ describe('runner - planRun()', () => {
       return aeoAuditConfigSchema.parse({ ...base, geography: 'br', language });
     };
 
-    // DataForSEO lists Portuguese for the ChatGPT scrape, and only its
-    // Brazilian variant, which no audit can name, for AI Mode.
+    // DataForSEO lists Portuguese for Google and for the ChatGPT scrape,
+    // and only its Brazilian variant for AI Mode.
     expect(() =>
-      planRun(inLanguage('pt'), request(['chatgpt', 'chatgpt_app'])),
+      planRun(
+        inLanguage('pt'),
+        request(['chatgpt', 'google_ai_overview', 'chatgpt_app']),
+      ),
     ).not.toThrow();
     expect(() =>
       planRun(inLanguage('pt'), request(['chatgpt_app', 'google_ai_mode'])),
     ).toThrow(
-      'google_ai_mode cannot be measured in language "pt": DataForSEO does not list it for that app (its lists were read on 2026-11-11). Please leave it out of the run.',
+      'google_ai_mode cannot be measured in language "pt": of the languages an audit can name, DataForSEO lists en, es, fr, de, pt-BR, ja, zh-CN, zh-TW, ko, it, nl for that app (read on 2026-11-11). Please leave it out of the run.',
     );
+    // The variant an audit names is the one each surface is asked in.
     expect(() =>
-      planRun(inLanguage('zh'), request(['chatgpt_app', 'google_ai_mode'])),
-    ).toThrow(
-      /^chatgpt_app cannot be measured in language "zh".* google_ai_mode cannot be measured in language "zh".* Please leave them out of the run\.$/,
-    );
-    // The other surfaces DataForSEO places are not held to those lists.
-    expect(() =>
-      planRun(inLanguage('zh'), request(['chatgpt', 'google_ai_overview'])),
+      planRun(inLanguage('pt-BR'), request(['chatgpt_app', 'google_ai_mode'])),
     ).not.toThrow();
+  });
+
+  it('should refuse a plain Chinese, which Google lists only by its two scripts, and name the codes an audit can use', () => {
+    const inLanguage = (language: string) => {
+      return aeoAuditConfigSchema.parse({ ...base, geography: 'us', language });
+    };
+    const placed = request([
+      'chatgpt',
+      'google_ai_overview',
+      'chatgpt_app',
+      'google_ai_mode',
+    ]);
+
+    expect(() => planRun(inLanguage('zh'), placed)).toThrow(
+      /^No search market for geography "us" and language "zh": .* Supported geographies: us, gb, .*\. Supported languages: en, es, fr, de, pt, pt-BR, pt-PT, ja, zh-CN, zh-TW, ko, it, nl\.$/,
+    );
+    expect(() => planRun(inLanguage('zh-CN'), placed)).not.toThrow();
+    expect(() => planRun(inLanguage('ZH-tw'), placed)).not.toThrow();
   });
 
   it("should keep the request's surfaces as the operator's override on a skip config", () => {

@@ -294,17 +294,22 @@ export type GatewayChatAdapterId =
   | typeof ProbeAdapterId.GATEWAY_ANTHROPIC
   | typeof ProbeAdapterId.GATEWAY_SEARCH;
 
+// A two-letter language, alone or with its region ("pt", "pt-BR").
+const languageOfMarket = /^([a-z]{2})(?:-[a-z]{2})?$/;
+
 // The gateway's search tool, in the audit's market: results for the
-// country, in the language. Both are two-letter codes there; anything else
-// is left out, never guessed.
+// country, in the language. Both are two-letter codes there. A regional
+// variant is searched by its language; anything else is left out, never
+// guessed.
 const gatewaySearchTool = (market: SearchMarket | undefined) => {
   const country = market?.geography.toUpperCase();
-  const language = market?.language.toLowerCase();
+  const language = languageOfMarket.exec(
+    market?.language.toLowerCase() ?? '',
+  )?.[1];
 
   return gatewaySdk.tools.perplexitySearch({
     ...(country !== undefined && /^[A-Z]{2}$/.test(country) && { country }),
-    ...(language !== undefined &&
-      /^[a-z]{2}$/.test(language) && { searchLanguageFilter: [language] }),
+    ...(language !== undefined && { searchLanguageFilter: [language] }),
   });
 };
 

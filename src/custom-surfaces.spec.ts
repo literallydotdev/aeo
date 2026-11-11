@@ -163,6 +163,40 @@ describe('bindings - a custom surface', () => {
     });
   });
 
+  it('should search a regional variant by its language, and leave out a language that is no code', () => {
+    const toolArgsIn = (language: string) => {
+      const adapter = createChatAdapter('custom:grok', {
+        geography: 'br',
+        language,
+        dependencies: {
+          bindings,
+          gateway: () => {
+            throw new Error('No gateway here.');
+          },
+        },
+      });
+
+      return adapter.request('Which store?');
+    };
+
+    expect(toolArgsIn('pt-BR')).toMatchObject({
+      parameters: {
+        tools: [{ args: { country: 'BR', searchLanguageFilter: ['pt'] } }],
+      },
+    });
+    expect(toolArgsIn('zh-CN')).toMatchObject({
+      parameters: {
+        tools: [{ args: { country: 'BR', searchLanguageFilter: ['zh'] } }],
+      },
+    });
+    expect(toolArgsIn('portuguese')).toMatchObject({
+      parameters: { tools: [{ args: { country: 'BR' } }] },
+    });
+    expect(JSON.stringify(toolArgsIn('portuguese'))).not.toContain(
+      'searchLanguageFilter',
+    );
+  });
+
   it("should price a probe at the model's catalog price and the gateway's own search fee", () => {
     const binding = bindings['custom:grok'];
 

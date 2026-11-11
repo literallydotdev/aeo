@@ -18,6 +18,7 @@ import {
 import {
   consumerMarketProblem,
   resolveDataForSeoLocale,
+  supportedMarkets,
 } from '../probes/dataforseo-locale';
 import {
   customSurfaceId,
@@ -274,7 +275,7 @@ export const auditFileSchema = z
     if (!resolveDataForSeoLocale(file.geography, file.language)) {
       context.addIssue({
         code: 'custom',
-        message: `No search market for geography ${JSON.stringify(file.geography)} and language ${JSON.stringify(file.language)}; use a supported code such as us and en.`,
+        message: `No search market for geography ${JSON.stringify(file.geography)} and language ${JSON.stringify(file.language)}. ${supportedMarkets}`,
         path: ['geography'],
       });
     }

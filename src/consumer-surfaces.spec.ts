@@ -52,6 +52,7 @@ import {
   consumerScrapeMarkets,
   dataForSeoLanguageCodes,
   dataForSeoLocationCodes,
+  resolveDataForSeoLocale,
 } from './probes/dataforseo-locale';
 import { legacyProbeBindings } from './probes/legacy-bindings';
 import type { ProbeAttemptEnd, ProbeAttemptStart } from './probes/probe-trace';
@@ -191,42 +192,107 @@ describe('dataforseo-locale - the markets a consumer scrape lists', () => {
   });
 
   it('should name the half of a market a scrape does not list, and nothing for a market it lists or one no table maps', () => {
+    const aiModeInPortuguese =
+      'google_ai_mode cannot be measured in language "pt": of the languages an audit can name, DataForSEO lists en, es, fr, de, pt-BR, ja, zh-CN, zh-TW, ko, it, nl for that app (read on 2026-11-11).';
+
     expect(consumerMarketProblem('chatgpt_app', 'US', 'English')).toBe(
       undefined,
     );
     expect(consumerMarketProblem('chatgpt_app', 'br', 'pt')).toBe(undefined);
     expect(consumerMarketProblem('google_ai_mode', 'br', 'pt')).toBe(
-      'google_ai_mode cannot be measured in language "pt": DataForSEO does not list it for that app (its lists were read on 2026-11-11).',
+      aiModeInPortuguese,
     );
-    expect(consumerMarketProblem('chatgpt_app', 'us', 'Chinese')).toContain(
-      'in language "Chinese"',
+    expect(consumerMarketProblem('google_ai_mode', 'br', 'pt-PT')).toContain(
+      'in language "pt-PT"',
+    );
+    expect(consumerMarketProblem('google_ai_mode', 'br', 'pt-br')).toBe(
+      undefined,
+    );
+    expect(consumerMarketProblem('google_ai_mode', 'us', 'zh-CN')).toBe(
+      undefined,
     );
     // Refused for every placed surface, by the rule that maps markets.
     expect(consumerMarketProblem('chatgpt_app', 'global', 'en')).toBe(
       undefined,
     );
+    expect(consumerMarketProblem('chatgpt_app', 'us', 'zh')).toBe(undefined);
   });
 
   it('should refuse an audit file that lists a consumer app in a market its scrape does not list, at the app', () => {
-    const inPortuguese = (surfaces: string[]) => {
+    const inPortuguese = (language: string, surfaces: string[]) => {
       return auditFileSchema.safeParse({
         ...exampleAuditFile,
         geography: 'br',
-        language: 'pt',
+        language,
         surfaces,
       });
     };
 
-    const refused = inPortuguese(['chatgpt', 'chatgpt_app', 'google_ai_mode']);
+    const refused = inPortuguese('pt', [
+      'chatgpt',
+      'chatgpt_app',
+      'google_ai_mode',
+    ]);
 
     expect(refused.error?.issues).toMatchObject([
       {
         path: ['surfaces', 2],
         message:
-          'google_ai_mode cannot be measured in language "pt": DataForSEO does not list it for that app (its lists were read on 2026-11-11). Please leave it out of surfaces.',
+          'google_ai_mode cannot be measured in language "pt": of the languages an audit can name, DataForSEO lists en, es, fr, de, pt-BR, ja, zh-CN, zh-TW, ko, it, nl for that app (read on 2026-11-11). Please leave it out of surfaces.',
       },
     ]);
-    expect(inPortuguese(['chatgpt', 'chatgpt_app']).success).toBe(true);
+    expect(inPortuguese('pt', ['chatgpt', 'chatgpt_app']).success).toBe(true);
+    expect(
+      inPortuguese('pt-BR', ['chatgpt', 'chatgpt_app', 'google_ai_mode'])
+        .success,
+    ).toBe(true);
+  });
+});
+
+describe('audit-file - the market an audit names', () => {
+  it('should measure the United States in English unless the file says otherwise, and show both in the example', () => {
+    const {
+      geography: _geography,
+      language: _language,
+      ...unstated
+    } = exampleAuditFile;
+
+    expect(auditFileSchema.parse(unstated)).toMatchObject({
+      geography: 'us',
+      language: 'en',
+    });
+    expect(exampleAuditFile).toMatchObject({ geography: 'us', language: 'en' });
+  });
+
+  it('should take Chinese by its script and Portuguese by its region, as DataForSEO spells them', () => {
+    expect(resolveDataForSeoLocale('us', 'zh-CN')).toEqual({
+      locationCode: 2840,
+      languageCode: 'zh-CN',
+    });
+    expect(resolveDataForSeoLocale('US', 'ZH-tw')?.languageCode).toBe('zh-TW');
+    expect(resolveDataForSeoLocale('br', 'pt-br')?.languageCode).toBe('pt-BR');
+    expect(resolveDataForSeoLocale('br', 'pt')?.languageCode).toBe('pt');
+  });
+
+  it('should refuse a plain Chinese, which Google lists only by its two scripts, naming the codes an audit can use', () => {
+    const plain = auditFileSchema.safeParse({
+      ...exampleAuditFile,
+      language: 'zh',
+    });
+
+    expect(resolveDataForSeoLocale('us', 'zh')).toBeUndefined();
+    expect(resolveDataForSeoLocale('us', 'Chinese')).toBeUndefined();
+    expect(plain.error?.issues).toMatchObject([
+      {
+        path: ['geography'],
+        message:
+          'No search market for geography "us" and language "zh". Supported geographies: us, gb, ca, au, de, fr, es, it, nl, br, in, jp, se, no, dk. Supported languages: en, es, fr, de, pt, pt-BR, pt-PT, ja, zh-CN, zh-TW, ko, it, nl.',
+      },
+    ]);
+    expect(
+      auditFileSchema.safeParse({ ...exampleAuditFile, language: 'zh-CN' })
+        .success,
+    ).toBe(true);
   });
 });
 
