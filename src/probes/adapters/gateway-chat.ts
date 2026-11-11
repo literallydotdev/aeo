@@ -53,8 +53,9 @@ export const probeMaxOutputTokens = 2000;
  *   questions on the earlier model gave none without a source in 38.
  * - anthropic/claude-sonnet-5 was cut off mid-sentence in 4 of 6 answers.
  *
- * With this allowance the first model finished all six answers in at most
- * 2,918 output tokens, each with its sources. The other two default models
+ * With this allowance both finished all six answers, each whole and with
+ * its sources: the first in at most 2,918 output tokens, the second in at
+ * most 3,422, at the cost they had before. The other two default models
  * finished inside 2,000 (1,027 at most), and keep it.
  */
 export const roomyProbeMaxOutputTokens = 16_000;

@@ -123,11 +123,11 @@ export const probeUsd: Readonly<Record<ProbeAdapterId, Range<number>>> = {
   // $0.038, $0.008 out, $0.01 for the search), so the high end is five
   // searches of that size and a full answer, with room.
   [ProbeAdapterId.GATEWAY_ANTHROPIC]: { low: 0.05, high: 0.3 },
-  // The same model on buyer questions, under @1 (2026-11-11, 6 answers):
-  // $0.114 to $0.281, two to four searches and 36,000 to 109,000 tokens in.
-  // No answer is recorded under @2 yet. The high end is five searches, the
-  // input of the dearest answer and a quarter more, and the whole 16,000
-  // tokens of output.
+  // The same model on buyer questions (2026-11-11): $0.119 to $0.289 an
+  // answer under @2 (6 answers), as under @1 ($0.114 to $0.281), with two
+  // to four searches and 37,000 to 107,000 tokens in. The high end is what
+  // none of them reached: five searches, a quarter more input than the
+  // dearest, and the whole 16,000 tokens of output.
   [ProbeAdapterId.GATEWAY_ANTHROPIC_2]: { low: 0.1, high: 0.5 },
   // perplexity/sonar on the same questions: $0.003 to $0.007.
   [ProbeAdapterId.GATEWAY_PERPLEXITY]: { low: 0.003, high: 0.03 },
