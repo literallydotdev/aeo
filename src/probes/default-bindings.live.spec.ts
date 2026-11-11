@@ -31,7 +31,8 @@ import {
 // only after a maintainer has scrubbed it.
 //
 //   AI_GATEWAY_API_KEY=... AEO_LIVE_OUTPUT_DIR=/path/outside/the/repo \
-//     capped npx vitest run --config vitest.live.config.ts
+//     capped npx vitest run --config vitest.live.config.ts \
+//     src/probes/default-bindings.live.spec.ts
 // ============================================================================
 
 type StreamOptions = Parameters<typeof AiModule.streamText>[0];
