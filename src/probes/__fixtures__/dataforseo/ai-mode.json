@@ -1,0 +1,139 @@
+{
+  "version": "0.1.20261103",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "6.2939 sec.",
+  "cost": 0.004,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "6.1824 sec.",
+      "cost": 0.004,
+      "result_count": 1,
+      "path": [
+        "v3",
+        "serp",
+        "google",
+        "ai_mode",
+        "live",
+        "advanced"
+      ],
+      "data": {
+        "api": "serp",
+        "function": "live",
+        "se": "google",
+        "se_type": "ai_mode",
+        "keyword": "What is the current LTS version of Node.js?",
+        "location_code": 2840,
+        "language_code": "en",
+        "device": "desktop",
+        "os": "windows"
+      },
+      "result": [
+        {
+          "keyword": "What is the current LTS version of Node.js?",
+          "type": "ai_mode",
+          "se_domain": "google.com",
+          "location_code": 2840,
+          "language_code": "en",
+          "check_url": "https://www.google.com/search?q=What%20is%20the%20current%20LTS%20version%20of%20Node.js%3F&hl=en&gl=US&udm=50&uule=w+CAIQIFISCQs2MuSEtepUEUK33kOSuTsc",
+          "datetime": "2026-11-11 12:22:26 +00:00",
+          "spell": null,
+          "refinement_chips": null,
+          "item_types": [
+            "ai_overview"
+          ],
+          "se_results_count": 0,
+          "items_count": 1,
+          "items": [
+            {
+              "type": "ai_overview",
+              "rank_group": 1,
+              "rank_absolute": 1,
+              "page": 1,
+              "position": "left",
+              "xpath": "/html[1]/body[1]/div[2]/div[1]/div[9]/div[1]/section[1]/div[1]/div[1]/div[3]/div[4]/div[1]/div[1]/div[1]/div[3]",
+              "markdown": "The current Long-Term Support (LTS) version of Node.js is **Node.js 26** (specifically version **26.13.0** , codenamed **\"Lithium\"**).[[1]](https://nodejs.org/en/blog/release/v26.13.0)\n\n### Key Details for Node.js 26 (LTS)\n\n- **Codename:** Lithium\n- **Active LTS Support:** Through the end of April 2029\n- **Official Downloads:** Available directly via the Node.js Downloads Page or through your preferred version manager (like `nvm` or `fnm`).\n- **Release Notes:** Read the full announcement on the [Node.js 26.13.0 LTS Release Blog](https://nodejs.org/en/blog/release/v26.13.0).[[1]](https://nodejs.org/en/blog/release/v26.13.0)\n\nWould you like help checking the **migration guide** from a previous LTS version (like Node.js 24 or 22) or finding out which **features** were introduced in Node.js 26?",
+              "items": [
+                {
+                  "type": "ai_overview_element",
+                  "position": "left",
+                  "title": null,
+                  "text": "The current Long-Term Support (LTS) version of Node.js is Node.js 26 (specifically version 26.13.0, codenamed \"Lithium\" ).",
+                  "markdown": "The current Long-Term Support (LTS) version of Node.js is **Node.js 26** (specifically version **26.13.0** , codenamed **\"Lithium\"**).[[1]](https://nodejs.org/en/blog/release/v26.13.0)",
+                  "links": null,
+                  "images": null,
+                  "references": [
+                    {
+                      "type": "ai_overview_reference",
+                      "position": "left",
+                      "source": "Node.js",
+                      "domain": "nodejs.org",
+                      "url": "https://nodejs.org/en/blog/release/v26.13.0",
+                      "title": "Node.js — Node.js 26.13.0 (LTS)",
+                      "text": "Node.js 26.13.0 'Lithium' LTS. Support: Active updates through end of April 2029. Changes: No functional changes from version 26.1..."
+                    }
+                  ]
+                },
+                {
+                  "type": "ai_overview_element",
+                  "position": "left",
+                  "title": "Key Details for Node.js 26 (LTS)",
+                  "text": "Codename: Lithium Active LTS Support: Through the end of April 2029 Official Downloads: Available directly via the Node.js Downloads Page or through your preferred version manager (like nvm or fnm ). Node.js Downloads Page Release Notes: Read the full announcement on the Node.js 26.13.0 LTS Release Blog.",
+                  "markdown": "- **Codename:** Lithium\n- **Active LTS Support:** Through the end of April 2029\n- **Official Downloads:** Available directly via the Node.js Downloads Page or through your preferred version manager (like `nvm` or `fnm`).\n- **Release Notes:** Read the full announcement on the [Node.js 26.13.0 LTS Release Blog](https://nodejs.org/en/blog/release/v26.13.0).[[1]](https://nodejs.org/en/blog/release/v26.13.0)",
+                  "links": [
+                    {
+                      "type": "link_element",
+                      "title": "Node.js 26.13.0 LTS Release Blog",
+                      "description": null,
+                      "url": "https://nodejs.org/en/blog/release/v26.13.0",
+                      "domain": "nodejs.org"
+                    }
+                  ],
+                  "images": null,
+                  "references": [
+                    {
+                      "type": "ai_overview_reference",
+                      "position": "left",
+                      "source": "Node.js",
+                      "domain": "nodejs.org",
+                      "url": "https://nodejs.org/en/blog/release/v26.13.0",
+                      "title": "Node.js — Node.js 26.13.0 (LTS)",
+                      "text": "'Lithium' LTS (2026-10-28) through end of April 2029. Available for Windows (64-bit/ARM), macOS (Intel/Apple Silicon), Linux. PGP signatures provided."
+                    }
+                  ]
+                },
+                {
+                  "type": "ai_overview_element",
+                  "position": "left",
+                  "title": null,
+                  "text": "Would you like help checking the migration guide from a previous LTS version (like Node.js 24 or 22) or finding out which features were introduced in Node.js 26?",
+                  "markdown": "Would you like help checking the **migration guide** from a previous LTS version (like Node.js 24 or 22) or finding out which **features** were introduced in Node.js 26?",
+                  "links": null,
+                  "images": null,
+                  "references": null
+                }
+              ],
+              "references": [
+                {
+                  "type": "ai_overview_reference",
+                  "position": "right",
+                  "source": "Node.js",
+                  "domain": "nodejs.org",
+                  "url": "https://nodejs.org/en/blog/release/v26.13.0",
+                  "title": "Node.js — Node.js 26.13.0 (LTS)",
+                  "text": "'Lithium' LTS (2026-10-28) through end of April 2029. Available for Windows (64-bit/ARM), macOS (Intel/Apple Silicon), Linux. PGP signatures provided."
+                }
+              ],
+              "rectangle": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -29,9 +29,17 @@ import {
 } from './adapter';
 import { cliAdapterProfiles } from './adapters/cli-agents';
 import {
+  createDataForSeoAiModeAdapter,
+  dataForSeoAiModeProfile,
+} from './adapters/dataforseo-ai-mode';
+import {
   createDataForSeoAiOverviewAdapter,
   dataForSeoAiOverviewProfile,
 } from './adapters/dataforseo-ai-overview';
+import {
+  createDataForSeoChatGptAppAdapter,
+  dataForSeoChatGptAppProfile,
+} from './adapters/dataforseo-chatgpt-app';
 import {
   createGatewayChatAdapter,
   gatewayChatProfiles,
@@ -42,6 +50,7 @@ import {
 } from './adapters/gateway-perplexity';
 import {
   createDataForSeoProbeClient,
+  type DataForSeoLocale,
   type DataForSeoProbeClient,
 } from './dataforseo';
 import { resolveDataForSeoLocale } from './dataforseo-locale';
@@ -217,6 +226,8 @@ export const probeAdapterProfiles: Readonly<
     gatewayChatProfiles[ProbeAdapterId.GATEWAY_ANTHROPIC],
   [ProbeAdapterId.GATEWAY_PERPLEXITY]: gatewayPerplexityProfile,
   [ProbeAdapterId.DATAFORSEO_AI_OVERVIEW]: dataForSeoAiOverviewProfile,
+  [ProbeAdapterId.DATAFORSEO_AI_MODE]: dataForSeoAiModeProfile,
+  [ProbeAdapterId.DATAFORSEO_CHATGPT_APP]: dataForSeoChatGptAppProfile,
   [ProbeAdapterId.CLI_CLAUDE_CODE]: cliAdapterProfiles.claude_code,
   [ProbeAdapterId.CLI_CODEX]: cliAdapterProfiles.codex,
   [ProbeAdapterId.CLI_CURSOR]: cliAdapterProfiles.cursor,
@@ -616,22 +627,26 @@ export const createChatAdapter = (
         model: requireModel(binding, surface),
       });
 
-    case ProbeAdapterId.DATAFORSEO_AI_OVERVIEW: {
-      const locale = resolveDataForSeoLocale(geography, language);
-
-      // planRun refuses an unmapped market before anything runs.
-      if (!locale) {
-        throw new Error(
-          `No DataForSEO market for geography ${geography} and language ${language}; the plan should have refused this run.`,
-        );
-      }
-
+    case ProbeAdapterId.DATAFORSEO_AI_OVERVIEW:
       return createDataForSeoAiOverviewAdapter({
         surface,
         client: dependencies.dataForSeo,
-        locale,
+        locale: plannedLocale(geography, language),
       });
-    }
+
+    case ProbeAdapterId.DATAFORSEO_AI_MODE:
+      return createDataForSeoAiModeAdapter({
+        surface,
+        client: dependencies.dataForSeo,
+        locale: plannedLocale(geography, language),
+      });
+
+    case ProbeAdapterId.DATAFORSEO_CHATGPT_APP:
+      return createDataForSeoChatGptAppAdapter({
+        surface,
+        client: dependencies.dataForSeo,
+        locale: plannedLocale(geography, language),
+      });
 
     case ProbeAdapterId.CLI_CLAUDE_CODE:
     case ProbeAdapterId.CLI_CODEX:
@@ -646,6 +661,22 @@ export const createChatAdapter = (
       throw new Error(`Unhandled probe adapter: ${String(unhandled)}.`);
     }
   }
+};
+
+// planRun refuses an unmapped market before anything runs.
+const plannedLocale = (
+  geography: string,
+  language: string,
+): DataForSeoLocale => {
+  const locale = resolveDataForSeoLocale(geography, language);
+
+  if (!locale) {
+    throw new Error(
+      `No DataForSEO market for geography ${geography} and language ${language}; the plan should have refused this run.`,
+    );
+  }
+
+  return locale;
 };
 
 const requireModel = (binding: ProbeBinding, surface: AeoSurface): string => {

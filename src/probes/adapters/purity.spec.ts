@@ -16,6 +16,8 @@ const adapterModules = [
   './gateway-chat',
   './gateway-perplexity',
   './dataforseo-ai-overview',
+  './dataforseo-ai-mode',
+  './dataforseo-chatgpt-app',
   './cli-process',
   './cli-claude-code',
   './cli-codex',

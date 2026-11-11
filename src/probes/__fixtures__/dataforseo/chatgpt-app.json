@@ -1,0 +1,193 @@
+{
+  "version": "0.1.20261103",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "13.2905 sec.",
+  "cost": 0.004,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "13.2126 sec.",
+      "cost": 0.004,
+      "result_count": 1,
+      "path": [
+        "v3",
+        "ai_optimization",
+        "chat_gpt",
+        "llm_scraper",
+        "live",
+        "advanced"
+      ],
+      "data": {
+        "api": "ai_optimization",
+        "function": "live",
+        "se": "chat_gpt",
+        "keyword": "What is the current LTS version of Node.js?",
+        "location_code": 2840,
+        "language_code": "en",
+        "force_web_search": true,
+        "device": "desktop",
+        "os": "windows"
+      },
+      "result": [
+        {
+          "keyword": "What is the current LTS version of Node.js?",
+          "location_code": 2840,
+          "language_code": "en",
+          "model": "gpt-6",
+          "check_url": "https://chatgpt.com/?prompt=What%20is%20the%20current%20LTS%20version%20of%20Node.js%3F&hints=search",
+          "datetime": "2026-11-11 12:12:45 +00:00",
+          "markdown": "(Current LTS) **Node.js v26.13.0 (Lithium)**\n\nAs of **November 11, 2026**, Node.js 26 is the latest Active LTS release.\n\n- **Latest LTS\\:** v26.13.0\n- **Codename\\:** Lithium\n- **LTS status\\:** Active LTS\n- **Expected end of support\\:** April 30, 2029\n\nOther supported LTS branches\\:\n\n- Node.js 24.x – Maintenance LTS\n- Node.js 22.x – Maintenance LTS\n\n**Recommendation\\:** Use Node.js 26.13.0 for new production projects.\n\n**Download\\:** [Official Node.js download page](https://nodejs.org/en/download)\\.\n\nTo check your installed version\\:\n\n```bash\nnode --version\n```\n\nSources: [nodejs.org](https://nodejs.org/en/download?trk=public_profile__posts-text&utm_source=chatgpt.com)[github.com](https://github.com/nodejs/Release/blob/main/README.md?plain=1&utm_source=chatgpt.com)[nodejs.org](https://nodejs.org/en/about/previous-releases?utm_source=chatgpt.com)",
+          "search_results": [
+            {
+              "type": "chatgpt_search_result",
+              "url": "https://nodejs.org/en/download?trk=public_profile__posts-text&utm_source=chatgpt.com",
+              "domain": "nodejs.org",
+              "title": "Node.js — Download Node.js®",
+              "description": "DOWNLOAD NODE.JS®  Get Node.js® v26.13.0 LTS[Select]  v26.13.0 LTS  v27.0.0-alpha.0.0.0 Alpha  v26.13.0 LTS  v25.9.0 EOL  v24.22.2 LTS  v23.11.1 EOL  v22.23.4 LTS  v21.7.3 EOL  v20.20.2 EOL  v19.9.0...",
+              "breadcrumb": "nodejs.org"
+            },
+            {
+              "type": "chatgpt_search_result",
+              "url": "https://nodejs.org/en/about/previous-releases?utm_source=chatgpt.com",
+              "domain": "nodejs.org",
+              "title": "Node.js — Node.js Releases",
+              "description": "NODE.JS RELEASES  Commercial support for versions past the Maintenance LTS phase is available through our OpenJS Ecosystem Sustainability Program partners  Major Node.js versions enter Current releas...",
+              "breadcrumb": "nodejs.org"
+            },
+            {
+              "type": "chatgpt_search_result",
+              "url": "https://github.com/nodejs/Release/blob/main/README.md?plain=1&utm_source=chatgpt.com",
+              "domain": "github.com",
+              "title": "Release/README.md at main · nodejs/Release · GitHub",
+              "description": "NODE.JS RELEASE WORKING GROUP  RELEASE SCHEDULE  | Release | Status | Codename |Initial Release | Active LTS Start | Maintenance Start | End-of-life |  | :--: | :---: | :---: | :---: | :---: | :---:...",
+              "breadcrumb": "github.com"
+            },
+            {
+              "type": "chatgpt_search_result",
+              "url": "https://github.com/nodejs/node/releases?utm_source=chatgpt.com",
+              "domain": "github.com",
+              "title": "Releases · nodejs/node · GitHub",
+              "description": "RELEASES  [Input: Find a release] [Input]  Releases · nodejs/node  2026-10-29, VERSION 27.0.0-ALPHA.0.0.0 (ALPHA), @RAFAELGSS  Image: @RafaelGSS RafaelGSS released this 29 Oct 18:36  v27.0.0-alpha.0....",
+              "breadcrumb": "github.com"
+            }
+          ],
+          "sources": [
+            {
+              "type": "chat_gpt_source",
+              "title": "Official Node.js download page",
+              "snippet": null,
+              "domain": "nodejs.org",
+              "url": "https://nodejs.org/en/download",
+              "thumbnail": null,
+              "source_name": null,
+              "publication_date": null,
+              "markdown": "[Official Node.js download page](https://nodejs.org/en/download)"
+            },
+            {
+              "type": "chat_gpt_source",
+              "title": "Node.js",
+              "snippet": null,
+              "domain": "nodejs.org",
+              "url": "https://nodejs.org/en/download?trk=public_profile__posts-text&utm_source=chatgpt.com",
+              "thumbnail": null,
+              "source_name": "Download Node.js®",
+              "publication_date": null,
+              "markdown": null
+            },
+            {
+              "type": "chat_gpt_source",
+              "title": "Release/README.md at main · nodejs/Release",
+              "snippet": null,
+              "domain": "github.com",
+              "url": "https://github.com/nodejs/Release/blob/main/README.md?plain=1&utm_source=chatgpt.com",
+              "thumbnail": null,
+              "source_name": "GitHub",
+              "publication_date": null,
+              "markdown": null
+            },
+            {
+              "type": "chat_gpt_source",
+              "title": "Node.js",
+              "snippet": null,
+              "domain": "nodejs.org",
+              "url": "https://nodejs.org/en/about/previous-releases?utm_source=chatgpt.com",
+              "thumbnail": null,
+              "source_name": "Node.js Releases",
+              "publication_date": null,
+              "markdown": null
+            }
+          ],
+          "fan_out_queries": [
+            "current Node.js LTS version November 2026 official Node.js release schedule"
+          ],
+          "brand_entities": null,
+          "se_results_count": 0,
+          "item_types": [
+            "chat_gpt_text"
+          ],
+          "items_count": 1,
+          "items": [
+            {
+              "type": "chat_gpt_text",
+              "rank_group": 1,
+              "rank_absolute": 1,
+              "markdown": "(Current LTS) **Node.js v26.13.0 (Lithium)**\n\nAs of **November 11, 2026**, Node.js 26 is the latest Active LTS release.\n\n- **Latest LTS\\:** v26.13.0\n- **Codename\\:** Lithium\n- **LTS status\\:** Active LTS\n- **Expected end of support\\:** April 30, 2029\n\nOther supported LTS branches\\:\n\n- Node.js 24.x – Maintenance LTS\n- Node.js 22.x – Maintenance LTS\n\n**Recommendation\\:** Use Node.js 26.13.0 for new production projects.\n\n**Download\\:** [Official Node.js download page](https://nodejs.org/en/download)\\.\n\nTo check your installed version\\:\n\n```bash\nnode --version\n```\n\nSources: [nodejs.org](https://nodejs.org/en/download?trk=public_profile__posts-text&utm_source=chatgpt.com)[github.com](https://github.com/nodejs/Release/blob/main/README.md?plain=1&utm_source=chatgpt.com)[nodejs.org](https://nodejs.org/en/about/previous-releases?utm_source=chatgpt.com)",
+              "sources": [
+                {
+                  "type": "chat_gpt_source",
+                  "title": "Official Node.js download page",
+                  "snippet": null,
+                  "domain": "nodejs.org",
+                  "url": "https://nodejs.org/en/download",
+                  "thumbnail": null,
+                  "source_name": null,
+                  "publication_date": null,
+                  "markdown": "[Official Node.js download page](https://nodejs.org/en/download)"
+                },
+                {
+                  "type": "chat_gpt_source",
+                  "title": "Node.js",
+                  "snippet": null,
+                  "domain": "nodejs.org",
+                  "url": "https://nodejs.org/en/download?trk=public_profile__posts-text&utm_source=chatgpt.com",
+                  "thumbnail": null,
+                  "source_name": "Download Node.js®",
+                  "publication_date": null,
+                  "markdown": null
+                },
+                {
+                  "type": "chat_gpt_source",
+                  "title": "Release/README.md at main · nodejs/Release",
+                  "snippet": null,
+                  "domain": "github.com",
+                  "url": "https://github.com/nodejs/Release/blob/main/README.md?plain=1&utm_source=chatgpt.com",
+                  "thumbnail": null,
+                  "source_name": "GitHub",
+                  "publication_date": null,
+                  "markdown": null
+                },
+                {
+                  "type": "chat_gpt_source",
+                  "title": "Node.js",
+                  "snippet": null,
+                  "domain": "nodejs.org",
+                  "url": "https://nodejs.org/en/about/previous-releases?utm_source=chatgpt.com",
+                  "thumbnail": null,
+                  "source_name": "Node.js Releases",
+                  "publication_date": null,
+                  "markdown": null
+                }
+              ],
+              "brand_entities": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

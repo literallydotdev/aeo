@@ -16,8 +16,11 @@ import { resolveDataForSeoLocale } from './dataforseo-locale';
 //    decides whether the surface ships (§5.3: above 20% it does not).
 //  - ChatGPT (the scraped web interface): 6 questions, for the response
 //    shape, the model the vendor reports and the `cost` field.
+//  - Google AI Mode once more, on the question the chat fixtures were
+//    captured with: the buyer questions' answers name real products, so
+//    only this one can become a fixture.
 //
-// 56 requests at a list price of $0.004 each. The suite stops sending when
+// 57 requests at a list price of $0.004 each. The suite stops sending when
 // the costs the responses report pass `maxSpendUsd`, or when one response
 // reports more than `maxRequestUsd`.
 //
@@ -64,10 +67,13 @@ const buyerQuestions: readonly string[] = categories.flatMap((category) => [
   `What are the most popular ${category} right now?`,
 ]);
 
-// The question the chat fixtures were captured with, then one buyer
-// question of each kind.
+// The question the chat fixtures were captured with: public, answerable
+// only by searching, and about no company.
+const fixtureQuestion = 'What is the current LTS version of Node.js?';
+
+// The fixture question, then one buyer question of each kind.
 const chatGptQuestions: readonly string[] = [
-  'What is the current LTS version of Node.js?',
+  fixtureQuestion,
   ...buyerQuestions.slice(0, 5),
 ];
 
@@ -325,6 +331,28 @@ describe('consumer-app surfaces (live, paid)', () => {
     },
     40 * 60_000,
   );
+
+  it('should capture Google AI Mode on the question the chat fixtures use', async () => {
+    expect(locale).toBeDefined();
+
+    const captures = await captureAll(
+      'ai-mode-fixture',
+      [fixtureQuestion],
+      (question, index) =>
+        capture(
+          aiModeEndpoint,
+          {
+            keyword: question,
+            location_code: locale?.locationCode,
+            language_code: locale?.languageCode,
+          },
+          { index, question },
+        ),
+    );
+
+    expect(stopped).toBeUndefined();
+    expect(firstTask(captures[0]?.body)?.status_code).toBe(20000);
+  }, 120_000);
 
   it(
     "should capture ChatGPT's web interface with the model the vendor reports and its sources",

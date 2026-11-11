@@ -55,6 +55,26 @@ to their first 80 characters, reasoning text, search ids and the gateway's
 request and session ids replaced or dropped (marked `[…fixture-trimmed…]`
 where a value remains). The tool attached no `source` parts to the answer.
 
+## Consumer-app scrapes (`dataforseo/`)
+
+Whole DataForSEO live responses for the two consumer-app surfaces (method
+release spec §5), taken 2026-11-11 by `../consumer-surfaces.live.spec.ts`
+in US English. The client in `../dataforseo.ts` and the two adapters are
+tested against them.
+
+| File | Endpoint | Shape pinned |
+|------|----------|--------------|
+| `ai-mode.json` | `/serp/google/ai_mode/live/advanced` | one `ai_overview` item with `markdown`, `references[]` of `{ source, domain, url, title, text }` and its `ai_overview_element` items; `cost` at the top level and on the task |
+| `ai-mode-failed.json` | the same | a task that failed with 40101 ("Internal SE Server Error") under a top-level 20000, `result: null`, `cost: 0` |
+| `chatgpt-app.json` | `/ai_optimization/chat_gpt/llm_scraper/live/advanced`, `force_web_search: true` | `model`, `items[]` of `chat_gpt_text`, `sources[]` of `{ title, url, ... }`, `fan_out_queries[]`, `search_results[]`, `cost` |
+
+Both answered captures ask the question the chat fixtures use. Scrubbed:
+task ids replaced, and in `chatgpt-app.json` the search results on hosts
+other than nodejs.org and github.com removed. The buyer-question captures
+of the same run name real products and are not kept here; the item types
+only they produced (`chat_gpt_table`, `chat_gpt_images`) and the 40102
+status no request returned are derived inside the tests.
+
 ## Fake CLI (`fake-cli/`)
 
 `fake-cli.mjs` stands in for `claude`, `codex` and `cursor-agent` on PATH.

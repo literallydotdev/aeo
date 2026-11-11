@@ -24,6 +24,9 @@ export const ProbeAdapterId = {
   // Any gateway model, searching through the gateway's own search tool.
   GATEWAY_SEARCH: 'gateway.search@1',
   DATAFORSEO_AI_OVERVIEW: 'dataforseo.ai_overview@1',
+  // The consumer apps, scraped by DataForSEO (method release spec §5).
+  DATAFORSEO_AI_MODE: 'dataforseo.ai_mode@1',
+  DATAFORSEO_CHATGPT_APP: 'dataforseo.chatgpt_app@1',
   CLI_CLAUDE_CODE: 'cli.claude_code@1',
   CLI_CODEX: 'cli.codex@1',
   CLI_CURSOR: 'cli.cursor@1',
@@ -73,6 +76,7 @@ export type ProbeAdapterProfile = {
 export type AnswerSources =
   | { format: 'search'; sources: readonly unknown[] }
   | { format: 'ai_overview'; references: readonly AIOverviewReference[] }
+  | { format: 'ai_mode'; references: readonly AIOverviewReference[] }
   | { format: 'none' };
 
 export type ProbeAnswer = {

@@ -38,7 +38,8 @@ import type { TokenUsage } from './pricing';
 // by adapter: tokens and searches. A probe of a model the engine has no
 // flat figure for costs those at the model's catalog price. The flat
 // figures are unchanged, except Anthropic's: the new default model's first
-// recorded answer spent most of the old high end on a single search.
+// recorded answer spent most of the old high end on a single search. It
+// also adds the two consumer-app scrapes (method release spec §5).
 // ============================================================================
 
 export const costCoefficientsVersion = 3;
@@ -110,6 +111,11 @@ export const probeUsd: Readonly<Record<ProbeAdapterId, Range<number>>> = {
   // probe through it is always priced from the catalog (probeEstimateUsd).
   [ProbeAdapterId.GATEWAY_SEARCH]: { low: 0.02, high: 0.1 },
   [ProbeAdapterId.DATAFORSEO_AI_OVERVIEW]: { low: 0.002, high: 0.006 },
+  // Every answered request of both consumer-app scrapes reported $0.004
+  // (56 requests, 2026-11-11). The high end is a unit whose first attempt
+  // was billed without an answer and then retried.
+  [ProbeAdapterId.DATAFORSEO_AI_MODE]: { low: 0.004, high: 0.008 },
+  [ProbeAdapterId.DATAFORSEO_CHATGPT_APP]: { low: 0.004, high: 0.008 },
   [ProbeAdapterId.CLI_CLAUDE_CODE]: { low: 0, high: 0 },
   [ProbeAdapterId.CLI_CODEX]: { low: 0, high: 0 },
   [ProbeAdapterId.CLI_CURSOR]: { low: 0, high: 0 },
