@@ -38,6 +38,9 @@ export type ProbeAttemptEnd =
       noOverview?: true;
       /** What the provider reported the attempt cost, when it did. */
       costUsd?: number;
+      /** The request the attempt started with returned no prose, and a
+       * second call wrote the answer from its results (adapter.ts). */
+      fromFollowUp?: true;
       /** The redirect resolutions finalising the answer made: the network
        * requests after the provider answered. */
       redirects?: readonly RedirectResolution[];

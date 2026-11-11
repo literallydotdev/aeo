@@ -423,6 +423,7 @@ export const runProbeUnit = async <P>(
     ...(answer.reportedCostUsd === undefined
       ? {}
       : { costUsd: answer.reportedCostUsd }),
+    ...(answer.fromFollowUp ? { fromFollowUp: true as const } : {}),
     ...(final.redirects.length > 0 ? { redirects: final.redirects } : {}),
   });
 

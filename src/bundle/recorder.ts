@@ -536,6 +536,9 @@ export const probeTraceOf = (
           // What the provider reported the attempt cost; null when it did
           // not say, never the estimate.
           costUsd: result.costUsd ?? null,
+          // Named only when it happened: the recorded request returned no
+          // prose, and a second call wrote the answer from its results.
+          ...(result.fromFollowUp ? { fromFollowUp: true } : {}),
           ...redirectDetails(result.redirects),
         },
       });

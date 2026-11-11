@@ -254,6 +254,54 @@ describe('probes - runProbesForPrompts()', () => {
       });
     };
 
+    it('should record that the follow-up wrote an answer, and nothing of the kind when the search call wrote it', async () => {
+      const chatgptUnit = (trace: ProbeTrace) => {
+        return runProbesForPrompts({
+          geography: 'us',
+          language: 'en',
+          prompts: [{ id: 'p1', promptText: 'Which agency?', category: 'x' }],
+          surfaces: ['chatgpt'],
+          chatProbes: undefined,
+          dependencies: {
+            bindings: defaultProbeBindings,
+            gateway: provider.gateway,
+          },
+          filter: (unit) => unit.runIndex === 1,
+          trace,
+        });
+      };
+      const written = answered({
+        steps: [],
+        text: 'Acme is a good agency.',
+        sources: [],
+        finishReason: 'stop',
+        toolCalls: [],
+        response: { messages: [] },
+        providerMetadata: undefined,
+      });
+      const byFollowUp = fakeTrace();
+      const bySearchCall = fakeTrace();
+
+      // The search call returns no prose; the follow-up writes the answer.
+      provider.streamText.mockImplementation((options) =>
+        options.toolChoice === 'none' ? written : searched(),
+      );
+      const followedUp = chatgptUnit(byFollowUp.trace);
+      await vi.runAllTimersAsync();
+      await followedUp;
+
+      provider.streamText.mockImplementation(() => written);
+      const direct = chatgptUnit(bySearchCall.trace);
+      await vi.runAllTimersAsync();
+      await direct;
+
+      expect(byFollowUp.ends).toEqual([
+        expect.objectContaining({ outcome: 'succeeded', fromFollowUp: true }),
+      ]);
+      expect(bySearchCall.ends).toHaveLength(1);
+      expect(bySearchCall.ends[0]).not.toHaveProperty('fromFollowUp');
+    });
+
     it('should record the attempt with the answer and the model the provider named', async () => {
       provider.streamText.mockImplementation(() =>
         answered({

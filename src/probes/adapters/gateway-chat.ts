@@ -287,6 +287,7 @@ const searchProbe = async ({
       retrieval,
       servedModel: response.modelId,
       ...reportedCostOf([firstCost, gatewayCostUsd(followupMetadata)]),
+      fromFollowUp: true,
     };
   }
 

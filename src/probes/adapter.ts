@@ -98,6 +98,9 @@ export type ProbeAnswer = {
    * how the host reads it. */
   servedModel?: string;
   reportedCostUsd?: number;
+  /** The search call returned no prose, and a second call wrote this answer
+   * from its results without searching (the gateway chat adapters). */
+  fromFollowUp?: true;
   /** Coding agents only; null stays unknown. */
   usedWebSearch?: boolean | null;
 };
