@@ -77,7 +77,6 @@ export type ProbeAdapterProfile = {
 export type AnswerSources =
   | { format: 'search'; sources: readonly unknown[] }
   | { format: 'ai_overview'; references: readonly AIOverviewReference[] }
-  | { format: 'ai_mode'; references: readonly AIOverviewReference[] }
   | { format: 'none' };
 
 export type ProbeAnswer = {

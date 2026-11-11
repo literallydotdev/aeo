@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { canonicalDigest } from '../bundle/json';
 import { requireDefined } from '../__fixtures__/require-defined';
 import { writeEnv } from '../lib/env';
-import { defaultProbeBindings } from '../probes/bindings';
+import { defaultProbeBindings, requestedBindingsOf } from '../probes/bindings';
 import { readAuthorEvidence } from './author';
 import {
   auditFileSchema,
@@ -391,7 +391,7 @@ describe('preflight - runPreflight()', () => {
     );
     const withApp = await runPreflight({
       surfaces: ['chatgpt', 'chatgpt_app'],
-      bindings: defaultProbeBindings,
+      bindings: requestedBindingsOf({}, [], ['chatgpt_app']),
       settings,
       dir: path.join(root, 'run'),
     });

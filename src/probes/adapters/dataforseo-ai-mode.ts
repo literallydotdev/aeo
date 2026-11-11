@@ -23,8 +23,13 @@ import { classifyGatewayFailure } from './gateway-chat';
 // AI Mode always answers in the product, so nothing here is an honest
 // absence: a scrape without its answer is an `empty_answer` failure, and
 // its unit stays in the planned denominator as missing. An answer without
-// a single reference is still an answer (3 of 48 captured ones, 11
-// November 2026).
+// a single reference is still an answer (4 of 48 captured ones listed
+// none, 11 November 2026).
+//
+// The references are rendered as the source block every chat surface has,
+// which the work directory keeps apart from the answer body: an answer is
+// judged on what it says, never on the titles of the pages it cites. AI
+// Overview's own block predates that split and keeps its bytes.
 // ============================================================================
 
 export const dataForSeoAiModeProfile: ProbeAdapterProfile = {
@@ -79,7 +84,14 @@ export const createDataForSeoAiModeAdapter = ({
 
       return {
         answerText: answer.markdown,
-        sources: { format: 'ai_mode', references: answer.references },
+        sources: {
+          format: 'search',
+          sources: answer.references.flatMap(({ url, title, source }) =>
+            url === ''
+              ? []
+              : [{ sourceType: 'url', url, title: title || source || url }],
+          ),
+        },
         retrieval: {
           exposure: dataForSeoAiModeProfile.observes.retrieval,
           calls: [],

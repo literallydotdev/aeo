@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { aiModeSourcesMarker, renderAnswer } from '../answer-text';
+import { renderAnswer, searchSourcesMarker } from '../answer-text';
 import { createDataForSeoProbeClient } from '../dataforseo';
 import { ProbeFailure } from '../failure';
 import { createDataForSeoAiModeAdapter } from './dataforseo-ai-mode';
@@ -35,7 +35,7 @@ const adapterOver = (body: unknown) => {
   return {
     fetch,
     adapter: createDataForSeoAiModeAdapter({
-      surface: 'custom:ai_mode_under_test',
+      surface: 'google_ai_mode',
       client: createDataForSeoProbeClient({
         login: 'test-login',
         password: 'test-password',
@@ -71,21 +71,24 @@ describe('dataforseo-ai-mode - createDataForSeoAiModeAdapter()', () => {
     expect(answer.answerText).toMatch(
       /^The current Long-Term Support \(LTS\) version of Node\.js is \*\*Node\.js 26\*\*/,
     );
+    // The source block every chat surface has, which the work directory
+    // keeps apart from the answer body.
     expect(answer.sources).toEqual({
-      format: 'ai_mode',
-      references: [
-        expect.objectContaining({
-          domain: 'nodejs.org',
+      format: 'search',
+      sources: [
+        {
+          sourceType: 'url',
           url: 'https://nodejs.org/en/blog/release/v26.13.0',
-        }),
+          title: 'Node.js — Node.js 26.13.0 (LTS)',
+        },
       ],
     });
     expect(answer.retrieval).toEqual({ exposure: 'none', calls: [] });
     expect(answer.reportedCostUsd).toBe(0.004);
     expect(answer.servedModel).toBeUndefined();
     expect(answer.noOverview).toBeUndefined();
-    expect(renderAnswer(answer)).toContain(
-      `${aiModeSourcesMarker}\n- Node.js (nodejs.org): "Node.js — Node.js 26.13.0 (LTS)" — https://nodejs.org/en/blog/release/v26.13.0`,
+    expect(renderAnswer(answer)).toBe(
+      `${answer.answerText.trim()}\n\n${searchSourcesMarker}\n- Node.js — Node.js 26.13.0 (LTS): https://nodejs.org/en/blog/release/v26.13.0`,
     );
   });
 
@@ -132,7 +135,9 @@ describe('dataforseo-ai-mode - createDataForSeoAiModeAdapter()', () => {
   it("should fail a captured search-engine error as retryable, never as an answer that didn't mention anyone", async () => {
     const { adapter } = adapterOver(fixture('ai-mode-failed'));
 
-    const failure = await adapter.probe(question, {}).catch((e: unknown) => e);
+    const failure = await adapter
+      .probe(question, {})
+      .catch((error: unknown) => error);
 
     expect(failure).toBeInstanceOf(ProbeFailure);
     expect(adapter.classifyError(failure)).toEqual({
@@ -163,7 +168,7 @@ describe('dataforseo-ai-mode - createDataForSeoAiModeAdapter()', () => {
       const { adapter } = adapterOver(body);
       const failure = await adapter
         .probe(question, {})
-        .catch((e: unknown) => e);
+        .catch((error: unknown) => error);
 
       expect(adapter.classifyError(failure).kind).toBe('empty_answer');
     },
@@ -181,18 +186,50 @@ describe('dataforseo-ai-mode - createDataForSeoAiModeAdapter()', () => {
       cost: 0.004,
       tasks: [{ status_code: 20000, result: [result] }],
     });
-    const failure = await adapter.probe(question, {}).catch((e: unknown) => e);
+    const failure = await adapter
+      .probe(question, {})
+      .catch((error: unknown) => error);
 
     expect(adapter.classifyError(failure).kind).toBe('empty_answer');
   });
 
+  it('should fail a completed task that carries no result as an empty answer', async () => {
+    const { adapter } = adapterOver({
+      status_code: 20000,
+      cost: 0.004,
+      tasks: [{ status_code: 20000, result: null }],
+    });
+    const failure = await adapter
+      .probe(question, {})
+      .catch((error: unknown) => error);
+
+    expect(adapter.classifyError(failure)).toEqual({
+      kind: 'empty_answer',
+      message: 'DataForSEO returned an AI Mode result without its answer.',
+    });
+  });
+
+  it('should wait a minute for a scrape that took 19 seconds at most', async () => {
+    const timeout = vi.spyOn(AbortSignal, 'timeout');
+
+    try {
+      await adapterOver(fixture('ai-mode')).adapter.probe(question, {});
+
+      expect(timeout).toHaveBeenCalledExactlyOnceWith(60_000);
+    } finally {
+      timeout.mockRestore();
+    }
+  });
+
   it('should fail every probe as an auth failure when the run has no DataForSEO client', async () => {
     const adapter = createDataForSeoAiModeAdapter({
-      surface: 'custom:ai_mode_under_test',
+      surface: 'google_ai_mode',
       client: undefined,
       locale: { locationCode: 2840, languageCode: 'en' },
     });
-    const failure = await adapter.probe(question, {}).catch((e: unknown) => e);
+    const failure = await adapter
+      .probe(question, {})
+      .catch((error: unknown) => error);
 
     expect(adapter.classifyError(failure).kind).toBe('auth');
   });

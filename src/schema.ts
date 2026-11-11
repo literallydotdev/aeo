@@ -198,9 +198,16 @@ export const aeoAuditConfigSchema = z.object({
       consumerApps: z
         .array(z.enum(consumerSurfaces))
         .min(1)
-        .refine((listed) => new Set(listed).size === listed.length, {
-          error: 'Each consumer app is listed once.',
-        })
+        // One spelling per set of apps, so the same apps always digest
+        // the same.
+        .refine(
+          (listed) =>
+            listed.join() ===
+            consumerSurfaces.filter((app) => listed.includes(app)).join(),
+          {
+            error: `Each consumer app is listed once, in this order: ${consumerSurfaces.join(', ')}.`,
+          },
+        )
         .optional(),
     })
     .strict()

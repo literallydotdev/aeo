@@ -39,6 +39,7 @@ import {
   maxCustomSurfaces,
   runRequestSchema,
   type AeoAuditConfig,
+  type AeoConsumerSurface,
   type AeoSurface,
   type RunRequest,
 } from '../schema';
@@ -361,13 +362,17 @@ export const localReportKey = (file: AuditFile): string => {
   return `local-${slug || 'audit'}`;
 };
 
+/** The consumer apps an audit file lists, in the engine's own order
+ * whatever order the file lists them in. */
+const listedConsumerApps = (file: AuditFile): AeoConsumerSurface[] => {
+  return consumerSurfaces.filter((surface) => file.surfaces.includes(surface));
+};
+
 /** toAuditConfig maps audit.json onto the engine's internal config. */
 export const toAuditConfig = (file: AuditFile): AeoAuditConfig => {
   const reportKey = localReportKey(file);
   const measuresAgents = file.surfaces.some(isAgentSurface);
-  const consumerApps = consumerSurfaces.filter((surface) =>
-    file.surfaces.includes(surface),
-  );
+  const consumerApps = listedConsumerApps(file);
 
   const config = aeoAuditConfigSchema.parse({
     reportKey,
@@ -403,17 +408,20 @@ export const toAuditConfig = (file: AuditFile): AeoAuditConfig => {
 };
 
 /** requestedBindings is what an audit file asks of a run's bindings: the
- * defaults with its model overrides, and which surfaces it overrides. */
+ * defaults with its model overrides, its consumer apps and its custom
+ * surfaces, and which surfaces it asks for itself. */
 export const requestedBindings = (file: AuditFile): RequestedBindings => {
   const overrides = file.probes ?? {};
   const custom = file.customSurfaces ?? [];
+  const consumerApps = listedConsumerApps(file);
 
   return {
-    bindings: requestedBindingsOf(overrides, custom),
+    bindings: requestedBindingsOf(overrides, custom, consumerApps),
     overridden: [
       ...modelBoundSurfaces.filter(
         (surface) => overrides[surface] !== undefined,
       ),
+      ...consumerApps,
       ...custom.map(({ key }) => customSurfaceId(key)),
     ],
   };

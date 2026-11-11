@@ -125,17 +125,23 @@ ways the report states:
   ChatGPT's page, and none for AI Mode. Whether the scraper's session is
   logged in is not documented, so which tier of the product answered is not
   known.
-- A ChatGPT answer is the text and tables of the page. A citation counts
-  the sources the scraper lists as cited or relied on, and the links in the
-  answer.
+- A ChatGPT answer is the text and tables of the page; everything else on
+  it, such as images, shopping results and advertisements, is left out. A
+  citation counts the sources the scraper lists as cited or relied on, and
+  the links in the answer.
 - AI Mode always answers in the product, so a scrape that comes back empty
   is a failed answer, retried once and then counted as missing. It is never
   an answer that did not mention you.
 - Each question is asked once per app, or as often as `chatProbes` says.
 - They are scored as a group of their own, with their own pair of rates.
   The headline stays the four API chat surfaces and Google AI Overviews, so
-  adding a consumer app changes no earlier number. A comparison with a run
+  adding a consumer app changes no headline rate, no other surface's rates
+  and no competitor split. The source mix and the outreach list count every
+  captured answer, so they include its answers. A comparison with a run
   that did not measure it reports that the scope changed.
+- Both scrapes were captured in US English only (November 2026).
+  DataForSEO lists the markets each one serves; in a market it refuses,
+  every answer of that app fails and the run stops at its coverage check.
 
 `literally-aeo plan` estimates what a run costs, as a range per kind of
 work: the assistant answers, the analysis stages, the other model calls and

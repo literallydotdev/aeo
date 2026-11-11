@@ -15,6 +15,7 @@ import { z } from 'zod';
 import { buildNarrativeFacts } from './agents/narrative-facts';
 import { bundlePaths, calculationVersion } from './bundle/contracts';
 import { exportRun } from './bundle/export';
+import { answerBody } from './codex-workflow/workdir';
 import { parseBundleJson } from './bundle/json';
 import { verifyBundle } from './bundle/verify';
 import { readArchive } from './bundle/zip';
@@ -27,14 +28,22 @@ import {
 } from './engine/audit-file';
 import { planLocalRun } from './engine/local-run';
 import { exampleAuditFile } from './engine/templates';
-import { assembleSectionResult, type AnalyzedRun } from './pipeline';
+import {
+  assembleSectionResult,
+  captureSectionProbes,
+  type AnalyzedRun,
+  type SectionRunArgs,
+} from './pipeline';
 import {
   availableBindings,
   bindingOf,
+  consumerProbeBindings,
   defaultProbeBindings,
   probeEstimateUsd,
   profileOf,
+  bankBindingMismatches,
   reportedModelsOn,
+  requestedBindingsOf,
   RunBindingsError,
 } from './probes/bindings';
 import { createDataForSeoProbeClient } from './probes/dataforseo';
@@ -49,6 +58,7 @@ import {
   surfaceFamilyOf,
 } from './report/core/surfaces';
 import type { AeoSurface } from './schema';
+import { MemoryProbeStore } from './stores/memory';
 import type { CapturedUnitRecord } from './stores/ports';
 
 // ============================================================================
@@ -131,11 +141,17 @@ describe('audit-file - a listed consumer app', () => {
     expect(deeper.plan.units).toHaveLength(questions.length * 3);
   });
 
-  it('should bind each to its scrape, with no model to override', () => {
+  it('should freeze the binding of each listed app, and none for an audit that lists none', () => {
     expect(requestedBindings(withApps)).toEqual({
+      bindings: { ...defaultProbeBindings, ...consumerProbeBindings },
+      // What a resume holds the run directory to.
+      overridden: ['chatgpt_app', 'google_ai_mode'],
+    });
+    expect(requestedBindings(standard)).toEqual({
       bindings: defaultProbeBindings,
       overridden: [],
     });
+    // A scrape has no model to override.
     expect(
       auditFileSchema.safeParse({
         ...exampleAuditFile,
@@ -145,10 +161,13 @@ describe('audit-file - a listed consumer app', () => {
   });
 });
 
+// The bindings of a run whose audit lists both apps.
+const appBindings = requestedBindingsOf({}, [], consumerSurfaces);
+
 describe('bindings - the consumer apps', () => {
   it('should reserve a probe at the price the scrapes reported, with room for one billed retry, and need the DataForSEO login', () => {
     for (const surface of consumerSurfaces) {
-      const binding = bindingOf(defaultProbeBindings, surface);
+      const binding = bindingOf(appBindings, surface);
 
       expect(probeEstimateUsd(binding, new Map())).toEqual({
         low: 0.004,
@@ -162,31 +181,32 @@ describe('bindings - the consumer apps', () => {
     }
   });
 
-  it('should keep the bindings of a run directory an earlier release froze, and refuse to measure a consumer app in it', () => {
-    const frozenBefore = availableBindings(legacyProbeBindings);
+  it('should keep the bindings of a run directory that started without a consumer app, and refuse to measure one in it', () => {
+    for (const frozen of [legacyProbeBindings, defaultProbeBindings]) {
+      const bindings = availableBindings(frozen);
 
-    expect(frozenBefore).toEqual(legacyProbeBindings);
-    expect(() => bindingOf(frozenBefore, 'chatgpt_app')).toThrow(
-      RunBindingsError,
-    );
-    expect(() => bindingOf(frozenBefore, 'chatgpt_app')).toThrow(
-      /started by a release that did not measure it/,
-    );
-    expect(availableBindings(defaultProbeBindings)).toEqual(
-      defaultProbeBindings,
-    );
+      expect(bindings).toEqual(frozen);
+      expect(() => bindingOf(bindings, 'chatgpt_app')).toThrow(
+        RunBindingsError,
+      );
+      expect(() => bindingOf(bindings, 'chatgpt_app')).toThrow(
+        /the run directory started without it/,
+      );
+    }
+
+    expect(availableBindings(appBindings)).toEqual(appBindings);
   });
 
   it('should refuse a frozen consumer binding that names a model or another adapter', () => {
     expect(() =>
       availableBindings({
-        ...defaultProbeBindings,
+        ...appBindings,
         chatgpt_app: { adapter: 'gateway.openai@1', model: 'openai/gpt-x' },
       }),
     ).toThrow(/measures chatgpt_app with gateway\.openai@1/);
     expect(() =>
       availableBindings({
-        ...defaultProbeBindings,
+        ...appBindings,
         google_ai_mode: { adapter: 'dataforseo.chatgpt_app@1' },
       }),
     ).toThrow(/measures google_ai_mode with dataforseo\.chatgpt_app@1/);
@@ -261,7 +281,7 @@ describe('probes - runProbesForPrompts() on the consumer apps', () => {
         },
       },
       dependencies: {
-        bindings: defaultProbeBindings,
+        bindings: appBindings,
         gateway: () => {
           throw new Error('A scrape asks no gateway model.');
         },
@@ -303,7 +323,13 @@ describe('probes - runProbesForPrompts() on the consumer apps', () => {
     expect(aiMode.probe).not.toHaveProperty('reportedModel');
     expect(aiMode.probe).not.toHaveProperty('noOverview');
     expect(aiMode.probe.retrieval).toEqual({ exposure: 'none', calls: [] });
-    expect(aiMode.probe.text).toContain('Sources cited in AI Mode:\n- Node.js');
+    // The same block as every chat surface: the work directory keeps it
+    // apart from the body the answer is judged on.
+    expect(aiMode.probe.text).toContain(
+      'Sources used by search:\n- Node.js — Node.js 26.13.0 (LTS): https://nodejs.org/en/blog/release/v26.13.0',
+    );
+    expect(answerBody(aiMode.probe.text)).not.toContain('Sources used');
+    expect(answerBody(chatGpt.probe.text)).not.toContain('Sources used');
   });
 
   it('should keep an AI Mode scrape that came back without its answer as a failed unit, retried once, never a captured answer', async () => {
@@ -334,7 +360,7 @@ describe('probes - runProbesForPrompts() on the consumer apps', () => {
         surfaces: ['google_ai_mode'],
         chatProbes: undefined,
         dependencies: {
-          bindings: defaultProbeBindings,
+          bindings: appBindings,
           gateway: () => {
             throw new Error('A scrape asks no gateway model.');
           },
@@ -360,6 +386,110 @@ describe('probes - runProbesForPrompts() on the consumer apps', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('pipeline - captureSectionProbes() on the consumer apps', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('should bank each answer with its adapter, no requested model and the model the scraper named, and reuse the bank on a resume', async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockImplementation((url) =>
+        Promise.resolve(
+          Response.json(
+            fixture(
+              typeof url === 'string' && url.includes('ai_mode')
+                ? 'ai-mode'
+                : 'chatgpt-app',
+            ),
+          ),
+        ),
+      );
+
+    vi.stubGlobal('fetch', fetch);
+
+    const probeStore = new MemoryProbeStore();
+    const args: SectionRunArgs = {
+      sectionKey: 'main',
+      brand: { name: 'Acme Files', domain: 'acme.example', aliases: [] },
+      competitors: [
+        { name: 'Rival Files', domain: 'rival.example', aliases: [] },
+      ],
+      prompts: [
+        {
+          id: 'p1',
+          text: 'What is the current LTS version of Node.js?',
+          category: 'general_knowledge',
+        },
+      ],
+      geography: 'us',
+      language: 'en',
+      surfaces: ['chatgpt_app', 'google_ai_mode'],
+      agentProbes: { runsPerPrompt: 2 },
+      chatProbes: undefined,
+      agentCliVersions: { claudeCode: null, codex: null, cursor: null },
+      runId: 'RUN1',
+      probeStore,
+      analysisStore: null,
+      probeDependencies: {
+        bindings: appBindings,
+        gateway: () => {
+          throw new Error('A scrape asks no gateway model.');
+        },
+        dataForSeo: createDataForSeoProbeClient({
+          login: 'test-login',
+          password: 'test-password',
+        }),
+      },
+      logContext: {},
+    };
+
+    const first = await captureSectionProbes(args);
+    const banked = (await probeStore.list()).filter(
+      (record) => record.status === 'captured',
+    );
+    const parameters = {
+      geography: 'us',
+      language: 'en',
+      agentProbes: { runsPerPrompt: 2 },
+    };
+
+    expect(first.coverage).toEqual([
+      { surface: 'chatgpt_app', planned: 1, captured: 1 },
+      { surface: 'google_ai_mode', planned: 1, captured: 1 },
+    ]);
+    // A consumer app has no legacy adapter: its capture always names the
+    // one that took it.
+    expect(
+      Object.fromEntries(
+        banked.map((record) => [record.surface, record.captureMetadata]),
+      ),
+    ).toEqual({
+      chatgpt_app: {
+        requestedModel: null,
+        reportedModel: 'gpt-6',
+        parameters,
+        adapter: 'dataforseo.chatgpt_app@1',
+      },
+      google_ai_mode: {
+        requestedModel: null,
+        reportedModel: null,
+        parameters,
+        adapter: 'dataforseo.ai_mode@1',
+      },
+    });
+    expect(bankBindingMismatches(banked, appBindings)).toEqual([]);
+
+    // A resume probes nothing again: both answers are in the bank.
+    const resumed = await captureSectionProbes(args);
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(resumed.probes.map((probe) => probe.text)).toEqual(
+      first.probes.map((probe) => probe.text),
+    );
   });
 });
 

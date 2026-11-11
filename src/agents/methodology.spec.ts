@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aeoVisibilitySchema } from '../report/core/schema';
+import { aeoSnapshotSchema, aeoVisibilitySchema } from '../report/core/schema';
 import { buildMethodology, type MethodologyInput } from './methodology';
 
 const visibility = (withEvidence: boolean) => {
@@ -106,9 +106,33 @@ describe('methodology - buildMethodology()', () => {
 
     expect(sentences.slice(3, 6)).toEqual([
       "ChatGPT and AI Mode are measured in the consumer product itself, not through an API: DataForSEO scrapes each answer from the product's web page. Nothing pins the model that answers, and the vendor does not document whether its session is logged in, so which tier of the product answered is not known.",
-      'An answer from ChatGPT is the text and the tables of the page; its images, shopping results and advertisements are left out. The scraper reported the model as gpt-6. A citation there counts the sources the scraper lists as cited or relied on, and the links in the answer.',
+      'An answer from ChatGPT is the text and the tables of the page; everything else on it, such as images, shopping results and advertisements, is left out. The scraper reported the model as gpt-6. A citation there counts the sources the scraper lists as cited or relied on, and the links in the answer.',
       'The consumer apps are scored as a group of their own, apart from the headline rates of the API chat surfaces and AI Overview.',
     ]);
+  });
+
+  it('should keep the sentence a sentence whatever model names a scraper reported', () => {
+    // A scraper's model name is whatever its page showed, up to 200
+    // characters each.
+    const reported = Array.from(
+      { length: 12 },
+      (_, index) => `${index}${'m'.repeat(199)}`,
+    );
+    const sentences = buildMethodology(
+      input({
+        surfaces: ['chatgpt_app'],
+        reportedModels: { chatgpt_app: reported },
+      }),
+    );
+
+    expect(sentences[1]).toContain(
+      `The scraper reported the model as ${reported.slice(0, 3).join(', ')} and 9 more.`,
+    );
+    // Every sentence fits the snapshot's own bound.
+    expect(
+      aeoSnapshotSchema.shape.meta.shape.methodology.safeParse(sentences)
+        .success,
+    ).toBe(true);
   });
 
   it('should name no model the scraper did not report, and say nothing of ChatGPT for a run that measured AI Mode alone', () => {

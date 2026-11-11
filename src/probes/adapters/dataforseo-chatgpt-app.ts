@@ -26,9 +26,11 @@ import { classifyGatewayFailure } from './gateway-chat';
 //  - The model is whatever the scraper read off the page. Nothing pins it,
 //    so it is recorded as reported and never compared with a requested one.
 //  - Retrieval is `partial`: the answer's searches as a flat list, with no
-//    result set tied to any of them. The results the page showed and did
-//    not cite are not kept: the retrieval log has no place for results
-//    that belong to no query.
+//    result set tied to any of them. A response that reports no list at
+//    all has no log (`null`), never an empty one: every request forces the
+//    search on, so "no list" is not "searched nothing". The results the
+//    page showed and did not cite are not kept: the retrieval log has no
+//    place for results that belong to no query.
 // ============================================================================
 
 export const dataForSeoChatGptAppProfile: ProbeAdapterProfile = {
@@ -89,16 +91,19 @@ export const createDataForSeoChatGptAppAdapter = ({
             ...(title !== '' && { title }),
           })),
         },
-        retrieval: {
-          exposure: dataForSeoChatGptAppProfile.observes.retrieval,
-          calls: answer.fanOutQueries.map((query) => ({
-            kind: 'search' as const,
-            query,
-            url: null,
-            resultUrls: null,
-            resultsComplete: true,
-          })),
-        },
+        retrieval:
+          answer.fanOutQueries === null
+            ? null
+            : {
+                exposure: dataForSeoChatGptAppProfile.observes.retrieval,
+                calls: answer.fanOutQueries.map((query) => ({
+                  kind: 'search' as const,
+                  query,
+                  url: null,
+                  resultUrls: null,
+                  resultsComplete: true,
+                })),
+              },
         ...(answer.model !== null && { servedModel: answer.model }),
         ...(answer.costUsd !== null && { reportedCostUsd: answer.costUsd }),
       };

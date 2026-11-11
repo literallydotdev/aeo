@@ -70,7 +70,9 @@ tested against them.
 
 Both answered captures ask the question the chat fixtures use. Scrubbed:
 task ids replaced, and in `chatgpt-app.json` the search results on hosts
-other than nodejs.org and github.com removed. The buyer-question captures
+other than nodejs.org and github.com removed and the page text of the
+rest cut to its first 80 characters (marked `[…fixture-trimmed…]`); the
+client reads none of it. The buyer-question captures
 of the same run name real products and are not kept here; the item types
 only they produced (`chat_gpt_table`, `chat_gpt_images`) and the 40102
 status no request returned are derived inside the tests.

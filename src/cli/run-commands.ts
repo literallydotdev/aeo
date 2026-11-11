@@ -700,8 +700,13 @@ export const runRejudge = async (flags: Flags, usage: string) => {
     dir,
     model: { outcome: 'resolved', model, named: file.model !== undefined },
     groundingSearch: usesGroundingSearch(request),
-    // Nothing is probed again; the settings checked are the same.
-    bindings: defaultProbeBindings,
+    // Nothing is probed again; the settings checked are the same. The
+    // bindings are the ones the source run froze, now in the target: only
+    // they name its consumer apps and custom surfaces.
+    bindings: await estimateBindingsOf(
+      path.join(dir, bankDir),
+      requestedBindings(file).bindings,
+    ),
   });
   const failing = checks.filter((check) => !check.ok);
 

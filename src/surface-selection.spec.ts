@@ -72,13 +72,16 @@ describe('schema - aeoAuditConfigSchema surfaces', () => {
       });
     };
 
-    expect(withApps(['google_ai_mode', 'chatgpt_app']).data?.surfaces).toEqual({
+    expect(withApps(['chatgpt_app', 'google_ai_mode']).data?.surfaces).toEqual({
       ...decision,
-      consumerApps: ['google_ai_mode', 'chatgpt_app'],
+      consumerApps: ['chatgpt_app', 'google_ai_mode'],
     });
+    expect(withApps(['google_ai_mode']).success).toBe(true);
     expect(withApps([]).success).toBe(false);
     expect(withApps(['chatgpt']).success).toBe(false);
     expect(withApps(['chatgpt_app', 'chatgpt_app']).success).toBe(false);
+    // One spelling per set of apps: the same apps never digest two ways.
+    expect(withApps(['google_ai_mode', 'chatgpt_app']).success).toBe(false);
     expect(
       aeoAuditConfigSchema.parse({ ...base, surfaces: decision }).surfaces,
     ).toEqual(decision);
@@ -126,7 +129,7 @@ describe('runner - planRun()', () => {
       surfaces: {
         codingAgents: 'skip',
         because: 'Buyers are restaurant owners.',
-        consumerApps: ['google_ai_mode', 'chatgpt_app'],
+        consumerApps: ['chatgpt_app', 'google_ai_mode'],
       },
     });
 
@@ -134,8 +137,8 @@ describe('runner - planRun()', () => {
 
     expect(plan.surfaces).toEqual([
       ...chatSurfaces,
-      'google_ai_mode',
       'chatgpt_app',
+      'google_ai_mode',
     ]);
     expect(plan.probesBySurface.get('chatgpt_app')).toBe(6);
     expect(plan.probesBySurface.get('google_ai_mode')).toBe(6);

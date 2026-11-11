@@ -24,7 +24,6 @@ import {
 
 export const searchSourcesMarker = 'Sources used by search:';
 export const aiOverviewSourcesMarker = 'Sources cited in AI Overview:';
-export const aiModeSourcesMarker = 'Sources cited in AI Mode:';
 
 const searchSourceRows = (sources: readonly unknown[]): string[] => {
   const rows: string[] = [];
@@ -67,10 +66,9 @@ const withSearchSources = (
   return `${text.trim()}\n\n${searchSourcesMarker}\n${rows.join('\n')}`;
 };
 
-const withReferences = (
+const withAiOverviewReferences = (
   markdown: string,
   references: readonly AIOverviewReference[],
-  marker: string,
 ): string => {
   if (references.length === 0) {
     return markdown;
@@ -87,7 +85,7 @@ const withReferences = (
     return `- ${reference.source}${domainLabel}: "${reference.title}" — ${reference.url}`;
   });
 
-  return `${markdown}\n\n${marker}\n${rows.join('\n')}`;
+  return `${markdown}\n\n${aiOverviewSourcesMarker}\n${rows.join('\n')}`;
 };
 
 /** renderAnswer is the answer's text with its source block. */
@@ -99,18 +97,7 @@ export const renderAnswer = (answer: ProbeAnswer): string => {
       return withSearchSources(answer.answerText, sources.sources);
 
     case 'ai_overview':
-      return withReferences(
-        answer.answerText,
-        sources.references,
-        aiOverviewSourcesMarker,
-      );
-
-    case 'ai_mode':
-      return withReferences(
-        answer.answerText,
-        sources.references,
-        aiModeSourcesMarker,
-      );
+      return withAiOverviewReferences(answer.answerText, sources.references);
 
     case 'none':
       return answer.answerText;

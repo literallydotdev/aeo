@@ -96,7 +96,8 @@ export const estimateBindingsOf = async (
 };
 
 /** What audit.json asks of the bindings: the bindings a new run would
- * freeze, and the surfaces whose model it names itself. */
+ * freeze, and the surfaces it asks for itself (a model it names behind a
+ * surface, a consumer app it lists, a custom surface it declares). */
 export type RequestedBindings = {
   bindings: RunBindings;
   overridden: readonly AeoSurface[];

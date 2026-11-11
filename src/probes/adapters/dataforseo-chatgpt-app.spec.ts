@@ -55,7 +55,7 @@ const adapterOver = (body: unknown) => {
   return {
     fetch,
     adapter: createDataForSeoChatGptAppAdapter({
-      surface: 'custom:chatgpt_app_under_test',
+      surface: 'chatgpt_app',
       client: createDataForSeoProbeClient({
         login: 'test-login',
         password: 'test-password',
@@ -207,9 +207,61 @@ describe('dataforseo-chatgpt-app - createDataForSeoChatGptAppAdapter()', () => {
     const answer = await adapterOver(body).adapter.probe(question, {});
 
     expect(answer.sources).toEqual({ format: 'search', sources: [] });
-    expect(answer.retrieval).toEqual({ exposure: 'partial', calls: [] });
+    // No list of searches is a log that was not captured: the request
+    // forced the search on, so it is never "searched nothing".
+    expect(answer.retrieval).toBeNull();
     expect(answer).not.toHaveProperty('servedModel');
     expect(renderAnswer(answer)).toBe(answer.answerText);
+  });
+
+  it('should record an empty list of searches as the scraper reported it', async () => {
+    const body = fixture();
+
+    resultOf(body).fan_out_queries = [];
+
+    const answer = await adapterOver(body).adapter.probe(question, {});
+
+    expect(answer.retrieval).toEqual({ exposure: 'partial', calls: [] });
+  });
+
+  it('should bank an answer whose response reports no usable cost, with no cost', async () => {
+    const body = fixture();
+
+    Object.assign(body, { cost: 'free' });
+
+    const answer = await adapterOver(body).adapter.probe(question, {});
+
+    expect(answer.answerText).not.toBe('');
+    expect(answer).not.toHaveProperty('reportedCostUsd');
+  });
+
+  it('should fail a completed task that carries no result as an empty answer', async () => {
+    const body = fixture();
+    const [task] = body.tasks;
+
+    Object.assign(task ?? {}, { result: null });
+
+    const { adapter } = adapterOver(body);
+    const failure = await adapter
+      .probe(question, {})
+      .catch((error: unknown) => error);
+
+    expect(adapter.classifyError(failure)).toEqual({
+      kind: 'empty_answer',
+      message: 'DataForSEO returned a completed ChatGPT task with no result.',
+    });
+  });
+
+  it('should give a scrape the time the vendor documents for one', async () => {
+    const timeout = vi.spyOn(AbortSignal, 'timeout');
+
+    try {
+      await adapterOver(fixture()).adapter.probe(question, {});
+
+      expect(timeout).toHaveBeenCalledExactlyOnceWith(150_000);
+    } finally {
+      timeout.mockRestore();
+    }
   });
 
   it.each([
@@ -221,7 +273,9 @@ describe('dataforseo-chatgpt-app - createDataForSeoChatGptAppAdapter()', () => {
     Object.assign(resultOf(body), { items });
 
     const { adapter } = adapterOver(body);
-    const failure = await adapter.probe(question, {}).catch((e: unknown) => e);
+    const failure = await adapter
+      .probe(question, {})
+      .catch((error: unknown) => error);
 
     expect(adapter.classifyError(failure).kind).toBe('empty_answer');
   });
@@ -232,7 +286,9 @@ describe('dataforseo-chatgpt-app - createDataForSeoChatGptAppAdapter()', () => {
     resultOf(body).model = 'm'.repeat(201);
 
     const { adapter } = adapterOver(body);
-    const failure = await adapter.probe(question, {}).catch((e: unknown) => e);
+    const failure = await adapter
+      .probe(question, {})
+      .catch((error: unknown) => error);
 
     expect(adapter.classifyError(failure).kind).toBe('parser');
   });

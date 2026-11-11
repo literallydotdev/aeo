@@ -3,13 +3,20 @@ import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { requireEnv } from '../lib/env';
 import { isRecord } from '../lib/type-guards';
+import {
+  aiModeEndpoint,
+  aiModeTask,
+  chatGptEndpoint,
+  chatGptTask,
+} from './dataforseo';
 import { resolveDataForSeoLocale } from './dataforseo-locale';
 
 // ============================================================================
 // PAID, maintainer-run (.claude/rules/tests-cost-nothing.md): the captures
-// the consumer-app adapters are written from (method release spec §5.6).
-// No adapter exists yet, so this suite sends the two DataForSEO requests
-// itself and keeps each response whole.
+// the consumer-app adapters are written from and pinned to (method release
+// spec §5.6). The suite sends the tasks the adapters send (dataforseo.ts)
+// with its own fetch, because a fixture is the whole response and the
+// client hands on only what it reads.
 //
 //  - Google AI Mode: 50 neutral questions, once each. The share that comes
 //    back with no answer (task status 40102, or no `ai_overview` item)
@@ -35,8 +42,6 @@ import { resolveDataForSeoLocale } from './dataforseo-locale';
 // ============================================================================
 
 const baseUrl = 'https://api.dataforseo.com/v3';
-const chatGptEndpoint = '/ai_optimization/chat_gpt/llm_scraper/live/advanced';
-const aiModeEndpoint = '/serp/google/ai_mode/live/advanced';
 
 const maxSpendUsd = 1;
 const maxRequestUsd = 0.05;
@@ -121,6 +126,10 @@ describe('consumer-app surfaces (live, paid)', () => {
   let stopped: string | undefined;
 
   const locale = resolveDataForSeoLocale('US', 'en');
+
+  if (!locale) {
+    throw new Error('DataForSEO has no US English market.');
+  }
 
   beforeAll(() => {
     const login = requireEnv('DATAFORSEO_LOGIN');
@@ -252,21 +261,14 @@ describe('consumer-app surfaces (live, paid)', () => {
   it(
     'should capture Google AI Mode on fifty neutral questions and count the answers that are missing',
     async () => {
-      expect(locale).toBeDefined();
-
       const captures = await captureAll(
         'ai-mode',
         buyerQuestions,
         (question, index) =>
-          capture(
-            aiModeEndpoint,
-            {
-              keyword: question,
-              location_code: locale?.locationCode,
-              language_code: locale?.languageCode,
-            },
-            { index, question },
-          ),
+          capture(aiModeEndpoint, aiModeTask(question, locale), {
+            index,
+            question,
+          }),
       );
       const rows = captures.map(
         ({ index, question, httpStatus, durationMs, body, error }) => {
@@ -333,21 +335,14 @@ describe('consumer-app surfaces (live, paid)', () => {
   );
 
   it('should capture Google AI Mode on the question the chat fixtures use', async () => {
-    expect(locale).toBeDefined();
-
     const captures = await captureAll(
       'ai-mode-fixture',
       [fixtureQuestion],
       (question, index) =>
-        capture(
-          aiModeEndpoint,
-          {
-            keyword: question,
-            location_code: locale?.locationCode,
-            language_code: locale?.languageCode,
-          },
-          { index, question },
-        ),
+        capture(aiModeEndpoint, aiModeTask(question, locale), {
+          index,
+          question,
+        }),
     );
 
     expect(stopped).toBeUndefined();
@@ -357,22 +352,14 @@ describe('consumer-app surfaces (live, paid)', () => {
   it(
     "should capture ChatGPT's web interface with the model the vendor reports and its sources",
     async () => {
-      expect(locale).toBeDefined();
-
       const captures = await captureAll(
         'chatgpt-app',
         chatGptQuestions,
         (question, index) =>
-          capture(
-            chatGptEndpoint,
-            {
-              keyword: question,
-              location_code: locale?.locationCode,
-              language_code: locale?.languageCode,
-              force_web_search: true,
-            },
-            { index, question },
-          ),
+          capture(chatGptEndpoint, chatGptTask(question, locale), {
+            index,
+            question,
+          }),
       );
       const rows = captures.map(
         ({ index, question, httpStatus, durationMs, body, error }) => {

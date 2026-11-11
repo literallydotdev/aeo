@@ -42,6 +42,17 @@ const labelOf = (
   return labels[surface] ?? builtInLabels[surface] ?? surface;
 };
 
+// A scraper's model name is whatever its page showed: the sentence that
+// lists them stays a sentence, whatever a run collected.
+const maxNamedModels = 3;
+
+const namedModels = (reported: readonly string[]): string => {
+  const named = reported.slice(0, maxNamedModels).join(', ');
+  const more = reported.length - maxNamedModels;
+
+  return more > 0 ? `${named} and ${more} more` : named;
+};
+
 const hasIntervals = (sections: MethodologyInput['sections']): boolean => {
   return sections.some(({ visibility }) =>
     Object.values(visibility.summary.byModel).some(
@@ -104,7 +115,7 @@ export const buildMethodology = ({
       const reported = reportedModels.chatgpt_app ?? [];
 
       sentences.push(
-        `An answer from ${builtInLabels.chatgpt_app} is the text and the tables of the page; its images, shopping results and advertisements are left out.${reported.length === 0 ? '' : ` The scraper reported the model as ${reported.join(', ')}.`} A citation there counts the sources the scraper lists as cited or relied on, and the links in the answer.`,
+        `An answer from ${builtInLabels.chatgpt_app} is the text and the tables of the page; everything else on it, such as images, shopping results and advertisements, is left out.${reported.length === 0 ? '' : ` The scraper reported the model as ${namedModels(reported)}.`} A citation there counts the sources the scraper lists as cited or relied on, and the links in the answer.`,
       );
     }
 

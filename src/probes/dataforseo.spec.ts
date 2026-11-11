@@ -117,6 +117,23 @@ describe('dataforseo - createDataForSeoProbeClient()', () => {
     );
   });
 
+  it('should answer an AI Overview whose response reports a cost that is not an amount', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        Response.json({
+          status_code: 20000,
+          cost: 'free',
+          tasks: [{ status_code: 20000, result: [{ items: [] }] }],
+        }),
+      ),
+    );
+
+    await expect(
+      client().getGoogleAIOverview('test query', usMarket),
+    ).resolves.toEqual({ status: 'no_overview' });
+  });
+
   it('should refuse a client without both credentials', () => {
     expect(() =>
       createDataForSeoProbeClient({ login: 'test-login', password: '' }),

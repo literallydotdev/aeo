@@ -4,13 +4,15 @@ import {
   engineSecretSettingNames,
 } from '../engine/preflight';
 import { surfaceRetrievalExposure } from '../retrieval';
-import { allSurfaces } from '../surfaces';
+import { allSurfaces, defaultSurfaces } from '../surfaces';
 import type { CapturedUnitRecord } from '../stores/ports';
 import { ProbeAdapterId, type ProbeAdapter } from './adapter';
 import { agentAuthEnv, assertAgentAuth } from './agent-clis';
 import {
+  consumerProbeBindings,
   createChatAdapter,
   defaultProbeBindings,
+  ownBindingOf,
   probeAdapterProfiles,
   probeDependenciesOf,
   profileOf,
@@ -25,7 +27,7 @@ import { legacyProbeBindings } from './legacy-bindings';
 // ============================================================================
 
 describe('bindings - defaultProbeBindings', () => {
-  it('should pin each API chat surface to its free-tier model, bind each consumer app to its scrape, and keep every other legacy binding', () => {
+  it('should pin each API chat surface to its free-tier model and keep every other legacy binding', () => {
     // The method: changing a row is a method release (method release
     // spec §4), never a refactor.
     expect(defaultProbeBindings).toEqual({
@@ -43,19 +45,25 @@ describe('bindings - defaultProbeBindings', () => {
         adapter: 'gateway.perplexity@1',
         model: 'perplexity/sonar',
       },
+    });
+    // A consumer app is bound only in a run whose audit lists it.
+    expect(Object.keys(defaultProbeBindings).sort()).toEqual(
+      [...defaultSurfaces].sort(),
+    );
+  });
+
+  it('should bind each consumer app to its scrape, with no model', () => {
+    expect(consumerProbeBindings).toEqual({
       chatgpt_app: { adapter: 'dataforseo.chatgpt_app@1' },
       google_ai_mode: { adapter: 'dataforseo.ai_mode@1' },
     });
-    expect(Object.keys(defaultProbeBindings).sort()).toEqual(
-      [...allSurfaces].sort(),
-    );
   });
 
   it('should declare the same retrieval exposure as the client-safe table for every surface', () => {
     const declared = Object.fromEntries(
       allSurfaces.map((surface) => [
         surface,
-        profileOf(defaultProbeBindings[surface]).observes.retrieval,
+        profileOf(ownBindingOf(surface)).observes.retrieval,
       ]),
     );
 

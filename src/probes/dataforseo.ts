@@ -34,8 +34,8 @@ const log = createLog('DataForSEO');
 const dataForSeoResponseSchema = z.object({
   status_code: z.number(),
   status_message: z.string().max(2_000).optional(),
-  // What the whole response was billed, in USD.
-  cost: z.number().nonnegative().nullish(),
+  // What the whole response was billed, in USD; read by reportedCostOf.
+  cost: z.unknown().optional(),
   tasks: z
     .array(
       z.object({
@@ -127,8 +127,9 @@ export type ChatGptAppAnswer = ReportedCost & {
   markdown: string;
   /** The sources the vendor describes as cited or relied on. */
   sources: ChatGptAppSource[];
-  /** The searches the answer ran, as a flat list. */
-  fanOutQueries: string[];
+  /** The searches the answer ran, as a flat list; null when the response
+   * reported no list. */
+  fanOutQueries: string[] | null;
   /** The model the scraper reports, verbatim; null when it names none. */
   model: string | null;
 };
@@ -268,6 +269,14 @@ const parseProviderJson = <T>(schema: z.ZodType<T>, value: unknown): T => {
   }
 
   return parsed.data;
+};
+
+/** The cost a response reported, or null: a value that is not an amount
+ * is a cost that was not reported, never a reason to lose a paid answer. */
+const reportedCostOf = (cost: unknown): number | null => {
+  return typeof cost === 'number' && Number.isFinite(cost) && cost >= 0
+    ? cost
+    : null;
 };
 
 const taskFailureKind = (
@@ -437,8 +446,10 @@ export const createDataForSeoProbeClient = ({
       const results: unknown[] = [];
 
       for (const task of data.tasks ?? []) {
-        if (task.status_code === 20000 && task.result) {
-          results.push(...task.result);
+        // A completed task without a result has nothing to hand on; each
+        // caller says what an empty result means on its endpoint.
+        if (task.status_code === 20000) {
+          results.push(...(task.result ?? []));
           continue;
         }
 
@@ -457,7 +468,7 @@ export const createDataForSeoProbeClient = ({
         );
       }
 
-      return { results, costUsd: data.cost ?? null };
+      return { results, costUsd: reportedCostOf(data.cost) };
     });
   };
 
@@ -559,9 +570,9 @@ export const createDataForSeoProbeClient = ({
       sources: (result.sources ?? []).flatMap((source) =>
         source.url ? [{ url: source.url, title: source.title ?? '' }] : [],
       ),
-      fanOutQueries: (result.fan_out_queries ?? []).filter(
-        (fanOutQuery) => fanOutQuery !== '',
-      ),
+      fanOutQueries:
+        result.fan_out_queries?.filter((fanOutQuery) => fanOutQuery !== '') ??
+        null,
       model: result.model ?? null,
       costUsd,
     };

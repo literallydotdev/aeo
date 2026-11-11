@@ -1142,6 +1142,41 @@ describe('progress - deriveProgressComparison() with consumer apps', () => {
     expect(consumerOnly.groups.consumer?.current.planned).toBe(2);
   });
 
+  it("should call a comparison partial when the scraper's reported model changed: nothing pins it, and the report says so", () => {
+    const scraped = (runId: string, reportedModel: string) => {
+      return projectProgressMeasurement(
+        fixture({
+          runId,
+          config: cfg,
+          surfaces: ['chatgpt_app'],
+          collection: {
+            requestedModel: null,
+            reportedModel,
+            parameters: {},
+            adapter: 'dataforseo.chatgpt_app@1',
+          },
+        }),
+      );
+    };
+    const baseline = scraped('baseline', 'gpt-6');
+
+    expect(
+      deriveProgressComparison({
+        baseline,
+        current: scraped('current', 'gpt-6-mini'),
+      }),
+    ).toMatchObject({
+      status: 'partial',
+      reasons: ['collection_method_changed'],
+    });
+    expect(
+      deriveProgressComparison({
+        baseline,
+        current: scraped('current', 'gpt-6'),
+      }).status,
+    ).toBe('comparable');
+  });
+
   it('should report an audit that added a consumer app as a change of scope, not of visibility', () => {
     const baseline = audit('baseline', ['google_ai_overview'], []);
     const current = audit(

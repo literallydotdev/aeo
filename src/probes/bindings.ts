@@ -70,17 +70,16 @@ import { legacyProbeBindings, type ProbeBinding } from './legacy-bindings';
 
 export type { ProbeBinding };
 
-/** A run's frozen bindings: one per default surface, one per consumer
- * surface for every run that started since those exist, and one per custom
- * surface the audit declares. */
+/** A run's frozen bindings: one per default surface, and one per consumer
+ * app the audit lists and per custom surface it declares. */
 export type RunBindings = Readonly<Record<AeoDefaultSurface, ProbeBinding>> &
   Readonly<Partial<Record<AeoConsumerSurface, ProbeBinding>>> & {
     readonly [custom: AeoCustomSurface]: ProbeBinding;
   };
 
 /** The binding a run froze for `surface`. A custom surface the bindings do
- * not hold was never declared, and a consumer surface they do not hold is
- * one the run directory started without: the plan would contain neither. */
+ * not hold was never declared, and a consumer app they do not hold is one
+ * the run directory started without: the plan would contain neither. */
 export const bindingOf = (
   bindings: RunBindings,
   surface: AeoSurface,
@@ -91,7 +90,7 @@ export const bindingOf = (
     throw new RunBindingsError(
       isCustomSurface(surface)
         ? `This run's bindings name no adapter for ${surface}. A custom surface is measured only when audit.json declares it in customSurfaces.`
-        : `This run's bindings name no adapter for ${surface}: the run directory was started by a release that did not measure it. Please measure it in a new run directory.`,
+        : `This run's bindings name no adapter for ${surface}: the run directory started without it. A run never changes what it measures: measure ${surface} in a new run directory.`,
     );
   }
 
@@ -193,13 +192,9 @@ export const probeDependenciesOf = (
 export const defaultBindingsChosenOn = '2026-11-10';
 
 export const defaultProbeBindings: Readonly<
-  Record<AeoBuiltInSurface, ProbeBinding>
+  Record<AeoDefaultSurface, ProbeBinding>
 > = {
   ...legacyProbeBindings,
-  // The consumer apps (method release spec §5): a scrape has no model to
-  // name, so each surface has exactly one binding.
-  chatgpt_app: { adapter: ProbeAdapterId.DATAFORSEO_CHATGPT_APP },
-  google_ai_mode: { adapter: ProbeAdapterId.DATAFORSEO_AI_MODE },
   // The Free plan's chat model is GPT-6 Luna (chatgpt.com/pricing). It
   // became the Free and Go default about 8 October 2026, a date read from
   // reposts of OpenAI's release notes, not from the notes themselves.
@@ -228,6 +223,27 @@ export const defaultProbeBindings: Readonly<
     adapter: ProbeAdapterId.GATEWAY_PERPLEXITY,
     model: 'perplexity/sonar',
   },
+};
+
+/**
+ * The binding of each consumer app (method release spec §5): a scrape has
+ * no model to name, so each has exactly one. A run freezes it only for an
+ * app its audit lists, so a run that lists none freezes what it always
+ * did, and a later version of a scrape never strands a directory that
+ * measured no app.
+ */
+export const consumerProbeBindings: Readonly<
+  Record<AeoConsumerSurface, ProbeBinding>
+> = {
+  chatgpt_app: { adapter: ProbeAdapterId.DATAFORSEO_CHATGPT_APP },
+  google_ai_mode: { adapter: ProbeAdapterId.DATAFORSEO_AI_MODE },
+};
+
+/** The engine's own binding of a built-in surface. */
+export const ownBindingOf = (surface: AeoBuiltInSurface): ProbeBinding => {
+  return isConsumerSurface(surface)
+    ? consumerProbeBindings[surface]
+    : defaultProbeBindings[surface];
 };
 
 /** Every registered adapter's profile, by ID. */
@@ -306,14 +322,16 @@ export const customSurfaceId = (key: string): AeoCustomSurface => {
 
 /**
  * requestedBindingsOf is the bindings a new run freezes: the defaults, with
- * each override's model behind its surface, and one binding per declared
- * custom surface. A built-in surface's adapter is the one the override
- * names, or its provider's own search; a model of another provider, and
- * every custom surface, searches through the gateway's own tool.
+ * each override's model behind its surface, one binding per declared
+ * custom surface, and the binding of each consumer app the audit lists. A
+ * built-in surface's adapter is the one the override names, or its
+ * provider's own search; a model of another provider, and every custom
+ * surface, searches through the gateway's own tool.
  */
 export const requestedBindingsOf = (
   overrides: ProbeOverrides = {},
   custom: readonly CustomSurfaceDeclaration[] = [],
+  consumerApps: readonly AeoConsumerSurface[] = [],
 ): RunBindings => {
   const swapped = Object.fromEntries(
     modelBoundSurfaces.flatMap((surface) => {
@@ -341,14 +359,18 @@ export const requestedBindingsOf = (
     };
   }
 
-  return { ...defaultProbeBindings, ...swapped, ...declared };
+  const listed = Object.fromEntries(
+    consumerApps.map((surface) => [surface, consumerProbeBindings[surface]]),
+  );
+
+  return { ...defaultProbeBindings, ...swapped, ...listed, ...declared };
 };
 
 /** Whether the engine has its own cost figure for a binding: one of its
  * default or legacy bindings. Any other is priced from the catalog. */
 export const isOwnBinding = (binding: ProbeBinding): boolean => {
   return allSurfaces.some((surface) =>
-    [defaultProbeBindings[surface], legacyBindingOf(surface)].some(
+    [ownBindingOf(surface), legacyBindingOf(surface)].some(
       (own) => own?.adapter === binding.adapter && own.model === binding.model,
     ),
   );
@@ -427,7 +449,7 @@ const availableBinding = (
       : undefined;
   }
 
-  const own: ProbeBinding = defaultProbeBindings[surface];
+  const own = ownBindingOf(surface);
 
   if (isModelAdapterId(binding.adapter)) {
     return binding.model !== undefined && isModelAdapterId(own.adapter)
@@ -482,8 +504,7 @@ export const availableBindings = (
 
     return built;
   };
-  // Frozen by a run that started since they exist; a directory an earlier
-  // release froze, which a rejudgment carries over, names neither.
+  // Frozen only by a run whose audit lists or declares them.
   const optional: Partial<
     Record<AeoConsumerSurface | AeoCustomSurface, ProbeBinding>
   > = {};
