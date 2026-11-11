@@ -6,6 +6,7 @@ import {
   projectWriterFactCatalog,
   type FactCatalog,
 } from '../agents/facts';
+import { finalCopyDraftSchemaForSections } from '../agents/copy-schema';
 import { narrativeContextFactIds } from '../agents/copy-validation';
 import {
   premiseVerifierInstructions,
@@ -55,7 +56,14 @@ export const copyEditCall = (args: {
   context: unknown;
   rules: Record<string, string>;
   role: InternalModelRoleConfig;
+  /** The configured section keys: the schema names each as a required
+   * key, as the writer's request does. Against the open contract an edit
+   * came back without its section and cost a round (a recorded run,
+   * 2026-11-11). */
+  sections: readonly string[];
 }) => {
+  // The same contract as writeOutputSchema, with the sections named.
+  const schema = finalCopyDraftSchemaForSections(args.sections);
   const cited = new Set<string>(narrativeContextFactIds);
   const visit = (value: unknown, key?: string) => {
     if (
@@ -131,7 +139,7 @@ export const copyEditCall = (args: {
   const call = () => {
     return {
       role: args.role,
-      schema: writeOutputSchema,
+      schema,
       system,
       prompt: JSON.stringify({
         currentDraft: args.draft,
@@ -288,6 +296,7 @@ export const editCopyDraft = async (args: {
     edits,
     catalog,
     rules,
+    sections: config.sections.map((section) => section.key),
     context: {
       brand: config.brand,
       sections: config.sections.map((section) => section.key),
@@ -299,7 +308,9 @@ export const editCopyDraft = async (args: {
     args.transport,
   );
 
-  const editedDraft = result.output;
+  // Already held to the sectioned schema by the call; parsed against the
+  // contract it narrows for the contract's own type.
+  const editedDraft = writeOutputSchema.parse(result.output);
   const file = 'PENDING/copy-edits.json';
 
   await writePendingJson(path.join(args.dir, file), {

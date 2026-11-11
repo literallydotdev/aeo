@@ -81,8 +81,16 @@ describe('CopyEditor - editCopyDraft()', () => {
       transport: (request) => {
         expect(request.role).toEqual(role);
         // The verifier is asked for the complete edited draft, never a review
-        // object, over the draft it found the issues in.
-        expect(request.schema).toBe(writeOutputSchema);
+        // object, over the draft it found the issues in. Each configured
+        // section is a required key of what it may return, which the open
+        // contract does not ask.
+        expect(request.schema.safeParse(edited).success).toBe(true);
+        expect(
+          request.schema.safeParse({ ...edited, sections: {} }).success,
+        ).toBe(false);
+        expect(
+          writeOutputSchema.safeParse({ ...edited, sections: {} }).success,
+        ).toBe(true);
 
         const input = parsePrompt(request.prompt);
 
@@ -180,6 +188,7 @@ describe('CopyEditor - editCopyDraft()', () => {
       catalog,
       context: { brand: copyFixtureConfig.brand },
       rules: {},
+      sections: copyFixtureConfig.sections.map((section) => section.key),
       role,
     });
 
@@ -252,6 +261,7 @@ describe('CopyEditor - editCopyDraft()', () => {
       catalog,
       context: { brand: copyFixtureConfig.brand },
       rules,
+      sections: copyFixtureConfig.sections.map((section) => section.key),
     };
 
     const roomy = copyEditCall({
