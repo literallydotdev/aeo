@@ -132,7 +132,9 @@ ways the report states:
   the links in the answer.
 - AI Mode always answers in the product, so a scrape that comes back empty
   is a failed answer, retried once and then counted as missing. It is never
-  an answer that did not mention you.
+  an answer that did not mention you. Links that lead back into Google's
+  own search and shopping results are left out of an AI Mode answer: they
+  are not sources, and are not counted as citations.
 - Each question is asked once per app, or as often as `chatProbes` says.
 - They are scored as a group of their own, with their own pair of rates.
   The headline stays the four API chat surfaces and Google AI Overviews, so

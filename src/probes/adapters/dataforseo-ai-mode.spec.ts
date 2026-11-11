@@ -132,6 +132,65 @@ describe('dataforseo-ai-mode - createDataForSeoAiModeAdapter()', () => {
     expect(answer.answerText).not.toBe('');
   });
 
+  it("should leave out links into Google's own search and shopping results, keeping what the answer says", async () => {
+    const shopping =
+      'https://www.google.com/search?q=product&prds=pvt:hg,productid:1&ibp=oshop';
+    const body = structuredClone(fixture('ai-mode')) as {
+      tasks: {
+        result: {
+          items: { markdown: string; references: Record<string, unknown>[] }[];
+        }[];
+      }[];
+    };
+    const item = body.tasks[0]?.result[0]?.items[0];
+
+    if (!item) {
+      throw new Error('The fixture holds no answer item.');
+    }
+
+    // As one of six answers of the first run on buyer questions listed it:
+    // a product panel, as a numbered citation and as a reference.
+    item.markdown = `Acme Files suits small teams.[[1]](https://acme.example/pricing)[[2]](${shopping}) See [the comparison](https://www.google.co.uk/shopping/product/1) and [Google's own help](https://support.google.com/files/answer/1).`;
+    item.references = [
+      { url: 'https://acme.example/pricing', title: 'Acme pricing' },
+      { url: shopping, title: 'Files & stores' },
+      { url: 'https://shopping.google.com/product/1', title: 'A product' },
+      { url: 'https://support.google.com/files/answer/1', title: 'Help' },
+      // A redirect wrapper is a source still to be resolved.
+      {
+        url: 'https://www.google.com/url?q=https://rival.example/',
+        title: 'Rival',
+      },
+    ];
+
+    const answer = await adapterOver(body).adapter.probe(question, {});
+
+    expect(answer.answerText).toBe(
+      "Acme Files suits small teams.[[1]](https://acme.example/pricing)[2] See the comparison and [Google's own help](https://support.google.com/files/answer/1).",
+    );
+    expect(answer.sources).toEqual({
+      format: 'search',
+      sources: [
+        {
+          sourceType: 'url',
+          url: 'https://acme.example/pricing',
+          title: 'Acme pricing',
+        },
+        {
+          sourceType: 'url',
+          url: 'https://support.google.com/files/answer/1',
+          title: 'Help',
+        },
+        {
+          sourceType: 'url',
+          url: 'https://www.google.com/url?q=https://rival.example/',
+          title: 'Rival',
+        },
+      ],
+    });
+    expect(renderAnswer(answer)).not.toContain('oshop');
+  });
+
   it("should fail a captured search-engine error as retryable, never as an answer that didn't mention anyone", async () => {
     const { adapter } = adapterOver(fixture('ai-mode-failed'));
 

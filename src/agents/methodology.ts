@@ -113,6 +113,12 @@ export const buildMethodology = ({
       );
     }
 
+    if (consumer.includes('google_ai_mode')) {
+      sentences.push(
+        `An answer from ${builtInLabels.google_ai_mode} leaves out the links that lead back into Google's own search and shopping results: they are not sources, and are not counted as citations.`,
+      );
+    }
+
     sentences.push(
       'The consumer apps are scored as a group of their own, apart from the headline rates of the API chat surfaces and AI Overview.',
     );

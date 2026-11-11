@@ -104,9 +104,10 @@ describe('methodology - buildMethodology()', () => {
       }),
     );
 
-    expect(sentences.slice(3, 6)).toEqual([
+    expect(sentences.slice(3, 7)).toEqual([
       "ChatGPT (app) and AI Mode are measured in the consumer product itself, not through an API: DataForSEO scrapes each answer from the product's web page. Nothing pins the model that answers, and the vendor does not document whether its session is logged in, so which tier of the product answered is not known.",
       'An answer from ChatGPT (app) is the text and the tables of the page; everything else on it, such as images, shopping results and advertisements, is left out. The scraper reported the model as gpt-6. A citation there counts the sources the scraper lists as cited or relied on, and the links in the answer.',
+      "An answer from AI Mode leaves out the links that lead back into Google's own search and shopping results: they are not sources, and are not counted as citations.",
       'The consumer apps are scored as a group of their own, apart from the headline rates of the API chat surfaces and AI Overview.',
     ]);
   });
