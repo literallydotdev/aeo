@@ -22,6 +22,7 @@ import { writeOutputSchema } from './schemas';
 // ============================================================================
 
 const role = testModelProfileFixture().roles.copy;
+const sections = Object.keys(finalDraft().sections);
 
 const facts = (kinds: readonly string[]) => {
   return JSON.stringify({
@@ -70,26 +71,40 @@ describe('copy - copyDraftCall()', () => {
   it('should carry the write instructions, the draft schema and every document, complete', () => {
     const given = documents();
 
-    const call = copyDraftCall({ role, documents: given });
+    const call = copyDraftCall({ role, sections, documents: given });
 
     expect(call.system).toBe(stagePrompts.write);
-    expect(call.schema).toBe(writeOutputSchema);
     expect(call.role).toBe(role);
+    // The draft's contract, with each configured section a required key: a
+    // draft without one cannot come back.
+    expect(call.schema.safeParse(finalDraft()).success).toBe(true);
+    expect(
+      call.schema.safeParse({ ...finalDraft(), sections: {} }).success,
+    ).toBe(false);
+    expect(
+      writeOutputSchema.safeParse({ ...finalDraft(), sections: {} }).success,
+    ).toBe(true);
     expect(promptOf(call)).toEqual({ documents: given });
     expect(call.omitted).toEqual([]);
   });
 
   it('should give up, in order, the quoted answers, the company notes and the unverified claims, and tell the writer what it left out', () => {
     const given = documents();
-    const whole = copyDraftCall({ role, documents: given });
+    const whole = copyDraftCall({ role, sections, documents: given });
 
-    const first = copyDraftCall({ role: tooSmallFor(whole), documents: given });
+    const first = copyDraftCall({
+      role: tooSmallFor(whole),
+      sections,
+      documents: given,
+    });
     const second = copyDraftCall({
       role: tooSmallFor(first),
+      sections,
       documents: given,
     });
     const third = copyDraftCall({
       role: tooSmallFor(second),
+      sections,
       documents: given,
     });
 
@@ -129,18 +144,20 @@ describe('copy - copyDraftCall()', () => {
       role: {
         ...role,
         maxInputTokens: structuredCallReservation(
-          copyDraftCall({ role, documents: given }),
+          copyDraftCall({ role, sections, documents: given }),
         ).inputTokens,
       },
+      sections,
       documents: given,
     });
     const leanest = [1, 2, 3].reduce(
-      (call) => copyDraftCall({ role: tooSmallFor(call), documents: given }),
+      (call) =>
+        copyDraftCall({ role: tooSmallFor(call), sections, documents: given }),
       smallest,
     );
 
     expect(() =>
-      copyDraftCall({ role: tooSmallFor(leanest), documents: given }),
+      copyDraftCall({ role: tooSmallFor(leanest), sections, documents: given }),
     ).toThrow('model_input_limit');
   });
 });
@@ -170,7 +187,7 @@ describe('copy - draftCopy()', () => {
     const given = documents();
 
     const result = await draftCopy(
-      { role, documents: given, accounting },
+      { role, sections, documents: given, accounting },
       transport,
     );
 

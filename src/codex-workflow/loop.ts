@@ -420,6 +420,7 @@ export const withCopy = async <
       const { draft, usage } = await draftCopy({
         role: internalModels.profile.roles.copy,
         documents: await readCopyDocuments(ctx.dir, copyFiles),
+        sections: inputs.config.sections.map((section) => section.key),
         accounting: internalModels.accounting,
         signal: ctx.signal,
       });

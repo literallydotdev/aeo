@@ -4,7 +4,10 @@ import {
   validateAgentCopy,
   type CopyValidationResult,
 } from '../agents/copy-validation';
-import type { AeoReportCopy } from '../agents/copy-schema';
+import {
+  finalCopyDraftSchemaForSections,
+  type AeoReportCopy,
+} from '../agents/copy-schema';
 import {
   copywriterDocuments,
   quotedAnswerHeading,
@@ -33,7 +36,6 @@ import { getEnvironment } from '../lib/env';
 import { isRecord } from '../lib/type-guards';
 import { hostStepAccounting } from './host-models';
 import { stagePrompts } from './prompts';
-import { writeOutputSchema, type WriteOutput } from './schemas';
 
 // ============================================================================
 // The copy stage's host half (specs/aeo-codex-workflow-spec.md §4, §6):
@@ -234,11 +236,16 @@ const copyDraftTrims: readonly {
 export const copyDraftCall = (args: {
   role: InternalModelRoleConfig;
   documents: CopyDocuments;
+  /** The configured section keys: the schema names each as a required
+   * key, so a draft cannot come back without one. */
+  sections: readonly string[];
 }) => {
+  // The same contract as writeOutputSchema, with the sections named.
+  const schema = finalCopyDraftSchemaForSections(args.sections);
   const call = (documents: CopyDocuments, omitted: readonly string[]) => {
     return {
       role: args.role,
-      schema: writeOutputSchema,
+      schema,
       system: stagePrompts.write,
       prompt: JSON.stringify({
         documents,
@@ -279,12 +286,14 @@ export const draftCopy = async (
   args: {
     role: InternalModelRoleConfig;
     documents: CopyDocuments;
+    sections: readonly string[];
     accounting: ModelCallAccounting;
     signal?: AbortSignal;
   },
   transport?: StructuredTransport,
 ): Promise<{
-  draft: WriteOutput;
+  /** Held to the draft's schema by the call. */
+  draft: unknown;
   usage: StructuredCallUsage;
   omitted: readonly string[];
 }> => {
