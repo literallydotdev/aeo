@@ -23,10 +23,13 @@ export {
   agentSurfaces,
   allSurfaces,
   chatSurfaces,
+  consumerSurfaces,
+  defaultSurfaces,
   surfaceRunCounts,
   isAgentSurface,
   isBuiltInSurface,
   isChatSurface,
+  isConsumerSurface,
   isCustomSurface,
   customSurfacePrefix,
   customSurfaceKeyPattern,
@@ -37,7 +40,9 @@ export type {
   AeoApiSurface,
   AeoBuiltInSurface,
   AeoChatSurface,
+  AeoConsumerSurface,
   AeoCustomSurface,
+  AeoDefaultSurface,
   AeoSurface,
 } from './surfaces';
 
@@ -256,11 +261,18 @@ export const aeoVisibilitySchema = z.object({
     // agent surfaces weren't run.
     agentShareOfVoice: z.number().min(0).max(1).nullable(),
     agentCitationRate: z.number().min(0).max(1).nullable(),
+    // Consumer-app pair over the scraped products (method release spec
+    // §5.5), never part of the chat headline. Present only when the run
+    // planned a consumer app; null when it had no prompt left to score.
+    consumerShareOfVoice: z.number().min(0).max(1).nullable().optional(),
+    consumerCitationRate: z.number().min(0).max(1).nullable().optional(),
     // Beside each measured rate from calculation version 2.
     prospectShareOfVoiceEvidence: aeoRateEvidenceSchema.optional(),
     prospectCitationRateEvidence: aeoRateEvidenceSchema.optional(),
     agentShareOfVoiceEvidence: aeoRateEvidenceSchema.optional(),
     agentCitationRateEvidence: aeoRateEvidenceSchema.optional(),
+    consumerShareOfVoiceEvidence: aeoRateEvidenceSchema.optional(),
+    consumerCitationRateEvidence: aeoRateEvidenceSchema.optional(),
     byModel: z.record(
       z.string(),
       z.object({

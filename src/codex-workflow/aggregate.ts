@@ -367,6 +367,14 @@ export const metricsView = (output: AggregateOutput, brandDomain: string) => {
             prospectCitationRate: summary.prospectCitationRate,
             agentShareOfVoice: summary.agentShareOfVoice,
             agentCitationRate: summary.agentCitationRate,
+            // The consumer-app pair, only for a run that planned one: every
+            // other view keeps its bytes.
+            ...(summary.consumerShareOfVoice !== undefined && {
+              consumerShareOfVoice: summary.consumerShareOfVoice,
+            }),
+            ...(summary.consumerCitationRate !== undefined && {
+              consumerCitationRate: summary.consumerCitationRate,
+            }),
             // Calculation version 2's evidence; absent from version 1, so
             // its view keeps its bytes.
             ...(summary.prospectShareOfVoiceEvidence && {
@@ -382,6 +390,14 @@ export const metricsView = (output: AggregateOutput, brandDomain: string) => {
             }),
             ...(summary.agentCitationRateEvidence && {
               agentCitationRateEvidence: summary.agentCitationRateEvidence,
+            }),
+            ...(summary.consumerShareOfVoiceEvidence && {
+              consumerShareOfVoiceEvidence:
+                summary.consumerShareOfVoiceEvidence,
+            }),
+            ...(summary.consumerCitationRateEvidence && {
+              consumerCitationRateEvidence:
+                summary.consumerCitationRateEvidence,
             }),
             byModel: summary.byModel,
             byCompetitor: summary.byCompetitor,

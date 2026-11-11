@@ -1,5 +1,6 @@
 import type {
   AeoAgentSurface,
+  AeoApiSurface,
   AeoEvidenceChunk,
   AeoMatrixRow,
   AeoVisibility,
@@ -9,9 +10,11 @@ import {
   agentSurfaces,
   allSurfaces,
   chatSurfaces,
+  consumerSurfaces,
   evidenceChunkFileName,
   isAgentSurface,
   isChatSurface,
+  isConsumerSurface,
   isCustomSurface,
 } from './schema';
 import {
@@ -82,6 +85,9 @@ export const assembleSectionResult = (
   const selectedAgentSurfaces = args.surfaces.filter(
     (s): s is AeoAgentSurface => isAgentSurface(s),
   );
+  const selectedConsumerSurfaces = consumerSurfaces.filter((s) =>
+    args.surfaces.includes(s),
+  );
   // In ID order: a custom surface has no canonical position of its own.
   const selectedCustomSurfaces = args.surfaces
     .filter(isCustomSurface)
@@ -135,35 +141,37 @@ export const assembleSectionResult = (
   // comparable across baselines; the agent surfaces get their own pair. A
   // scope that didn't run — or has no prompt left to score — yields null:
   // an unmeasured scope must never look like a measured 0%.
-  const chatSummary =
-    selectedChatSurfaces.length > 0 && promptsForScoring.length > 0
+  // Every family asked every prompt (all but the coding agents) is scored
+  // the same way, over its own surfaces and their planned answers.
+  const summaryOver = (
+    surfaces: readonly AeoApiSurface[],
+    inFamily: (surface: string) => boolean,
+  ) => {
+    return surfaces.length > 0 && promptsForScoring.length > 0
       ? computeAISearchSummary({
           clientDomain: args.brand.domain,
           competitorDomains,
           prompts: promptsForScoring,
           results: allResults
-            .filter((r) => isChatSurface(r.surface))
+            .filter((r) => inFamily(r.surface))
             .map(toScoringInput),
-          surfaces: selectedChatSurfaces,
+          surfaces,
           depth,
         })
       : null;
+  };
+  const chatSummary = summaryOver(selectedChatSurfaces, isChatSurface);
+  // The consumer apps (method release spec §5.5) get a pair of their own:
+  // a scraped product is never folded into the chat headline, which stays
+  // the API chat surfaces and AI Overview.
+  const consumerSummary = summaryOver(
+    selectedConsumerSurfaces,
+    isConsumerSurface,
+  );
   // Custom surfaces (open models spec §5.3) are in neither headline pair:
   // a set of models the audit chose has no single meaning. They are scored
   // only for their own lines in byModel.
-  const customSummary =
-    selectedCustomSurfaces.length > 0 && promptsForScoring.length > 0
-      ? computeAISearchSummary({
-          clientDomain: args.brand.domain,
-          competitorDomains,
-          prompts: promptsForScoring,
-          results: allResults
-            .filter((r) => isCustomSurface(r.surface))
-            .map(toScoringInput),
-          surfaces: selectedCustomSurfaces,
-          depth,
-        })
-      : null;
+  const customSummary = summaryOver(selectedCustomSurfaces, isCustomSurface);
 
   const agentResults = allResults.filter((r) => isAgentSurface(r.surface));
   const agentSummary =
@@ -184,7 +192,12 @@ export const assembleSectionResult = (
   // (0-1 rates). byModel spans every surface that ran.
   const byModel: AeoVisibility['summary']['byModel'] = {};
 
-  for (const summary of [chatSummary, agentSummary, customSummary]) {
+  for (const summary of [
+    chatSummary,
+    agentSummary,
+    consumerSummary,
+    customSummary,
+  ]) {
     if (!summary) {
       continue;
     }
@@ -208,9 +221,10 @@ export const assembleSectionResult = (
 
   // Competitor scores come from whichever scope was measured — chat when it
   // ran (the v1-comparable set), otherwise the agent runs, otherwise the
-  // custom surfaces. They split the captured answers, so version 2 adds
-  // their counts, not an interval.
-  const competitorSummary = chatSummary ?? agentSummary ?? customSummary;
+  // consumer apps, otherwise the custom surfaces. They split the captured
+  // answers, so version 2 adds their counts, not an interval.
+  const competitorSummary =
+    chatSummary ?? agentSummary ?? consumerSummary ?? customSummary;
   const byCompetitor = (competitorSummary?.competitorScores ?? []).map(
     (c, index) => {
       const counts = withEvidence
@@ -233,6 +247,8 @@ export const assembleSectionResult = (
     withEvidence && chatSummary ? evidenceOf(chatSummary.counts) : null;
   const agentEvidence =
     withEvidence && agentSummary ? evidenceOf(agentSummary.counts) : null;
+  const consumerEvidence =
+    withEvidence && consumerSummary ? evidenceOf(consumerSummary.counts) : null;
 
   const topCompetitorDomain =
     [...byCompetitor].sort((a, b) => b.shareOfVoice - a.shareOfVoice)[0]
@@ -320,6 +336,7 @@ export const assembleSectionResult = (
     surfaces: [
       ...chatSurfaces.filter((s) => selectedChatSurfaces.includes(s)),
       ...agentSurfaces.filter((s) => selectedAgentSurfaces.includes(s)),
+      ...selectedConsumerSurfaces,
       ...selectedCustomSurfaces,
     ],
     matrix,
@@ -336,6 +353,16 @@ export const assembleSectionResult = (
       agentCitationRate: agentSummary
         ? agentSummary.probeCitationRate / 100
         : null,
+      // Only for a run that planned a consumer app: every other summary
+      // keeps the keys it always had.
+      ...(selectedConsumerSurfaces.length > 0 && {
+        consumerShareOfVoice: consumerSummary
+          ? consumerSummary.probeShareOfVoice / 100
+          : null,
+        consumerCitationRate: consumerSummary
+          ? consumerSummary.probeCitationRate / 100
+          : null,
+      }),
       ...(chatEvidence?.shareOfVoice && {
         prospectShareOfVoiceEvidence: chatEvidence.shareOfVoice,
       }),
@@ -347,6 +374,12 @@ export const assembleSectionResult = (
       }),
       ...(agentEvidence?.citationRate && {
         agentCitationRateEvidence: agentEvidence.citationRate,
+      }),
+      ...(consumerEvidence?.shareOfVoice && {
+        consumerShareOfVoiceEvidence: consumerEvidence.shareOfVoice,
+      }),
+      ...(consumerEvidence?.citationRate && {
+        consumerCitationRateEvidence: consumerEvidence.citationRate,
       }),
       byModel,
       byCompetitor,

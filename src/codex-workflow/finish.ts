@@ -19,6 +19,7 @@ import type { SectionRunResult } from '../pipeline';
 import { buildMethodology } from '../agents/methodology';
 import {
   askedModelsOn,
+  reportedModelsOn,
   defaultBindingsChosenOn,
   defaultProbeBindings,
   modelBoundSurfaces,
@@ -282,6 +283,9 @@ export const finishRun = async (args: {
           perplexity: defaultProbeBindings.perplexity.model,
         },
         chosenOn: defaultBindingsChosenOn,
+      },
+      reportedModels: {
+        chatgpt_app: reportedModelsOn(source.captured, 'chatgpt_app'),
       },
       labels: surfaceLabels,
       sections: completedSections.map(({ result }) => ({

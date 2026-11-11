@@ -4,6 +4,7 @@ import {
   brandSchema,
   aeoPromptSchema,
   aeoSurfaceSchema,
+  consumerSurfaces,
   customSurfaceKeyPattern,
   customSurfaceRunCount,
   isAgentSurface,
@@ -65,9 +66,10 @@ export const agentProbedPrompts = <Prompt>(
 // Chat probe volume. Optional with no default, so a config without it parses,
 // and digests, exactly as configs did before chat depth was configurable:
 // bundles exported earlier still verify. Omitted = the canonical
-// surfaceRunCounts (2 per surface, 1 for AI Overview); set = that many runs
-// on every chat surface. AI Overview included: each of its runs is a live
-// search, sampling whether an overview appears and what it says.
+// surfaceRunCounts (2 per surface, 1 for AI Overview and for each consumer
+// app); set = that many runs on every surface asked through an API or a
+// scrape. AI Overview included: each of its runs is a live search, sampling
+// whether an overview appears and what it says.
 export const chatProbeConfigSchema = z
   .object({ runsPerPrompt: runsPerPromptSchema })
   .strict();
@@ -118,6 +120,28 @@ const ownedCompetitorDomainSchema = z
 /** How many custom surfaces one audit may declare. */
 export const maxCustomSurfaces = 8;
 
+// Whether the coding agents are measured (specs/aeo-surface-selection-spec
+// §3.1): the author decides from who the buyers are, with the reason the
+// config gate shows. The default keeps every stored config measuring all
+// eight default surfaces.
+const surfaceDecisionShape = {
+  codingAgents: z.enum(['measure', 'skip']),
+  because: z.string().trim().min(12).max(300),
+};
+
+const defaultSurfaceDecision = {
+  codingAgents: 'measure',
+  because:
+    'Default: every surface is measured until the author decides otherwise.',
+} as const;
+
+/** The surface decision the config author makes: the coding agents, and
+ * nothing else. */
+export const authoredSurfacesSchema = z
+  .object(surfaceDecisionShape)
+  .strict()
+  .prefault(defaultSurfaceDecision);
+
 export const aeoAuditConfigSchema = z.object({
   reportKey: z.string().min(1),
   // Labels the console Dashboard's question-set selector until it adopts
@@ -164,21 +188,23 @@ export const aeoAuditConfigSchema = z.object({
     .min(1)
     .max(maxCustomSurfaces)
     .optional(),
-  // Whether the coding agents are measured (specs/aeo-surface-selection-spec
-  // §3.1): the author decides from who the buyers are, with the reason the
-  // config gate shows. The default keeps every stored config measuring all
-  // eight surfaces.
   surfaces: z
     .object({
-      codingAgents: z.enum(['measure', 'skip']),
-      because: z.string().trim().min(12).max(300),
+      ...surfaceDecisionShape,
+      // The consumer apps measured as well (method release spec §5.4), each
+      // listed once. The operator's choice, never the author's. Absent when
+      // none is, so a config without them parses, and digests, exactly as
+      // before.
+      consumerApps: z
+        .array(z.enum(consumerSurfaces))
+        .min(1)
+        .refine((listed) => new Set(listed).size === listed.length, {
+          error: 'Each consumer app is listed once.',
+        })
+        .optional(),
     })
     .strict()
-    .prefault({
-      codingAgents: 'measure',
-      because:
-        'Default: every surface is measured until the author decides otherwise.',
-    }),
+    .prefault(defaultSurfaceDecision),
   productGrounding: groundingBundleSchema.optional(),
   // Per-report domain classification overrides for §7.1.
   sourceOverrides: z.record(z.string(), sourceCategorySchema).optional(),

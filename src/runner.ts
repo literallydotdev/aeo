@@ -9,8 +9,9 @@ import type {
 } from './schema';
 import {
   aeoSnapshotVersion,
-  allSurfaces,
   chatSurfaces,
+  defaultSurfaces,
+  isConsumerSurface,
   aeoSnapshotSchema,
   customSurfacePrefix,
   isAgentSurface,
@@ -124,7 +125,10 @@ export const planRun = (
     ({ key }): AeoSurface => `${customSurfacePrefix}${key}`,
   );
   const surfaces: readonly AeoSurface[] = request.surfaces ?? [
-    ...(config.surfaces.codingAgents === 'skip' ? chatSurfaces : allSurfaces),
+    ...(config.surfaces.codingAgents === 'skip'
+      ? chatSurfaces
+      : defaultSurfaces),
+    ...(config.surfaces.consumerApps ?? []),
     ...declared,
   ];
   // A custom surface has a label and a binding only when the config
@@ -149,15 +153,20 @@ export const planRun = (
     }),
   );
 
-  // Google AI Overviews are placed in a market by DataForSEO's location
-  // and language codes. A market the table cannot place is refused here,
-  // before anything is reserved, never measured as the United States.
+  // Google AI Overviews and the consumer apps are placed in a market by
+  // DataForSEO's location and language codes. A market the table cannot
+  // place is refused here, before anything is reserved, never measured as
+  // the United States.
+  const placed = surfaces.filter(
+    (surface) => surface === 'google_ai_overview' || isConsumerSurface(surface),
+  );
+
   if (
-    surfaces.includes('google_ai_overview') &&
+    placed.length > 0 &&
     !resolveDataForSeoLocale(config.geography, config.language)
   ) {
     throw new RunRequestError(
-      `No search market for geography ${JSON.stringify(config.geography)} and language ${JSON.stringify(config.language)}: AI Overviews cannot be placed there. Please fix the config's geography and language (supported codes include us and en), or leave google_ai_overview out of the run.`,
+      `No search market for geography ${JSON.stringify(config.geography)} and language ${JSON.stringify(config.language)}: ${placed.join(', ')} cannot be placed there. Please fix the config's geography and language (supported codes include us and en), or leave ${placed.join(' and ')} out of the run.`,
     );
   }
 

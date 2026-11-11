@@ -54,7 +54,8 @@ export type ProbeRetryFamily = 'chat' | 'agent';
 export type ProbeBilling = 'metered' | 'subscription';
 
 /** How the host reads the model an answer names: through servedModelOf
- * against the requested model, as the CLI reported it, or not at all. */
+ * against the requested model, as the CLI or the scraper reported it, or
+ * not at all. */
 export type ServedModelRule = 'compare_to_requested' | 'raw' | 'none';
 
 /** What an adapter is, independent of a run: what it observes, what it

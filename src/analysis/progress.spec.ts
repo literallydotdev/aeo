@@ -591,6 +591,7 @@ describe('progress - projectProgressMeasurement()', () => {
     expect(comparison.reasons).toContain('same_measurement');
     expect(comparison.groups).toEqual({
       chat: null,
+      consumer: null,
       agents: null,
       custom: null,
     });
@@ -835,6 +836,7 @@ describe('progress - deriveProgressComparison()', () => {
     expect(result.matched).toMatchObject({ slots: 3, currentExcludedSlots: 2 });
     expect(result.groups).toEqual({
       chat: null,
+      consumer: null,
       agents: null,
       custom: null,
     });
@@ -1086,6 +1088,77 @@ describe('progress - deriveProgressComparison() with a custom surface', () => {
     expect(result.groups.agents).toBeNull();
     expect(customOnly.groups).toMatchObject({ chat: null, agents: null });
     expect(customOnly.groups.custom?.current.planned).toBe(2);
+  });
+});
+
+describe('progress - deriveProgressComparison() with consumer apps', () => {
+  const cfg = aeoAuditConfigSchema.parse({
+    ...config(),
+    surfaces: {
+      codingAgents: 'skip',
+      because: 'Buyers ask in the consumer apps.',
+      consumerApps: ['chatgpt_app', 'google_ai_mode'],
+    },
+  });
+  const audit = (
+    runId: string,
+    surfaces: AeoSurface[],
+    mentioned: number[],
+  ) => {
+    return projectProgressMeasurement(
+      fixture({ runId, config: cfg, surfaces, mentioned }),
+    );
+  };
+
+  it('should compare the consumer apps both audits measured as their own group, never in the chat group', () => {
+    // Unit 0 is AI Overview's one run; units 1 and 2 are the one run of
+    // each consumer app.
+    const surfaces: AeoSurface[] = [
+      'google_ai_overview',
+      'chatgpt_app',
+      'google_ai_mode',
+    ];
+    const baseline = audit('baseline', surfaces, []);
+    const current = audit('current', surfaces, [1, 2]);
+
+    const result = deriveProgressComparison({ baseline, current });
+    const consumerOnly = deriveProgressComparison(
+      { baseline, current },
+      { scope: 'consumer' },
+    );
+
+    expect(current.version).toBe(2);
+    expect(result.status).toBe('comparable');
+    expect(result.groups.chat).toMatchObject({
+      current: { planned: 1, mentioned: 0 },
+      mentionDeltaPp: 0,
+    });
+    expect(result.groups.consumer).toMatchObject({
+      baseline: { planned: 2, mentioned: 0 },
+      current: { planned: 2, mentioned: 2 },
+      mentionDeltaPp: 100,
+    });
+    expect(consumerOnly.groups).toMatchObject({ chat: null, agents: null });
+    expect(consumerOnly.groups.consumer?.current.planned).toBe(2);
+  });
+
+  it('should report an audit that added a consumer app as a change of scope, not of visibility', () => {
+    const baseline = audit('baseline', ['google_ai_overview'], []);
+    const current = audit(
+      'current',
+      ['google_ai_overview', 'chatgpt_app'],
+      [1],
+    );
+
+    expect(baseline.version).toBe(1);
+    expect(deriveProgressComparison({ baseline, current })).toMatchObject({
+      status: 'unavailable',
+      reasons: ['scope_changed'],
+    });
+    // Narrowed to what both measured, the chat group compares as before.
+    expect(
+      deriveProgressComparison({ baseline, current }, { scope: 'chat' }).status,
+    ).toBe('comparable');
   });
 });
 

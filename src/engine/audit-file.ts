@@ -27,12 +27,13 @@ import {
   aeoAuditConfigSchema,
   aeoSurfaceSchema,
   agentProbeConfigSchema,
-  allSurfaces,
   brandSchema,
   chatProbeConfigSchema,
+  consumerSurfaces,
   coverageThresholdsSchema,
   customSurfaceKeyPattern,
   defaultMaxPlannedUnits,
+  defaultSurfaces,
   isAgentSurface,
   isCustomSurface,
   maxCustomSurfaces,
@@ -201,10 +202,13 @@ export const auditFileSchema = z
     competitors: z.array(brandSchema).min(1),
     ownedDomains: z.array(z.string().min(1)).max(20).optional(),
     sections: z.array(sectionSchema).min(1).max(2),
+    // The default is the API chat surfaces, AI Overview and the coding
+    // agents. A consumer app (chatgpt_app, google_ai_mode) is measured only
+    // when it is listed here (method release spec §5.4).
     surfaces: z
       .array(aeoSurfaceSchema)
       .min(1)
-      .default([...allSurfaces]),
+      .default([...defaultSurfaces]),
     // Strict here, unlike the internal config that bundles keep: a
     // misspelled key is refused, never dropped for the default depth.
     agentProbes: agentProbeConfigSchema.strict().prefault({}),
@@ -361,6 +365,9 @@ export const localReportKey = (file: AuditFile): string => {
 export const toAuditConfig = (file: AuditFile): AeoAuditConfig => {
   const reportKey = localReportKey(file);
   const measuresAgents = file.surfaces.some(isAgentSurface);
+  const consumerApps = consumerSurfaces.filter((surface) =>
+    file.surfaces.includes(surface),
+  );
 
   const config = aeoAuditConfigSchema.parse({
     reportKey,
@@ -378,6 +385,9 @@ export const toAuditConfig = (file: AuditFile): AeoAuditConfig => {
     surfaces: {
       codingAgents: measuresAgents ? 'measure' : 'skip',
       because: 'Selected by the operator in audit.json.',
+      // Only when the file lists one: a config without consumer apps keeps
+      // the digest it always had.
+      ...(consumerApps.length > 0 && { consumerApps }),
     },
     ...(file.customSurfaces && {
       customSurfaces: file.customSurfaces.map(({ key, label }) => ({

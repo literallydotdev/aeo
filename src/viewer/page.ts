@@ -247,6 +247,13 @@ const render = async () => {
         summary.agentShareOfVoiceEvidence, 'Mentioned'),
       rateStat('Coding-agent citation rate', summary.agentCitationRate,
         summary.agentCitationRateEvidence, 'Cited'),
+      // The scraped consumer apps, only for a run that planned one.
+      ...(summary.consumerShareOfVoice === undefined ? [] : [
+        rateStat('Consumer-app share of voice', summary.consumerShareOfVoice,
+          summary.consumerShareOfVoiceEvidence, 'Mentioned'),
+        rateStat('Consumer-app citation rate', summary.consumerCitationRate,
+          summary.consumerCitationRateEvidence, 'Cited'),
+      ]),
       el('div', { class: 'stat' }, el('b', {}, summary.topCompetitorDomain || 'none'), 'Most mentioned competitor'),
     ));
     root.append(el('p', { class: 'muted' },

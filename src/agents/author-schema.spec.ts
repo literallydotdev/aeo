@@ -18,6 +18,29 @@ describe('author-schema - authorOutputSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it("should refuse a custom surface or a consumer app in the proposal: both are the operator's to choose", () => {
+    const decision = {
+      codingAgents: 'skip',
+      because: 'Buyers are restaurant owners.',
+    };
+
+    expect(
+      authorOutputSchema.safeParse({
+        ...proposal(),
+        customSurfaces: [{ key: 'grok', label: 'Grok 5' }],
+      }).success,
+    ).toBe(false);
+    expect(
+      authorOutputSchema.safeParse({
+        ...proposal(),
+        surfaces: { ...decision, consumerApps: ['chatgpt_app'] },
+      }).success,
+    ).toBe(false);
+    expect(
+      authorOutputSchema.parse({ ...proposal(), surfaces: decision }).surfaces,
+    ).toEqual(decision);
+  });
+
   it('should keep the proposed agent depth at 1 or 2 runs per prompt', () => {
     const deeper = authorOutputSchema.safeParse({
       ...proposal(),

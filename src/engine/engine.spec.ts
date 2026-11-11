@@ -385,6 +385,39 @@ describe('preflight - runPreflight()', () => {
     expect(JSON.stringify(checks)).not.toContain('fake-secret-value-1');
   });
 
+  it('should require the DataForSEO login for a consumer app, and none for a run that lists none', async () => {
+    const settings = await settingsOf(
+      'AI_GATEWAY_API_KEY=fake-secret-value-1\n',
+    );
+    const withApp = await runPreflight({
+      surfaces: ['chatgpt', 'chatgpt_app'],
+      bindings: defaultProbeBindings,
+      settings,
+      dir: path.join(root, 'run'),
+    });
+    const without = await runPreflight({
+      surfaces: ['chatgpt'],
+      bindings: defaultProbeBindings,
+      settings,
+      dir: path.join(root, 'run'),
+    });
+
+    expect(
+      withApp.find((check) => check.name === 'chatgpt_app probes'),
+    ).toEqual({
+      name: 'chatgpt_app probes',
+      ok: false,
+      detail:
+        'dataforseo.chatgpt_app@1; DATAFORSEO_LOGIN not set; DATAFORSEO_PASSWORD not set',
+    });
+    expect(
+      withApp.find((check) => check.name === 'DATAFORSEO_LOGIN'),
+    ).toMatchObject({ ok: false });
+    expect(without.map((check) => check.name)).not.toContain(
+      'DATAFORSEO_LOGIN',
+    );
+  });
+
   it("should accept any one of a coding agent's grouped auth settings, and disclose Codex billed outside the cap", async () => {
     expect(
       agentAuthMode('codex', await settingsOf('CODEX_HOME=/fake/codex-home\n')),

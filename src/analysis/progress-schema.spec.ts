@@ -242,6 +242,20 @@ describe('progress-schema - parseProgressMeasurement()', () => {
     ).toThrow('Invalid stored progress measurement');
   });
 
+  it('should hold a consumer app only as version 2', () => {
+    const point = fixture();
+    const [slot] = point.slots;
+    const scraped = { ...point, slots: [{ ...slot, surface: 'chatgpt_app' }] };
+
+    expect(
+      parseProgressMeasurement({ ...scraped, version: 2 }, 'run-1').slots[0]
+        ?.surface,
+    ).toBe('chatgpt_app');
+    expect(() => parseProgressMeasurement(scraped, 'run-1')).toThrow(
+      'Invalid stored progress measurement',
+    );
+  });
+
   it.each([
     { runIndex: 0 },
     { runIndex: 1.5 },

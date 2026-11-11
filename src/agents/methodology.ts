@@ -1,6 +1,11 @@
 import { modelBoundSurfaces, type ModelBoundSurface } from '../probes/bindings';
 import type { AeoSurface, AeoVisibility } from '../schema';
-import { isCustomSurface, surfaceLabels as builtInLabels } from '../surfaces';
+import {
+  consumerSurfaces,
+  isCustomSurface,
+  surfaceLabels as builtInLabels,
+  type AeoConsumerSurface,
+} from '../surfaces';
 
 // ============================================================================
 // The methodology section of a report (method release spec §8): a fixed set
@@ -20,6 +25,11 @@ export type MethodologyInput = {
     models: Readonly<Record<ModelBoundSurface, string | undefined>>;
     chosenOn: string;
   };
+  /** The model a scraper reported for each consumer app's captured
+   * answers; empty or absent when it reported none. */
+  reportedModels?: Readonly<
+    Partial<Record<AeoConsumerSurface, readonly string[]>>
+  >;
   /** The snapshot's own labels (custom surfaces, swapped models). */
   labels: Readonly<Record<string, string>>;
   sections: readonly { visibility: AeoVisibility }[];
@@ -46,6 +56,7 @@ export const buildMethodology = ({
   surfaces,
   askedModels,
   defaults,
+  reportedModels = {},
   labels,
   sections,
 }: MethodologyInput): string[] => {
@@ -75,6 +86,30 @@ export const buildMethodology = ({
         ? `Each is the gateway model closest to what the consumer product served its free tier by default when the models were chosen, on ${defaults.chosenOn}. It is the nearest match, not the same product. Where a vendor names no model or no version for its free tier, it is the nearest model the gateway lists.`
         : `A surface on its default asks the gateway model closest to what the consumer product served its free tier by default when the defaults were chosen, on ${defaults.chosenOn}; it is the nearest match, not the same product. Where a vendor names no model or no version for its free tier, it is the nearest model the gateway lists. Asked of another model than that default: ${swapped.map((surface) => builtInLabels[surface] ?? surface).join(', ')}.`,
       'Paid tiers of these products, and their thinking or reasoning modes, are not measured.',
+    );
+  }
+
+  const consumer = consumerSurfaces.filter((surface) =>
+    surfaces.includes(surface),
+  );
+
+  if (consumer.length > 0) {
+    const names = consumer.map((surface) => builtInLabels[surface] ?? surface);
+
+    sentences.push(
+      `${names.join(' and ')} ${consumer.length === 1 ? 'is' : 'are'} measured in the consumer product itself, not through an API: DataForSEO scrapes each answer from the product's web page. Nothing pins the model that answers, and the vendor does not document whether its session is logged in, so which tier of the product answered is not known.`,
+    );
+
+    if (consumer.includes('chatgpt_app')) {
+      const reported = reportedModels.chatgpt_app ?? [];
+
+      sentences.push(
+        `An answer from ${builtInLabels.chatgpt_app} is the text and the tables of the page; its images, shopping results and advertisements are left out.${reported.length === 0 ? '' : ` The scraper reported the model as ${reported.join(', ')}.`} A citation there counts the sources the scraper lists as cited or relied on, and the links in the answer.`,
+      );
+    }
+
+    sentences.push(
+      'The consumer apps are scored as a group of their own, apart from the headline rates of the API chat surfaces and AI Overview.',
     );
   }
 

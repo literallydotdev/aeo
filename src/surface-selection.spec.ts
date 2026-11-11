@@ -3,15 +3,17 @@ import { syntheticExample } from './author/examples';
 import { planRun, RunRequestError } from './runner';
 import {
   agentSurfaces,
-  allSurfaces,
   chatSurfaces,
+  defaultSurfaces,
   aeoAuditConfigSchema,
   runRequestSchema,
 } from './schema';
 
 // ============================================================================
 // Surface selection (specs/aeo-surface-selection-spec.md §5): the config's
-// coding-agent decision, its default, and how the plan follows it.
+// coding-agent decision, its default, and how the plan follows it. The
+// consumer apps (method release spec §5.4) are measured only when a config
+// lists them.
 // ============================================================================
 
 const base = {
@@ -57,6 +59,30 @@ describe('schema - aeoAuditConfigSchema surfaces', () => {
       }).surfaces.codingAgents,
     ).toBe('skip');
   });
+
+  it('should take the consumer apps a config lists, each once, and keep a config without them as it was', () => {
+    const decision = {
+      codingAgents: 'skip',
+      because: 'Buyers are restaurant owners.',
+    };
+    const withApps = (consumerApps: unknown) => {
+      return aeoAuditConfigSchema.safeParse({
+        ...base,
+        surfaces: { ...decision, consumerApps },
+      });
+    };
+
+    expect(withApps(['google_ai_mode', 'chatgpt_app']).data?.surfaces).toEqual({
+      ...decision,
+      consumerApps: ['google_ai_mode', 'chatgpt_app'],
+    });
+    expect(withApps([]).success).toBe(false);
+    expect(withApps(['chatgpt']).success).toBe(false);
+    expect(withApps(['chatgpt_app', 'chatgpt_app']).success).toBe(false);
+    expect(
+      aeoAuditConfigSchema.parse({ ...base, surfaces: decision }).surfaces,
+    ).toEqual(decision);
+  });
 });
 
 describe('runner - planRun()', () => {
@@ -90,8 +116,44 @@ describe('runner - planRun()', () => {
     // 6 prompts × 9 chat units.
     expect(plan.units).toHaveLength(54);
     const measure = planRun(aeoAuditConfigSchema.parse(base), request());
-    expect(measure.surfaces).toEqual(allSurfaces);
+    expect(measure.surfaces).toEqual(defaultSurfaces);
     expect(measure.units).toHaveLength(90);
+  });
+
+  it('should plan a consumer app only for a config that lists it, asked once per question after the default surfaces', () => {
+    const listed = aeoAuditConfigSchema.parse({
+      ...base,
+      surfaces: {
+        codingAgents: 'skip',
+        because: 'Buyers are restaurant owners.',
+        consumerApps: ['google_ai_mode', 'chatgpt_app'],
+      },
+    });
+
+    const plan = planRun(listed, request());
+
+    expect(plan.surfaces).toEqual([
+      ...chatSurfaces,
+      'google_ai_mode',
+      'chatgpt_app',
+    ]);
+    expect(plan.probesBySurface.get('chatgpt_app')).toBe(6);
+    expect(plan.probesBySurface.get('google_ai_mode')).toBe(6);
+    // The 54 chat units, and one per question on each consumer app.
+    expect(plan.units).toHaveLength(66);
+    expect(plan.agentSurfaces).toEqual([]);
+  });
+
+  it('should refuse to plan a consumer app in a market DataForSEO cannot place, naming it', () => {
+    const unmapped = aeoAuditConfigSchema.parse({
+      ...base,
+      geography: 'global',
+      language: 'en',
+    });
+
+    expect(() =>
+      planRun(unmapped, request(['chatgpt', 'chatgpt_app'])),
+    ).toThrow(/chatgpt_app cannot be placed there/);
   });
 
   it("should keep the request's surfaces as the operator's override on a skip config", () => {

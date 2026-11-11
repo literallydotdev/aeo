@@ -1,5 +1,10 @@
 import type { AeoApiSurface, ChatProbeConfig, RetrievalLog } from '../schema';
-import { chatRunsPerPrompt, chatSurfaces, isCustomSurface } from '../schema';
+import {
+  chatRunsPerPrompt,
+  chatSurfaces,
+  consumerSurfaces,
+  isCustomSurface,
+} from '../schema';
 import type { AeoSurface } from '../surfaces';
 import { createLog } from '../lib/log';
 import { attemptRules, runProbeUnit } from './attempt';
@@ -9,9 +14,10 @@ import type { ProbeOutcome } from './outcomes';
 import type { ProbeTrace } from './probe-trace';
 
 // ============================================================================
-// Chat-surface probes: every planned (prompt × surface × run) unit through
-// the surface's adapter (adapters/gateway-chat.ts, gateway-perplexity.ts,
-// dataforseo-ai-overview.ts) and the host's attempt loop (attempt.ts).
+// Probes of every surface asked through an API or a scrape (the chat
+// surfaces, the consumer apps, the custom models): every planned
+// (prompt × surface × run) unit through the adapter its surface is bound
+// to (bindings.ts) and the host's attempt loop (attempt.ts).
 // ============================================================================
 
 const log = createLog('AISearchProbes');
@@ -98,11 +104,12 @@ export const runProbesForPrompts = async (
 ): Promise<ChatProbeOutcome[]> => {
   const selected: readonly AeoApiSurface[] = job.surfaces ?? chatSurfaces;
   // Canonical surface order, whatever order the job names them in: the
-  // chat surfaces, then the custom ones by ID. Run counts come from
-  // chatRunsPerPrompt (schema.ts), the rule the plan and the scoring
-  // denominators read too.
+  // chat surfaces, the consumer apps, then the custom ones by ID. Run
+  // counts come from chatRunsPerPrompt (schema.ts), the rule the plan and
+  // the scoring denominators read too.
   const ordered: AeoApiSurface[] = [
     ...chatSurfaces.filter((surface) => selected.includes(surface)),
+    ...consumerSurfaces.filter((surface) => selected.includes(surface)),
     ...selected.filter(isCustomSurface).sort(),
   ];
   const probed = ordered.map((surface) => ({

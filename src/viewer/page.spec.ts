@@ -273,6 +273,36 @@ describe('viewer - viewerPage()', () => {
     ]);
   });
 
+  it('should show the consumer-app pair, with its own counts, only for a run that planned a consumer app', async () => {
+    const run = await createSyntheticRun(path.join(root, 'run-apps'), {
+      consumerApps: ['chatgpt_app', 'google_ai_mode'],
+    });
+    const page = await renderPage(
+      await viewerFor(
+        await readBundleSource((await exportRun(run.dir)).archive),
+      ),
+    );
+    const consumer = statsOf(page).filter(({ text }) =>
+      text.includes('Consumer-app'),
+    );
+
+    // The pair of the first section; the run's second section has its own.
+    expect(
+      consumer.slice(0, 2).map(({ text }) => text.replace(/^.*%/, '')),
+    ).toEqual(['Consumer-app share of voice', 'Consumer-app citation rate']);
+    expect(consumer).toHaveLength(4);
+    // Two questions in the first section, once each on two apps.
+    expect(consumer[0]?.counts).toMatch(
+      /^Mentioned in \d of 4 planned answers; \d captured$/,
+    );
+
+    const standard = await renderPage(await viewerFor(await exportedFiles(2)));
+
+    expect(
+      statsOf(standard).filter(({ text }) => text.includes('Consumer-app')),
+    ).toEqual([]);
+  });
+
   it("should show each model's rates, each with its interval and counts", async () => {
     const page = await renderPage(await viewerFor(await exportedFiles(2)));
 

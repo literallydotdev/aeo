@@ -12,6 +12,7 @@ import { pendingReportCopy } from './copy-schema';
 
 const groupNames: Readonly<Record<SurfaceFamily, string>> = {
   chat: 'chat and search assistants',
+  consumer: 'consumer apps',
   agents: 'coding agents',
   custom: 'custom models',
 };
@@ -33,12 +34,26 @@ const capturedSurfaceNames = (
 
     return joined === '' ? 'none' : joined;
   };
-  // Named only when one was captured: every other run's sentence keeps its
-  // bytes (open models spec §5.3).
-  const custom = names('custom');
+  // A family added since the sentence was first written is named only when
+  // one of its surfaces was captured: every other run's sentence keeps its
+  // bytes (method release spec §5.5, open models spec §5.3).
+  const added = (['consumer', 'custom'] as const)
+    .map((family) => [family, names(family)] as const)
+    .filter(([, named]) => named !== 'none')
+    .map(([family, named]) => ` Captured ${groupNames[family]}: ${named}.`)
+    .join('');
 
-  return `Captured chat and search assistants: ${names('chat')}. Captured coding agents: ${names('agents')}.${custom === 'none' ? '' : ` Captured custom models: ${custom}.`}`;
+  return `Captured chat and search assistants: ${names('chat')}. Captured coding agents: ${names('agents')}.${added}`;
 };
+
+// The families' market facts, in catalog order: chat before agents, as
+// every earlier catalog has them.
+const marketFactFamilies = [
+  'chat',
+  'agents',
+  'consumer',
+  'custom',
+] as const satisfies readonly SurfaceFamily[];
 
 /**
  * buildNarrativeFacts builds the introduction facts. Additive fact IDs let
@@ -129,7 +144,7 @@ export const buildNarrativeFacts = (
       unit: 'count',
       sentence: `This audit tested ${config.brand.name} in the ${market} section using these questions: ${JSON.stringify(configured.prompts.map(({ text }) => text))}. These are the configured audit questions, not measured search demand or verified customer conversations. Locale: ${config.geography}, language: ${config.language}.`,
     });
-    for (const group of ['chat', 'agents', 'custom'] as const) {
+    for (const group of marketFactFamilies) {
       const surfaces = section.visibility.surfaces.filter(
         (surface) => surfaceFamilyOf(surface) === group,
       );

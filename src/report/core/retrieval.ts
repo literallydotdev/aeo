@@ -24,8 +24,9 @@ export type RetrievalCallKind = (typeof retrievalCallKinds)[number];
 // What a surface's stream structurally reveals about its retrieval:
 //   full          queries and result sets
 //   queries_only  queries, no result sets (Codex)
-//   partial       queries as a flat list, sources not linked to them (Gemini)
-//   none          nothing (Perplexity, Google AI Overview)
+//   partial       queries as a flat list, sources not linked to them
+//                 (Gemini, the scraped ChatGPT app)
+//   none          nothing (Perplexity, Google AI Overview, Google AI Mode)
 export const retrievalExposures = [
   'full',
   'queries_only',
@@ -50,6 +51,9 @@ export const surfaceRetrievalExposure: Readonly<
   claude_code: 'full',
   codex: 'queries_only',
   cursor: 'full',
+  // Read from captured scrapes on 2026-11-11 (method release spec §5.6).
+  chatgpt_app: 'partial',
+  google_ai_mode: 'none',
 };
 
 /** What `surface`'s stream reveals. A custom surface is asked through the

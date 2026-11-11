@@ -1,4 +1,4 @@
-import type { AeoSurface } from '../surfaces';
+import type { AeoDefaultSurface } from '../surfaces';
 import { ProbeAdapterId } from './adapter';
 
 // ============================================================================
@@ -6,8 +6,9 @@ import { ProbeAdapterId } from './adapter';
 // surface's adapter and model as of literally-aeo 0.2.0. Frozen forever:
 // a capture that records no adapter was taken with its surface's legacy
 // binding. The default bindings (bindings.ts) start equal to this table and
-// change only in a method release. Zod-free and SDK-free, so the progress
-// projection can read it.
+// change only in a method release. A surface added since (a consumer app, a
+// custom model) has no legacy binding: its capture always names its
+// adapter. Zod-free and SDK-free, so the progress projection can read it.
 // ============================================================================
 
 export type ProbeBinding = {
@@ -37,4 +38,4 @@ export const legacyProbeBindings = {
   claude_code: { adapter: ProbeAdapterId.CLI_CLAUDE_CODE },
   codex: { adapter: ProbeAdapterId.CLI_CODEX },
   cursor: { adapter: ProbeAdapterId.CLI_CURSOR },
-} as const satisfies Record<AeoSurface, ProbeBinding>;
+} as const satisfies Record<AeoDefaultSurface, ProbeBinding>;

@@ -117,6 +117,27 @@ describe('facts - buildFactCatalog() interval facts', () => {
     );
   });
 
+  it('should state the consumer apps together as a scope of their own', () => {
+    const facts = intervalFactsOf({
+      consumerShareOfVoice: 0.75,
+      consumerCitationRate: 0,
+      consumerShareOfVoiceEvidence: {
+        count: 3,
+        captured: 3,
+        planned: 4,
+        low: 0.300642,
+        high: 0.954413,
+      },
+    });
+
+    expect(facts.map(({ factId }) => factId)).toEqual([
+      `interval:${section.key}:consumer:mentions`,
+    ]);
+    expect(facts[0]?.sentence).toContain(
+      `consumer apps together mentioned ${config.brand.name} in between 30% and 96% of planned answers`,
+    );
+  });
+
   it('should add no interval fact to a snapshot without evidence, as before 0.4.0', () => {
     expect(
       intervalFactsOf({

@@ -11,6 +11,7 @@ import {
   aeoAuditConfigSchema,
   runRequestSchema,
   type AeoAuditConfig,
+  type AeoConsumerSurface,
   type AeoSurface,
   type ChatProbeConfig,
 } from '../../schema';
@@ -92,10 +93,13 @@ export const createSyntheticRun = async (
     answerOverride,
     chatProbes,
     calculationVersion,
+    consumerApps = [],
     customSurface,
   }: {
     answerOverride?: string;
     chatProbes?: ChatProbeConfig;
+    /** The consumer apps the run also measures (method release spec §5). */
+    consumerApps?: readonly AeoConsumerSurface[];
     /** A custom surface the run also measures (open models spec §5). */
     customSurface?: { key: string; label: string };
     // The version an earlier release aggregated with; the engine's own
@@ -106,10 +110,17 @@ export const createSyntheticRun = async (
   const config: AeoAuditConfig = {
     ...syntheticConfig,
     ...(chatProbes !== undefined && { chatProbes }),
+    ...(consumerApps.length > 0 && {
+      surfaces: {
+        ...syntheticConfig.surfaces,
+        consumerApps: [...consumerApps],
+      },
+    }),
     ...(customSurface && { customSurfaces: [customSurface] }),
   };
   const surfaces: AeoSurface[] = [
     ...builtInSurfaces,
+    ...consumerApps,
     ...(customSurface ? [`custom:${customSurface.key}` as const] : []),
   ];
   const plan = capturePlan(config, surfaces);

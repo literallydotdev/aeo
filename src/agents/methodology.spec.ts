@@ -96,6 +96,41 @@ describe('methodology - buildMethodology()', () => {
     expect(buildMethodology(input())).not.toContain(repeated);
   });
 
+  it('should say that the consumer apps are scraped products with no pinned model, what an answer and a citation are there, and that they are scored apart', () => {
+    const sentences = buildMethodology(
+      input({
+        surfaces: ['chatgpt', 'chatgpt_app', 'google_ai_mode'],
+        reportedModels: { chatgpt_app: ['gpt-6'] },
+      }),
+    );
+
+    expect(sentences.slice(3, 6)).toEqual([
+      "ChatGPT and AI Mode are measured in the consumer product itself, not through an API: DataForSEO scrapes each answer from the product's web page. Nothing pins the model that answers, and the vendor does not document whether its session is logged in, so which tier of the product answered is not known.",
+      'An answer from ChatGPT is the text and the tables of the page; its images, shopping results and advertisements are left out. The scraper reported the model as gpt-6. A citation there counts the sources the scraper lists as cited or relied on, and the links in the answer.',
+      'The consumer apps are scored as a group of their own, apart from the headline rates of the API chat surfaces and AI Overview.',
+    ]);
+  });
+
+  it('should name no model the scraper did not report, and say nothing of ChatGPT for a run that measured AI Mode alone', () => {
+    const unreported = buildMethodology(
+      input({ surfaces: ['chatgpt_app'], reportedModels: {} }),
+    );
+    const aiModeOnly = buildMethodology(
+      input({ surfaces: ['google_ai_mode'] }),
+    );
+
+    expect(unreported[0]).toMatch(
+      /^ChatGPT is measured in the consumer product/,
+    );
+    expect(unreported.join(' ')).not.toContain('The scraper reported');
+    expect(aiModeOnly[0]).toMatch(
+      /^AI Mode is measured in the consumer product/,
+    );
+    expect(aiModeOnly.join(' ')).not.toContain('ChatGPT');
+    // No API chat surface was planned: nothing is said of their models.
+    expect(aiModeOnly.join(' ')).not.toContain('API chat surfaces ask');
+  });
+
   it('should say nothing of API chat models or intervals a run does not have', () => {
     const sentences = buildMethodology(
       input({

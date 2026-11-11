@@ -98,7 +98,7 @@ export const projectWriterFactCatalog = (
 };
 
 type IntervalScope = {
-  /** The fact ID's scope: a surface ID, or `chat` or `agents`. */
+  /** The fact ID's scope: a surface ID, or `chat`, `agents` or `consumer`. */
   scope: string;
   /** How a sentence names it. */
   name: string;
@@ -136,6 +136,12 @@ const intervalFacts = ({
       name: 'coding agents together',
       mentions: summary.agentShareOfVoiceEvidence,
       citations: summary.agentCitationRateEvidence,
+    },
+    {
+      scope: 'consumer',
+      name: 'consumer apps together',
+      mentions: summary.consumerShareOfVoiceEvidence,
+      citations: summary.consumerCitationRateEvidence,
     },
     ...Object.entries(summary.byModel).map(([surface, rates]) => ({
       scope: surface,

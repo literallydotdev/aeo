@@ -14,11 +14,14 @@ import {
   surfaceLabels,
   customSurfacePrefix,
   isBuiltInSurface,
+  isConsumerSurface,
   isCustomSurface,
   type AeoApiSurface,
   type AeoBuiltInSurface,
   type AeoChatSurface,
+  type AeoConsumerSurface,
   type AeoCustomSurface,
+  type AeoDefaultSurface,
   type AeoSurface,
 } from '../surfaces';
 import {
@@ -67,14 +70,17 @@ import { legacyProbeBindings, type ProbeBinding } from './legacy-bindings';
 
 export type { ProbeBinding };
 
-/** A run's frozen bindings: one per built-in surface, and one per custom
+/** A run's frozen bindings: one per default surface, one per consumer
+ * surface for every run that started since those exist, and one per custom
  * surface the audit declares. */
-export type RunBindings = Readonly<Record<AeoBuiltInSurface, ProbeBinding>> & {
-  readonly [custom: AeoCustomSurface]: ProbeBinding;
-};
+export type RunBindings = Readonly<Record<AeoDefaultSurface, ProbeBinding>> &
+  Readonly<Partial<Record<AeoConsumerSurface, ProbeBinding>>> & {
+    readonly [custom: AeoCustomSurface]: ProbeBinding;
+  };
 
 /** The binding a run froze for `surface`. A custom surface the bindings do
- * not hold was never declared: the plan would not contain it. */
+ * not hold was never declared, and a consumer surface they do not hold is
+ * one the run directory started without: the plan would contain neither. */
 export const bindingOf = (
   bindings: RunBindings,
   surface: AeoSurface,
@@ -83,18 +89,24 @@ export const bindingOf = (
 
   if (!binding) {
     throw new RunBindingsError(
-      `This run's bindings name no adapter for ${surface}. A custom surface is measured only when audit.json declares it in customSurfaces.`,
+      isCustomSurface(surface)
+        ? `This run's bindings name no adapter for ${surface}. A custom surface is measured only when audit.json declares it in customSurfaces.`
+        : `This run's bindings name no adapter for ${surface}: the run directory was started by a release that did not measure it. Please measure it in a new run directory.`,
     );
   }
 
   return binding;
 };
 
-/** A surface's binding as of 0.2.0; a custom surface has none. */
+const legacyBindings: Readonly<Partial<Record<AeoSurface, ProbeBinding>>> =
+  legacyProbeBindings;
+
+/** A surface's binding as of 0.2.0; a consumer or custom surface has
+ * none. */
 export const legacyBindingOf = (
   surface: AeoSurface,
 ): ProbeBinding | undefined => {
-  return isCustomSurface(surface) ? undefined : legacyProbeBindings[surface];
+  return legacyBindings[surface];
 };
 
 /**
@@ -180,8 +192,14 @@ export const probeDependenciesOf = (
  */
 export const defaultBindingsChosenOn = '2026-11-10';
 
-export const defaultProbeBindings: RunBindings = {
+export const defaultProbeBindings: Readonly<
+  Record<AeoBuiltInSurface, ProbeBinding>
+> = {
   ...legacyProbeBindings,
+  // The consumer apps (method release spec §5): a scrape has no model to
+  // name, so each surface has exactly one binding.
+  chatgpt_app: { adapter: ProbeAdapterId.DATAFORSEO_CHATGPT_APP },
+  google_ai_mode: { adapter: ProbeAdapterId.DATAFORSEO_AI_MODE },
   // The Free plan's chat model is GPT-6 Luna (chatgpt.com/pricing). It
   // became the Free and Go default about 8 October 2026, a date read from
   // reposts of OpenAI's release notes, not from the notes themselves.
@@ -330,9 +348,8 @@ export const requestedBindingsOf = (
  * default or legacy bindings. Any other is priced from the catalog. */
 export const isOwnBinding = (binding: ProbeBinding): boolean => {
   return allSurfaces.some((surface) =>
-    [defaultProbeBindings[surface], legacyProbeBindings[surface]].some(
-      (own: ProbeBinding) =>
-        own.adapter === binding.adapter && own.model === binding.model,
+    [defaultProbeBindings[surface], legacyBindingOf(surface)].some(
+      (own) => own?.adapter === binding.adapter && own.model === binding.model,
     ),
   );
 };
@@ -465,10 +482,16 @@ export const availableBindings = (
 
     return built;
   };
-  const custom: Record<AeoCustomSurface, ProbeBinding> = {};
+  // Frozen by a run that started since they exist; a directory an earlier
+  // release froze, which a rejudgment carries over, names neither.
+  const optional: Partial<
+    Record<AeoConsumerSurface | AeoCustomSurface, ProbeBinding>
+  > = {};
 
-  for (const surface of Object.keys(frozen).filter(isCustomSurface)) {
-    custom[surface] = available(surface);
+  for (const surface of Object.keys(frozen)) {
+    if (isCustomSurface(surface) || isConsumerSurface(surface)) {
+      optional[surface] = available(surface);
+    }
   }
 
   const bindings: RunBindings = {
@@ -480,7 +503,7 @@ export const availableBindings = (
     claude_code: available('claude_code'),
     codex: available('codex'),
     cursor: available('cursor'),
-    ...custom,
+    ...optional,
   };
 
   return bindings;
@@ -514,6 +537,21 @@ export const askedModelsOn = (
       captured
         .filter((record) => record.surface === surface)
         .flatMap((record) => capturedModelOf(record) ?? []),
+    ),
+  ].sort();
+};
+
+/** The models `surface`'s captured answers were reported as answered by,
+ * in ID order: for a scraped consumer app, what the scraper read. */
+export const reportedModelsOn = (
+  captured: readonly CapturedUnitRecord[],
+  surface: AeoSurface,
+): string[] => {
+  return [
+    ...new Set(
+      captured
+        .filter((record) => record.surface === surface)
+        .flatMap((record) => record.captureMetadata?.reportedModel ?? []),
     ),
   ].sort();
 };

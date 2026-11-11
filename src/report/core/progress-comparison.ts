@@ -81,6 +81,8 @@ export type ProgressComparison = {
   };
   groups: {
     chat: ProgressGroupComparison | null;
+    /** The consumer apps both audits measured (method release spec §5.5). */
+    consumer: ProgressGroupComparison | null;
     agents: ProgressGroupComparison | null;
     /** The custom surfaces both audits measured (open models spec §5.3). */
     custom: ProgressGroupComparison | null;
@@ -204,7 +206,7 @@ export const deriveProgressComparison = (
       baselineExcludedSlots: 0,
       currentExcludedSlots: 0,
     },
-    groups: { chat: null, agents: null, custom: null },
+    groups: { chat: null, consumer: null, agents: null, custom: null },
   };
 
   if (
@@ -405,7 +407,7 @@ export const deriveProgressComparison = (
         };
   };
 
-  for (const scope of ['chat', 'agents', 'custom'] as const) {
+  for (const scope of ['chat', 'consumer', 'agents', 'custom'] as const) {
     const group = matched.filter(
       ({ baseline: slot }) => surfaceFamilyOf(slot.surface) === scope,
     );

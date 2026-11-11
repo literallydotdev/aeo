@@ -560,7 +560,7 @@ export const aggregate = async (ctx: WorkflowContext) => {
     const { summary, matrix } = result.visibility;
 
     ctx.log(
-      `aggregate ${key}: ${matrix.length} rows, sov ${summary.prospectShareOfVoice ?? 'n/a'} chat / ${summary.agentShareOfVoice ?? 'n/a'} agent, top competitor ${summary.topCompetitorDomain ?? 'none'}`,
+      `aggregate ${key}: ${matrix.length} rows, sov ${summary.prospectShareOfVoice ?? 'n/a'} chat / ${summary.agentShareOfVoice ?? 'n/a'} agent${summary.consumerShareOfVoice === undefined ? '' : ` / ${summary.consumerShareOfVoice ?? 'n/a'} consumer`}, top competitor ${summary.topCompetitorDomain ?? 'none'}`,
     );
   }
 };

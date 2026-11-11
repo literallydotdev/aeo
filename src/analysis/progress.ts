@@ -1,5 +1,4 @@
 import type { AeoAuditConfig, AeoSnapshot } from '../schema';
-import { isCustomSurface } from '../surfaces';
 import {
   capturePlan,
   validateCaptureManifest,
@@ -11,6 +10,7 @@ import {
   type ProgressMeasurement,
   type ProgressSlot,
 } from '../lib/progress-comparison';
+import { isSurfaceSinceProgressVersion1 } from '../report/core/progress-schema';
 import { contentHash } from '../stores/content-hash';
 import { normalizeDomain } from './scoring';
 import { isDomainCited } from './domain-match';
@@ -316,7 +316,9 @@ export const projectProgressMeasurement = (
   }
 
   return {
-    version: slots.some((slot) => isCustomSurface(slot.surface)) ? 2 : 1,
+    version: slots.some((slot) => isSurfaceSinceProgressVersion1(slot.surface))
+      ? 2
+      : 1,
     runId,
     ...(config.questionSetName
       ? { questionSetName: config.questionSetName }

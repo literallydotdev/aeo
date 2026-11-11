@@ -21,7 +21,7 @@ import { localStageModel } from '../models/local-profile';
 import type { SupportedModel } from '../models/supported-models';
 import { normalizeDomain } from '../analysis/scoring';
 import { briefSchema } from '../workflow/schema';
-import { allSurfaces, chatSurfaces } from '../schema';
+import { chatSurfaces, defaultSurfaces } from '../schema';
 import { hasErrorCode } from '../stores/fs-errors';
 import {
   auditFileSchema,
@@ -190,7 +190,7 @@ export const runLocalAuthor = async (args: {
       sections: config.sections,
       surfaces:
         config.surfaces.codingAgents === 'measure'
-          ? [...allSurfaces]
+          ? [...defaultSurfaces]
           : [...chatSurfaces],
       agentProbes: config.agentProbes,
       geography: config.geography,
@@ -208,6 +208,9 @@ export const runLocalAuthor = async (args: {
       runId,
       brief,
       proposed: proposalOf(proposed),
+      // audit.json lists surfaces and has no place for why: the author's
+      // decision is kept here with its reason, for whoever reviews it.
+      surfaces: config.surfaces,
       notes: output.notes,
       research,
     };
