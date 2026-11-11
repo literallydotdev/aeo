@@ -155,7 +155,8 @@ export const premiseVerifierCall = (
     ).values(),
   ];
   // Several facts often cite the same passage. Inline copies made a legal
-  // introduction exceed the verifier's input limit (Skyen, 2026-09-14).
+  // introduction exceed the verifier's input limit (a recorded run,
+  // 2026-09-14).
   // Keep the frozen fact references and every cited passage, supplied once.
   const sources = new Map<string, GroundingSource>();
   const projectedFacts = facts.map((fact) => {
