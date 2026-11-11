@@ -165,21 +165,23 @@ describe('run-bindings - resolveRunBindings()', () => {
       },
     });
 
-    const changed = resolveRunBindings(bank, {
-      startedBefore: true,
-      requested: {
-        bindings: requestedBindingsOf({
-          chatgpt: { model: 'openai/gpt-test-2' },
-        }),
-        overridden: ['chatgpt'],
-      },
-    });
+    await expect(
+      resolveRunBindings(bank, {
+        startedBefore: true,
+        requested: {
+          bindings: requestedBindingsOf({
+            chatgpt: { model: 'openai/gpt-test-2' },
+          }),
+          overridden: ['chatgpt'],
+        },
+      }),
+    ).rejects.toThrow(
+      /measures chatgpt with openai\/gpt-test-1; audit\.json now asks for openai\/gpt-test-2/,
+    );
+
     // The file no longer names a model: the run keeps the one it froze.
     const unnamed = await resolveRunBindings(bank, { startedBefore: true });
 
-    await expect(changed).rejects.toThrow(
-      /measures chatgpt with openai\/gpt-test-1; audit\.json now asks for openai\/gpt-test-2/,
-    );
     expect(unnamed.chatgpt.model).toBe('openai/gpt-test-1');
   });
 
