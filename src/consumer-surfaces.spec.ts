@@ -862,7 +862,7 @@ describe('narrative-facts - buildNarrativeFacts() with consumer apps', () => {
     const without = factsOf(['chatgpt']);
 
     expect(withApp.scope).toContain(
-      'Captured chat and search assistants: ChatGPT (API). Captured coding agents: none. Captured consumer apps: ChatGPT, AI Mode.',
+      'Captured chat and search assistants: ChatGPT (API). Captured coding agents: none. Captured consumer apps: ChatGPT (app), AI Mode.',
     );
     expect(without.scope).toContain(
       'Captured chat and search assistants: ChatGPT (API). Captured coding agents: none. Planned',

@@ -117,7 +117,8 @@ them in `audit.json`'s `surfaces`, beside the ones you already measure:
 `google_ai_mode` is Google's AI Mode. DataForSEO scrapes each answer from
 the product's page, so a run that lists one needs the DataForSEO login. A
 scrape costs about $0.004; judging the answer costs what judging any other
-answer does, and `literally-aeo plan` shows the total. They are measured
+answer does, and `literally-aeo plan` shows the total. A report names them
+"ChatGPT (app)" and "AI Mode", beside "ChatGPT (API)". They are measured
 only when listed, and what they measure differs from the API surfaces in
 ways the report states:
 

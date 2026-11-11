@@ -102,7 +102,8 @@ export const isChatSurface = (surface: string): surface is AeoChatSurface => {
 /** Shared display names for audit facts and report evidence. The four
  * chat surfaces ask each provider's API with web search, not its consumer
  * app, and say so (method release spec §4.3). Their IDs stay: every unit
- * key, digest, bundle and stored snapshot names them. */
+ * key, digest, bundle and stored snapshot names them. A report can measure
+ * ChatGPT both ways, so the scraped app says which it is too. */
 export const surfaceLabels: Record<string, string> = {
   chatgpt: 'ChatGPT (API)',
   gemini: 'Gemini (API)',
@@ -112,7 +113,7 @@ export const surfaceLabels: Record<string, string> = {
   claude_code: 'Claude Code',
   codex: 'Codex',
   cursor: 'Cursor',
-  chatgpt_app: 'ChatGPT',
+  chatgpt_app: 'ChatGPT (app)',
   google_ai_mode: 'AI Mode',
 };
 
