@@ -128,10 +128,11 @@ Leave both out unless the user asks: the defaults are what the report's
 headline means. The proposed config never lists a consumer app. Tell the
 user they can also measure the products themselves, ChatGPT's web
 interface (`chatgpt_app`) and Google AI Mode (`google_ai_mode`): each
-answer is scraped by DataForSEO for about $0.004, the model is whatever
-the product served and nothing pins it, and they are scored as a group of
-their own, apart from the headline. If the user wants one, add it to
-`surfaces`. If the
+answer is scraped by DataForSEO, the model is whatever the product served
+and nothing pins it, and they are scored as a group of their own, apart
+from the headline. A scrape costs about $0.004, and each answer is judged
+like any other, so checkpoint 6 shows what one adds. If the user wants
+one, add it to `surfaces`. If the
 user would rather measure fewer questions more deeply, set
 `chatProbes.runsPerPrompt` and `agentProbes.runsPerPrompt` (1 to 25 runs
 of each question per assistant); left out, each question is asked twice
