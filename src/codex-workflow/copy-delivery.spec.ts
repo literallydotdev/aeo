@@ -11,7 +11,14 @@ import {
   copyFixtureSnapshot,
 } from '../agents/__fixtures__/copy';
 import { groundingFixture } from '../agents/__fixtures__/grounding';
-import { assertCopyValidation } from '../agents/copy-validation';
+import {
+  assertCopyValidation,
+  copyCheckerVersion,
+  copyReceiptDigest,
+  isStoredProvenance,
+  premiseVerifierPromptVersion,
+} from '../agents/copy-validation';
+import { isRecord } from '../lib/type-guards';
 import { deliverableCopy } from './loop';
 
 describe('Loop - deliverableCopy()', () => {
@@ -77,6 +84,59 @@ describe('Loop - deliverableCopy()', () => {
       });
 
       expect(receipt.verifierModel).toBe('no-recommendations');
+
+      // A receipt as 0.4.0 and every release before it issued one: checker
+      // 7, under premise verifier prompt 3. It keeps validating the copy it
+      // was issued for, whatever the verifier's prompt is now.
+      const recordOf = (value: unknown) => {
+        if (!isRecord(value)) {
+          throw new Error('Expected the delivered copy to carry a record.');
+        }
+
+        return value;
+      };
+      const check = (earlier: { provenance: unknown; receipt: unknown }) => {
+        return () =>
+          assertCopyValidation({
+            copy: result.copy,
+            config: copyFixtureConfig,
+            configVersion: 1,
+            snapshot: copyFixtureSnapshot,
+            runId: 'run-1',
+            grounding,
+            verifierProfile: verifierRole,
+            ...earlier,
+          });
+      };
+      const provenance: unknown = {
+        ...recordOf(result.provenance),
+        verifierPromptVersion: 3,
+      };
+
+      if (!isStoredProvenance(provenance)) {
+        throw new Error('Expected a stored copy provenance.');
+      }
+
+      const issuedBefore = {
+        ...recordOf(result.receipt),
+        checkerVersion: 7,
+        verifierPromptVersion: 3,
+        digest: copyReceiptDigest(result.copy, provenance, 7),
+      };
+
+      expect(check({ provenance, receipt: issuedBefore })).not.toThrow();
+      // Never read as issued under the current prompt.
+      expect(
+        check({
+          provenance: result.provenance,
+          receipt: { ...issuedBefore, verifierPromptVersion: 4 },
+        }),
+      ).toThrow('Copy validation receipt');
+      expect(result.receipt).toMatchObject({
+        checkerVersion: copyCheckerVersion,
+        verifierPromptVersion: premiseVerifierPromptVersion,
+      });
+      expect(copyCheckerVersion).toBeGreaterThan(7);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

@@ -33,7 +33,12 @@ import {
   type CopyBlock,
 } from './copy-schema';
 
-export const copyCheckerVersion = 7;
+// 8: receipts issued under premise verifier prompt 4. A receipt names its
+// checker, and the checker names the verifier prompt it was issued under
+// (assertCopyValidation), so a new verifier prompt is a new checker: 0.4.1
+// moved the prompt and left this at 7, which read every earlier receipt as
+// issued under the new prompt and refused it.
+export const copyCheckerVersion = 8;
 // 4: the verifier refuses a comparison of two rates or counts
 // (unsupported_rate_comparison).
 export const premiseVerifierPromptVersion = 4;
@@ -1082,7 +1087,7 @@ const isStoredReceipt = (
   return isRecord(value);
 };
 
-const isStoredProvenance = (value: unknown): value is CopyProvenance => {
+export const isStoredProvenance = (value: unknown): value is CopyProvenance => {
   return isRecord(value) && (value.kind === 'agent' || value.kind === 'human');
 };
 
@@ -1117,6 +1122,7 @@ export const assertCopyValidation = (args: {
     4: 2,
     5: 3,
     6: 3,
+    7: 3,
     [copyCheckerVersion]: premiseVerifierPromptVersion,
   };
   const verifierPromptVersion = receipt
