@@ -154,6 +154,45 @@ describe('local-profile - localModelProfile()', () => {
     );
   });
 
+  it('should give a reasoning model it never verified narrower batches and three times as long, and leave its own models as verified', () => {
+    const verified = resolveSupportedModel();
+    const unverified = {
+      ...verified,
+      id: 'acme/reasoner',
+      stageRuntimeVerifiedAt: null,
+    };
+    const plain = { ...unverified, id: 'acme/plain', thinkingInOutput: false };
+    const rolesOf = (model: typeof verified) => {
+      return localModelProfile(model, { searchProvider: 'disabled' }).roles;
+    };
+
+    const cautious = rolesOf(unverified);
+
+    expect(cautious.perception).toMatchObject({
+      maxItemsPerCall: 5,
+      deadlineMs: 900_000,
+    });
+    expect(cautious.adjudication.maxItemsPerCall).toBe(8);
+    expect(cautious.premiseVerifier).toMatchObject({
+      maxItemsPerCall: 1,
+      deadlineMs: 540_000,
+    });
+    expect(cautious.domainClassifier.maxItemsPerCall).toBe(25);
+    // No role waits longer than fifteen minutes for one call.
+    expect(
+      Object.values(cautious).filter((role) => role.deadlineMs > 900_000),
+    ).toEqual([]);
+
+    for (const roles of [rolesOf(verified), rolesOf(plain)]) {
+      expect(
+        Object.values(roles).filter(
+          (role) => role.maxItemsPerCall !== undefined,
+        ),
+      ).toEqual([]);
+      expect(roles.perception.deadlineMs).toBe(300_000);
+    }
+  });
+
   it('should give each model its own method digest', () => {
     const digests = supportedModels.map((model) =>
       internalModelProfileDigest(
