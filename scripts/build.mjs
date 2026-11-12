@@ -7,8 +7,8 @@
 //   (an error a caller checks with instanceof) is one class across subpaths;
 // - dist/types/: the declarations, from tsc;
 // - resources/: the copy and author rules, the banlist, the neutral
-//   editorial context and the operator guide, which enginePackageRoot finds
-//   beside dist/.
+//   editorial context, the operator guide and the viewer's fonts, which
+//   enginePackageRoot finds beside dist/.
 //
 // Runtime dependencies stay external: they install from npm at the versions
 // package.json pins.
@@ -134,6 +134,11 @@ await cp(
 await cp(
   path.join(root, 'src', 'engine', 'guide', 'OPERATOR.md'),
   path.join(root, 'resources', 'guide', 'OPERATOR.md'),
+);
+await cp(
+  path.join(root, 'src', 'viewer', 'fonts'),
+  path.join(root, 'resources', 'fonts'),
+  { recursive: true },
 );
 
 process.stdout.write(`Built ${manifest.name} ${manifest.version}\n`);

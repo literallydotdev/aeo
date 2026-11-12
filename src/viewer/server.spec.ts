@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { exportRun } from '../bundle/export';
 import { readBundleSource } from '../bundle/read';
 import { createSyntheticRun } from '../bundle/__fixtures__/synthetic-run';
+import { viewerFontFiles } from './page';
 import { startViewer, type ViewerServer } from './server';
 
 let root: string;
@@ -119,5 +120,44 @@ describe('viewer - startViewer()', () => {
     expect(JSON.parse(verification.body)).toMatchObject({ exitCode: 3 });
     expect(outside.status).toBe(404);
     expect(unknown.status).toBe(404);
+  });
+
+  it('should leave the fonts to the system when it was given none', async () => {
+    const page = await get(viewer.url);
+    const font = await get(withPath(`/fonts/${viewerFontFiles.body}`));
+
+    expect(page.body).not.toContain('@font-face');
+    expect(font.status).toBe(404);
+  });
+
+  it('should serve the fonts it was given, to the launch token only', async () => {
+    const run = await createSyntheticRun(path.join(root, 'run-fonts'));
+    const source = await readBundleSource((await exportRun(run.dir)).archive);
+    const fonted = await startViewer(
+      { ...source, workingState: false },
+      { fonts: new Map([[viewerFontFiles.body, Buffer.from('font bytes')]]) },
+    );
+
+    try {
+      const token = new URL(fonted.url).searchParams.get('t') ?? '';
+      const fontUrl = new URL(`/fonts/${viewerFontFiles.body}`, fonted.url);
+      const page = await get(fonted.url);
+
+      expect(String(page.headers['content-security-policy'])).toContain(
+        "font-src 'self'",
+      );
+      expect(page.body).toContain(
+        `url("/fonts/${viewerFontFiles.body}?t=${token}")`,
+      );
+      expect(await get(fontUrl.toString())).toMatchObject({ status: 403 });
+
+      fontUrl.searchParams.set('t', token);
+      const font = await get(fontUrl.toString());
+
+      expect(font).toMatchObject({ status: 200, body: 'font bytes' });
+      expect(font.headers['content-type']).toBe('font/ttf');
+    } finally {
+      await fonted.close();
+    }
   });
 });

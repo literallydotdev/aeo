@@ -8,7 +8,6 @@ import type { CalculationVersion } from '../bundle/contracts';
 import { exportRun } from '../bundle/export';
 import { readBundleSource } from '../bundle/read';
 import { createSyntheticRun } from '../bundle/__fixtures__/synthetic-run';
-import { intervalPercents } from '../report/core/rate-interval';
 import { viewerPage } from './page';
 import { startViewer, type ViewerServer } from './server';
 
@@ -210,13 +209,7 @@ const modelRowsOf = ({ root }: RenderedPage) => {
 
 const snapshotPath = 'report/snapshot.json';
 
-const editableSnapshotSchema = z.looseObject({
-  sections: z.array(
-    z.looseObject({
-      visibility: z.looseObject({ summary: z.looseObject({}) }),
-    }),
-  ),
-});
+const editableSnapshotSchema = z.looseObject({ meta: z.looseObject({}) });
 
 let root: string;
 const viewers: ViewerServer[] = [];
@@ -251,269 +244,148 @@ const viewerFor = async (source: {
   return viewer;
 };
 
+/** The exported bundle with its snapshot's meta edited. */
+const withMeta = async (meta: Record<string, unknown>) => {
+  const source = await exportedFiles(2);
+  const snapshot = editableSnapshotSchema.parse(
+    JSON.parse(String(source.files.get(snapshotPath))),
+  );
+
+  Object.assign(snapshot.meta, meta);
+
+  return {
+    ...source,
+    files: new Map(source.files).set(
+      snapshotPath,
+      Buffer.from(JSON.stringify(snapshot)),
+    ),
+  };
+};
+
+const byClass = (root: FakeElement, className: string) => {
+  return elementsOf(root).filter((element) =>
+    element.className.split(' ').includes(className),
+  );
+};
+
 describe('viewer - viewerPage()', () => {
-  it('should show the interval beside each headline rate, and its counts as its description', async () => {
+  it('should show each scorecard with its interval, and the counts as its description', async () => {
     const page = await renderPage(await viewerFor(await exportedFiles(2)));
 
-    expect(statsOf(page).slice(0, 5)).toEqual([
+    expect(statsOf(page).slice(0, 3)).toEqual([
       {
-        // Two of the eight planned answers are missing: the interval covers
-        // both outcomes for them.
-        text: '25%approx. 95% interval 7–79%Assistant share of voice',
+        text: '25%approx. 95% interval 7–79%Share of voice — AI assistants25% citation rate across ChatGPT and Perplexityapprox. 95% interval 7–79%',
         counts: 'Mentioned in 2 of 8 planned answers; 6 captured',
       },
       {
-        text: '25%approx. 95% interval 7–79%Assistant citation rate',
-        counts: 'Cited in 2 of 8 planned answers; 6 captured',
+        text: '100%Rivalstack share of voiceNamed most often: 6 of 6 captured answers',
+        counts: undefined,
       },
-      // No coding agent was planned: no rate, so no interval.
-      { text: 'n/aCoding-agent share of voice', counts: undefined },
-      { text: 'n/aCoding-agent citation rate', counts: undefined },
-      { text: 'rivalstack.testMost mentioned competitor', counts: undefined },
+      {
+        text: '1/3Cells with zero mentionsPrompts and surfaces where the brand was absent',
+        counts: undefined,
+      },
     ]);
   });
 
-  it('should show the consumer-app pair, with its own counts, only for a run that planned a consumer app', async () => {
-    const run = await createSyntheticRun(path.join(root, 'run-apps'), {
-      consumerApps: ['chatgpt_app', 'google_ai_mode'],
-    });
-    const page = await renderPage(
-      await viewerFor(
-        await readBundleSource((await exportRun(run.dir)).archive),
-      ),
-    );
-    const consumer = statsOf(page).filter(({ text }) =>
-      text.includes('Consumer-app'),
-    );
-
-    // The pair of the first section; the run's second section has its own.
-    expect(
-      consumer.slice(0, 2).map(({ text }) => text.replace(/^.*%/, '')),
-    ).toEqual(['Consumer-app share of voice', 'Consumer-app citation rate']);
-    expect(consumer).toHaveLength(4);
-    // Two questions in the first section, once each on two apps.
-    expect(consumer[0]?.counts).toMatch(
-      /^Mentioned in \d of 4 planned answers; \d captured$/,
-    );
-
-    const standard = await renderPage(await viewerFor(await exportedFiles(2)));
-
-    expect(
-      statsOf(standard).filter(({ text }) => text.includes('Consumer-app')),
-    ).toEqual([]);
-  });
-
-  it("should show each model's rates, each with its interval and counts", async () => {
+  it("should show each surface's rates, each with its interval and counts", async () => {
     const page = await renderPage(await viewerFor(await exportedFiles(2)));
 
-    expect(modelRowsOf(page)).toEqual([
-      [
-        [
-          { text: 'chatgpt', counts: undefined },
-          {
-            text: '25%approx. 95% interval 4–96%',
-            counts: 'Mentioned in 1 of 4 planned answers; 2 captured',
-          },
-          {
-            text: '25%approx. 95% interval 4–96%',
-            counts: 'Cited in 1 of 4 planned answers; 2 captured',
-          },
-        ],
-        [
-          { text: 'perplexity', counts: undefined },
-          {
-            text: '25%approx. 95% interval 4–70%',
-            counts: 'Mentioned in 1 of 4 planned answers; 4 captured',
-          },
-          {
-            text: '25%approx. 95% interval 4–70%',
-            counts: 'Cited in 1 of 4 planned answers; 4 captured',
-          },
-        ],
-      ],
-      [
-        [
-          { text: 'chatgpt', counts: undefined },
-          {
-            text: '0%approx. 95% interval 0–66%',
-            counts: 'Mentioned in 0 of 2 planned answers; 2 captured',
-          },
-          {
-            text: '0%approx. 95% interval 0–66%',
-            counts: 'Cited in 0 of 2 planned answers; 2 captured',
-          },
-        ],
-        [
-          { text: 'perplexity', counts: undefined },
-          {
-            text: '50%approx. 95% interval 9–91%',
-            counts: 'Mentioned in 1 of 2 planned answers; 2 captured',
-          },
-          {
-            text: '50%approx. 95% interval 9–91%',
-            counts: 'Cited in 1 of 2 planned answers; 2 captured',
-          },
-        ],
-      ],
-    ]);
-  });
-
-  it('should show a version 1 bundle bare rates, as before', async () => {
-    const page = await renderPage(await viewerFor(await exportedFiles(1)));
-
-    expect(statsOf(page).slice(0, 4)).toEqual([
-      { text: '25%Assistant share of voice', counts: undefined },
-      { text: '25%Assistant citation rate', counts: undefined },
-      { text: 'n/aCoding-agent share of voice', counts: undefined },
-      { text: 'n/aCoding-agent citation rate', counts: undefined },
-    ]);
     expect(modelRowsOf(page)[0]).toEqual([
       [
-        { text: 'chatgpt', counts: undefined },
-        { text: '25%', counts: undefined },
-        { text: '25%', counts: undefined },
+        { text: 'ChatGPT', counts: undefined },
+        {
+          text: '25%approx. 95% interval 4–96%',
+          counts: 'Mentioned in 1 of 4 planned answers; 2 captured',
+        },
+        {
+          text: '25%approx. 95% interval 4–96%',
+          counts: 'Cited in 1 of 4 planned answers; 2 captured',
+        },
       ],
       [
-        { text: 'perplexity', counts: undefined },
-        { text: '25%', counts: undefined },
-        { text: '25%', counts: undefined },
+        { text: 'Perplexity', counts: undefined },
+        {
+          text: '25%approx. 95% interval 4–70%',
+          counts: 'Mentioned in 1 of 4 planned answers; 4 captured',
+        },
+        {
+          text: '25%approx. 95% interval 4–70%',
+          counts: 'Cited in 1 of 4 planned answers; 4 captured',
+        },
       ],
     ]);
   });
 
-  it("should round an interval as the report's own rule does", async () => {
-    // The page is one self-contained script and carries its own copy of the
-    // rounding rule: held here to the answers of the shared one.
-    const bounds = [
-      { low: 0.07, high: 0.93 },
-      { low: 0.071494, high: 0.591181 },
-      { low: 0, high: 1 },
-      { low: 0.29, high: 0.57 },
-    ];
-    const source = await exportedFiles(2);
-    const snapshot = editableSnapshotSchema.parse(
-      JSON.parse(String(source.files.get(snapshotPath))),
+  it('should insert labels and methodology from the bundle as text, never as markup', async () => {
+    const page = await renderPage(
+      await viewerFor(
+        await withMeta({
+          surfaceLabels: { perplexity: '<b>Sonar</b>' },
+          methodology: [
+            'A rate is a share of the planned answers.',
+            '<i>Never markup.</i>',
+          ],
+        }),
+      ),
     );
-    const summary = snapshot.sections[0]?.visibility.summary;
-
-    if (summary === undefined) {
-      throw new Error('The synthetic snapshot has no section.');
-    }
-
-    for (const bound of bounds) {
-      summary['prospectShareOfVoiceEvidence'] = {
-        count: 2,
-        captured: 20,
-        planned: 20,
-        ...bound,
-      };
-      const files = new Map(source.files).set(
-        snapshotPath,
-        Buffer.from(JSON.stringify(snapshot)),
-      );
-      const page = await renderPage(await viewerFor({ ...source, files }));
-      const { low, high } = intervalPercents(bound);
-
-      expect(statsOf(page)[0]?.text).toContain(
-        `approx. 95% interval ${low}–${high}%`,
-      );
-    }
-  });
-
-  it('should round an interval outward to whole percents, and drop malformed evidence', async () => {
-    const source = await exportedFiles(2);
-    const snapshot = editableSnapshotSchema.parse(
-      JSON.parse(String(source.files.get(snapshotPath))),
+    const methodology = elementsOf(page.root).find(
+      (element) => element.className === 'methodology',
     );
-    const summary = snapshot.sections[0]?.visibility.summary;
-
-    if (summary === undefined) {
-      throw new Error('The synthetic snapshot has no section.');
-    }
-    // 0.07 * 100 is 7.000000000000001: a naive ceiling would show 8%.
-    summary['prospectShareOfVoiceEvidence'] = {
-      count: 2,
-      captured: 20,
-      planned: 20,
-      low: 0.07,
-      high: 0.93,
-    };
-    summary['prospectCitationRateEvidence'] = {
-      count: 2,
-      captured: 20,
-      planned: 20,
-      low: 0.9,
-      high: 0.1,
-    };
-    const files = new Map(source.files).set(
-      snapshotPath,
-      Buffer.from(JSON.stringify(snapshot)),
-    );
-    const page = await renderPage(await viewerFor({ ...source, files }));
-
-    expect(statsOf(page).slice(0, 2)).toEqual([
-      {
-        text: '25%approx. 95% interval 7–93%Assistant share of voice',
-        counts: 'Mentioned in 2 of 20 planned answers; 20 captured',
-      },
-      { text: '25%Assistant citation rate', counts: undefined },
-    ]);
-  });
-
-  it("should show a surface by the snapshot's own label when it has one, as text", async () => {
-    const source = await exportedFiles(2);
-    const snapshot = z
-      .looseObject({ meta: z.looseObject({}) })
-      .parse(JSON.parse(String(source.files.get(snapshotPath))));
-
-    // A model override names the model; a label is never markup.
-    snapshot.meta['surfaceLabels'] = {
-      chatgpt: 'ChatGPT (API, openai/gpt-test-1)',
-      perplexity: '<b>Sonar</b>',
-    };
-    const files = new Map(source.files).set(
-      snapshotPath,
-      Buffer.from(JSON.stringify(snapshot)),
-    );
-    const page = await renderPage(await viewerFor({ ...source, files }));
 
     expect(modelRowsOf(page)[0]?.map((cells) => cells[0]?.text)).toEqual([
-      'ChatGPT (API, openai/gpt-test-1)',
+      'ChatGPT',
       '<b>Sonar</b>',
     ]);
     expect(
+      methodology && childElementsOf(methodology).map(visibleTextOf),
+    ).toEqual([
+      'A rate is a share of the planned answers.',
+      '<i>Never markup.</i>',
+    ]);
+    expect(
       elementsOf(page.root).some(
-        (element) => element.tag === 'b' && visibleTextOf(element) === 'Sonar',
+        (element) => element.tag === 'b' || element.tag === 'i',
       ),
     ).toBe(false);
   });
 
-  it('should show the methodology the snapshot carries, as a list of plain sentences', async () => {
+  it('should open the evidence behind a matrix cell in a sheet, and close it with Escape', async () => {
+    const page = await renderPage(await viewerFor(await exportedFiles(2)));
+    const [sheet] = byClass(page.root, 'sheet');
+    const [cell] = byClass(page.root, 'cell');
+
+    if (sheet === undefined || cell === undefined) {
+      throw new Error('The page shows no matrix cell or no sheet.');
+    }
+    expect(sheet.attributes.has('hidden')).toBe(true);
+
+    cell.focus();
+    dispatch(cell, 'click');
+
+    expect(sheet.attributes.has('hidden')).toBe(false);
+    expect(visibleTextOf(sheet)).toContain('Perplexity evidence');
+    expect(visibleTextOf(sheet)).toContain('Full captured answer');
+    expect(byClass(sheet, 'run')).toHaveLength(2);
+
+    dispatch(page.document, 'keydown', 'Escape');
+
+    expect(sheet.attributes.has('hidden')).toBe(true);
+    // Focus returns to the cell that opened the sheet.
+    expect(activeElement).toBe(cell);
+  });
+
+  it('should say so when the run has no report yet', async () => {
     const source = await exportedFiles(2);
-    const snapshot = z
-      .looseObject({ meta: z.looseObject({}) })
-      .parse(JSON.parse(String(source.files.get(snapshotPath))));
+    const files = new Map(source.files);
 
-    snapshot.meta['methodology'] = [
-      'A rate is a share of the planned answers.',
-      '<i>Never markup.</i>',
-    ];
-    const files = new Map(source.files).set(
-      snapshotPath,
-      Buffer.from(JSON.stringify(snapshot)),
-    );
+    files.delete(snapshotPath);
     const page = await renderPage(await viewerFor({ ...source, files }));
-    const items = elementsOf(page.root)
-      .filter((element) => element.tag === 'li')
-      .map(visibleTextOf);
 
-    expect(items).toEqual([
-      'A rate is a share of the planned answers.',
-      '<i>Never markup.</i>',
-    ]);
-    expect(elementsOf(page.root).some((element) => element.tag === 'i')).toBe(
-      false,
+    expect(visibleTextOf(page.root)).toContain(
+      'This run has no report yet: the measurement did not finish.',
     );
+    expect(statsOf(page)).toEqual([]);
   });
 
   it('should open the counts on hover, focus and tap, keep them open while either lasts, and close them with Escape', async () => {
@@ -536,7 +408,7 @@ describe('viewer - viewerPage()', () => {
     expect(trigger.tag).toBe('button');
     expect(trigger.attributes.get('type')).toBe('button');
     expect(trigger.attributes.get('aria-label')).toBe(
-      'approx. 95% interval 7–79% for assistant share of voice',
+      'approx. 95% interval 7–79% for share of voice across AI assistants',
     );
     expect(tip.attributes.get('role')).toBe('tooltip');
     expect(isOpen()).toBe(false);
