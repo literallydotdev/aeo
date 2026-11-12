@@ -176,8 +176,9 @@ When the process exits:
 
 - **0**: done. Go to checkpoint 8.
 - **3**: done with disclosed limits (unjudged answers, a narrative marked
-  as needing improvement). Explain the limits in plain words, then go to
-  checkpoint 8.
+  as needing improvement, or a step left out of the report, which the
+  output lists under "Left out of the report"). Explain the limits in
+  plain words, then go to checkpoint 8.
 - **2**: stopped and resumable. Read `literally-aeo status run --json` and
   the stderr message and explain why. If `stoppedAtBudget` is true, the cap
   was reached: show what was spent (`spend`) and what is left to do, and

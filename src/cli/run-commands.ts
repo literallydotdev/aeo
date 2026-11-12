@@ -813,6 +813,54 @@ export const runRejudge = async (flags: Flags, usage: string) => {
   });
 };
 
+type FinishedRun = Pick<
+  Awaited<ReturnType<typeof runWorkflow>>,
+  'finish' | 'degraded' | 'copyOutcome' | 'verdict'
+>;
+
+/**
+ * finishedRunSummary is what a finished run prints and exits with (spec
+ * §4.3): 0 when the report is whole, 3 when it is done with a limitation it
+ * names. A step that failed and was left out of the report (a perception
+ * batch, a label pass) is such a limitation: a recorded run (2026-11-11)
+ * lost nine answers' part of a section that way and exited 0.
+ */
+export const finishedRunSummary = (
+  result: FinishedRun,
+  dir: string,
+): { exitCode: 0 | 3; lines: string[] } => {
+  const needsImprovement =
+    result.finish?.snapshot.meta.quality?.needsImprovement === true;
+  const partialFailures = result.finish?.partialFailures ?? [];
+  const limited =
+    !result.finish ||
+    needsImprovement ||
+    partialFailures.length > 0 ||
+    result.degraded.length > 0 ||
+    result.copyOutcome === 'errored';
+
+  return {
+    exitCode: limited ? 3 : 0,
+    lines: [
+      formatLine('Run directory', dir),
+      formatLine(
+        'Report snapshot',
+        result.finish?.snapshotFile ?? 'not produced',
+      ),
+      formatLine('Review verdict', result.verdict),
+      formatLine('Copy', result.copyOutcome),
+      formatLine('Unjudged answers', String(result.degraded.length)),
+      formatLine('Needs improvement', needsImprovement ? 'yes' : 'no'),
+      formatLine('Left out of the report', String(partialFailures.length)),
+      ...partialFailures.map(
+        (failure) => `  ${failure.step}: ${failure.error.slice(0, 300)}`,
+      ),
+      '',
+      `Export it with: literally-aeo export ${dir}`,
+    ],
+  };
+};
+
 type ExecuteRunOptions = {
   file: AuditFile;
   /** Where audit.json is: its author record is resolved beside it. */
@@ -912,31 +960,11 @@ const executeRun = async ({
       await local.source.close();
     }
 
-    const needsImprovement =
-      result.finish?.snapshot.meta.quality?.needsImprovement === true;
-    const limited =
-      !result.finish ||
-      needsImprovement ||
-      result.degraded.length > 0 ||
-      result.copyOutcome === 'errored';
+    const summary = finishedRunSummary(result, dir);
 
-    writeOut(
-      [
-        formatLine('Run directory', dir),
-        formatLine(
-          'Report snapshot',
-          result.finish?.snapshotFile ?? 'not produced',
-        ),
-        formatLine('Review verdict', result.verdict),
-        formatLine('Copy', result.copyOutcome),
-        formatLine('Unjudged answers', String(result.degraded.length)),
-        formatLine('Needs improvement', needsImprovement ? 'yes' : 'no'),
-        '',
-        `Export it with: literally-aeo export ${dir}`,
-      ].join('\n'),
-    );
+    writeOut(summary.lines.join('\n'));
 
-    return limited ? 3 : 0;
+    return summary.exitCode;
   } catch (err) {
     if (controller.signal.aborted) {
       writeErr(

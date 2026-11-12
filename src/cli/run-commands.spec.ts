@@ -12,7 +12,7 @@ import { resolveSupportedModel } from '../models/supported-models';
 import { defaultProbeBindings } from '../probes/bindings';
 import type { CapturedUnitRecord } from '../stores/ports';
 import { parseFlags } from './io';
-import { runRun } from './run-commands';
+import { finishedRunSummary, runRun } from './run-commands';
 
 // Preflight launches Chromium for the money pages; here a fake that starts.
 vi.mock('playwright', () => ({
@@ -436,5 +436,44 @@ describe('run-commands - runRun()', () => {
     const result = runRun(await flagsFor(['--max-usd', 'lots']));
 
     await expect(result).rejects.toThrow(/positive amount/);
+  });
+});
+
+describe('run-commands - finishedRunSummary()', () => {
+  const finished = (partialFailures: { step: string; error: string }[]) => {
+    return {
+      verdict: 'accepted',
+      copyOutcome: 'validated',
+      degraded: [],
+      finish: {
+        snapshotFile: '/runs/acme/OUT/snapshot.json',
+        snapshot: { meta: {} },
+        partialFailures,
+      },
+    } as unknown as Parameters<typeof finishedRunSummary>[0];
+  };
+
+  it('should exit 0 for a report with nothing left out', () => {
+    const summary = finishedRunSummary(finished([]), '/runs/acme');
+
+    expect(summary.exitCode).toBe(0);
+    expect(summary.lines.join('\n')).toMatch(/Left out of the report:\s+0/);
+  });
+
+  it('should exit 3 and name each step a report was finished without', () => {
+    const summary = finishedRunSummary(
+      finished([
+        {
+          step: 'perception:file_stores',
+          error: 'answers 2, 3 of 15: Model call exceeded its host deadline',
+        },
+      ]),
+      '/runs/acme',
+    );
+
+    expect(summary.exitCode).toBe(3);
+    expect(summary.lines).toContain(
+      '  perception:file_stores: answers 2, 3 of 15: Model call exceeded its host deadline',
+    );
   });
 });
