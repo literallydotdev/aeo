@@ -651,11 +651,14 @@ describe('Stage - runStage()', () => {
       command,
       script.replace(
         /echo 'Reconnecting[^\n]+; exit 0; fi/,
-        `node -e "setTimeout(() => {}, 2500)" & echo $! > "${ctx.dir}/fake-descendant"; exit 0; fi`,
+        `node -e "setTimeout(() => {}, 20000)" & echo $! > "${ctx.dir}/fake-descendant"; exit 0; fi`,
       ),
     );
 
-    const run = await runStage({ ...ctx, command, timeoutMs: 300 }, 'analyze');
+    // The limit also bounds the retry, which is a whole fake session: at
+    // 300 ms a loaded CI runner timed that out too and the stage took a
+    // third attempt (2026-11-11). Only the descendant may outlast it.
+    const run = await runStage({ ...ctx, command, timeoutMs: 2000 }, 'analyze');
     // The descendant held the launcher's stdout; it is gone with its group.
     const descendant = Number(
       await readFile(path.join(ctx.dir, 'fake-descendant'), 'utf8'),
