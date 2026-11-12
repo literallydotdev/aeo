@@ -1,5 +1,5 @@
 {
-  "note": "Token usage of local runs of Literally.dev's own self-audit, from their journals: every Codex session's reported usage, split into the stages that read answers and the write stage, and the host calls' settled usage. Token counts only. Four runs of 2026-11-04 (calibration 1 of src/models/cost-coefficients.ts) and one of 2026-11-11 (calibration 2): the first on a supported model with full grounding, with no stage input served from cache.",
+  "note": "Token usage of local runs of Literally.dev's own self-audit, from their journals: every Codex session's reported usage, split into the stages that read answers and the write stage, and the host calls' settled usage. Token counts only. Four runs of 2026-11-04 (calibration 1 of src/models/cost-coefficients.ts) and one of 2026-11-11 (calibration 2): the first on a supported model with full grounding, with no stage input served from cache. Three runs of 121 answers on 2026-11-11 (calibration 3): a supported model, then the same answers judged twice by a model that served about half its stage input from cache; the last wrote its narrative in one request, so it has no write stage.",
   "runs": [
     {
       "name": "extraction-16",
@@ -50,6 +50,36 @@
         "perRun": { "input": 363337, "cachedInput": 0, "output": 11155 }
       },
       "hostTokens": { "input": 175900, "output": 10988 }
+    },
+    {
+      "name": "full-121",
+      "answers": 121,
+      "grounding": "full",
+      "stageTokens": {
+        "perAnswer": { "input": 5259724, "cachedInput": 0, "output": 298555 },
+        "perRun": { "input": 636201, "cachedInput": 0, "output": 13842 }
+      },
+      "hostTokens": { "input": 789653, "output": 63905 }
+    },
+    {
+      "name": "full-121-rejudged",
+      "answers": 121,
+      "grounding": "full",
+      "stageTokens": {
+        "perAnswer": { "input": 4842133, "cachedInput": 2587310, "output": 1026444 },
+        "perRun": { "input": 732274, "cachedInput": 679424, "output": 20372 }
+      },
+      "hostTokens": { "input": 449789, "output": 361884 }
+    },
+    {
+      "name": "full-121-one-request",
+      "answers": 121,
+      "grounding": "full",
+      "stageTokens": {
+        "perAnswer": { "input": 5651729, "cachedInput": 2709426, "output": 941080 },
+        "perRun": { "input": 0, "cachedInput": 0, "output": 0 }
+      },
+      "hostTokens": { "input": 456222, "output": 307853 }
     }
   ]
 }

@@ -53,9 +53,21 @@ import type { TokenUsage } from './pricing';
 // The copy's first draft is one request since the same release (method
 // release spec §4.5), not the write session calibration 1 measured, so it
 // is estimated among the host's calls and no longer among the stages.
+//
+// Calibration 3 (2026-11-12), version 4: three runs of 121 answers (the
+// last three of calibration-runs.json), one on a supported model and two
+// on a model that served about half its stage input from cache.
+// - The stages read 40,000 to 47,000 tokens per answer and wrote 2,500 to
+//   8,500: the supported model wrote less than the low end assumed, so
+//   that came down.
+// - The host calls read 3,700 to 6,500 tokens per answer and wrote 500 to
+//   3,000: the low end of what they read came down.
+// - The writer's request read 16,300 and 16,500 tokens and wrote 1,000 and
+//   1,100, inside what was assumed.
+// The high ends hold: nothing recorded reached them.
 // ============================================================================
 
-export const costCoefficientsVersion = 3;
+export const costCoefficientsVersion = 4;
 
 export type TokenRange = {
   input: number;
@@ -68,7 +80,7 @@ export type Range<T> = { low: T; high: T };
  * qualify and review. */
 export const stageTokens = {
   perAnswer: {
-    low: { input: 30_000, output: 4000 },
+    low: { input: 30_000, output: 2000 },
     high: { input: 90_000, output: 16_000 },
   },
   /** The share of stage input served from cache: high is cheap. The
@@ -76,9 +88,9 @@ export const stageTokens = {
   cachedShare: { low: 0, high: 0.8 },
 } as const;
 
-/** The copywriter's one request per run. Not measured yet: the documents
- * two recorded runs gave their writer came to 8,000 and 16,000 tokens, and
- * the draft itself is some hundreds of words; the high end is a larger
+/** The copywriter's one request per run. Two recorded requests read
+ * 16,300 and 16,500 tokens and wrote 1,000 and 1,100 (2026-11-11); a
+ * smaller audit's documents came to 8,000. The high end is a larger
  * audit's documents and a model that reasons at length before it answers. */
 export const copyRequestTokens = {
   low: { input: 8000, output: 1000 },
@@ -106,7 +118,7 @@ export const hostTokensPerAnswer = {
     high: { input: 8000, output: 12_000 },
   },
   full: {
-    low: { input: 5000, output: 300 },
+    low: { input: 3500, output: 300 },
     high: { input: 24_000, output: 18_000 },
   },
 } as const;
