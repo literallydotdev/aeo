@@ -9,7 +9,8 @@ import {
   copyFixtureSnapshot,
 } from '../agents/__fixtures__/copy';
 import { buildFactCatalog } from '../agents/facts';
-import { allCriteria, producerGuidance } from './criteria';
+import { premiseVerifierInstructions } from '../agents/verifier';
+import { allCriteria, criterionById, producerGuidance } from './criteria';
 
 // One registry, three readers: the reviewers judge by it, and the Codex
 // analyze stage and the writer are instructed from it, so a stage can no
@@ -69,5 +70,50 @@ describe('criteria - producerGuidance()', () => {
     expect(criteria.indexOf('(blocking)')).toBeLessThan(
       criteria.indexOf('style_preference (advisory)'),
     );
+  });
+
+  it('should tell the writer and the premise verifier, in the same words, never to compare two rates', () => {
+    const { guidance } = criterionById('unsupported_rate_comparison');
+    const documents = copywriterDocuments({
+      config: copyFixtureConfig,
+      snapshot: copyFixtureSnapshot,
+      catalog: buildFactCatalog({
+        snapshot: copyFixtureSnapshot,
+        config: copyFixtureConfig,
+        runId: 'run-1',
+      }),
+    });
+
+    expect(documents['CRITERIA.md']).toContain(
+      `unsupported_rate_comparison (blocking): ${guidance}`,
+    );
+    expect(premiseVerifierInstructions).toContain(
+      `unsupported_rate_comparison: ${guidance}`,
+    );
+    // Counts side by side stay allowed; the reader compares.
+    expect(guidance).toContain('side by side');
+  });
+
+  it("should keep a rule of the copy premise check alone out of the analysis stages' criteria", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'aeo-criteria-'));
+
+    try {
+      await materializeWorkdir({
+        dir,
+        config: copyFixtureConfig,
+        captured: [],
+        copyRules: '',
+      });
+
+      const criteria = readFileSync(path.join(dir, 'CRITERIA.md'), 'utf8');
+
+      // What analyze, qualify and review read is what their own reviews
+      // judge: a copy rule there would change their inputs for nothing.
+      expect(criteria).toContain('## Producer guidance: copy');
+      expect(criteria).toContain('unsupported_published_assertion');
+      expect(criteria).not.toContain('unsupported_rate_comparison');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

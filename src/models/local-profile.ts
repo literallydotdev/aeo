@@ -18,8 +18,9 @@ import type { SupportedModel } from './supported-models';
 
 /** Bumped when a role's prompt changes what it asks for. */
 const promptVersions: Partial<Record<InternalModelRole, number>> = {
-  copy: 5,
-  premiseVerifier: 5,
+  // 6: both are held to unsupported_rate_comparison.
+  copy: 6,
+  premiseVerifier: 6,
   analyzer: 3,
   research: 2,
   adjudication: 2,

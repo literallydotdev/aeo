@@ -111,6 +111,18 @@ const registry: readonly Criterion[] = [
       'Describe coverage as the scope facts do: which surfaces were captured, how many answers, and nothing about surfaces, completeness or populations the facts do not cover.',
   },
   {
+    // The premise check's alone: it guides the writer and the verifier, and
+    // is no part of what the analysis stages or the final review read.
+    id: 'unsupported_rate_comparison',
+    severity: 'blocking',
+    roles: ['copy_premise'],
+    targets: ['copy_block'],
+    description:
+      'Copy says or implies that one measured rate or count differs from another.',
+    guidance:
+      'Never say or imply that one rate, count or share is higher or lower than another, differs from it or is close to it: not between surfaces, groups of surfaces, companies or audits, and not in softer words ("more often", "less", "ahead", "behind", "unevenly", "the gap", "the clearest contrast", "most"). No supplied fact tests a difference, and two approximate intervals that overlap do not show one. State each figure with its own counts, and its interval fact when one is supplied, side by side, and leave the comparison to the reader.',
+  },
+  {
     id: 'ambiguous_source_classification',
     severity: 'blocking',
     roles: ['evidence'],
@@ -139,7 +151,7 @@ const registry: readonly Criterion[] = [
   },
 ];
 
-export const criterionRegistryVersion = 3;
+export const criterionRegistryVersion = 4;
 
 const severityRank = (severity: Criterion['severity']): number => {
   return severity === 'blocking' ? 0 : 1;
@@ -158,9 +170,30 @@ export const allCriteria = (): readonly Criterion[] => {
  * blocking criteria first: the same registry the reviewers judge by, in the
  * producer's terms.
  */
-export const producerGuidance = (target: ProducerTarget): string[] => {
+export const producerGuidance = (
+  target: ProducerTarget,
+  /** Only the criteria one of these reviews reads; absent means every one.
+   * The analysis stages' criteria name the reviews that judge them, so a
+   * rule of the copy premise check alone never enters their inputs. */
+  roles?: readonly ReviewRole[],
+): string[] => {
   return [...registry]
     .filter((entry) => entry.targets.includes(target))
+    .filter(
+      (entry) => !roles || entry.roles.some((role) => roles.includes(role)),
+    )
     .sort((a, b) => severityRank(a.severity) - severityRank(b.severity))
     .map((entry) => `${entry.id} (${entry.severity}): ${entry.guidance}`);
+};
+
+/** criterionById returns one registry entry; an unknown id is a
+ * programming error. */
+export const criterionById = (id: string): Criterion => {
+  const criterion = registry.find((entry) => entry.id === id);
+
+  if (!criterion) {
+    throw new Error(`No criterion is registered as ${id}.`);
+  }
+
+  return criterion;
 };

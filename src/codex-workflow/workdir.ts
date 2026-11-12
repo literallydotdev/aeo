@@ -161,9 +161,10 @@ export const materializeWorkdir = async (args: {
     });
   }
 
-  const criteria = (['evidence', 'final'] as const).flatMap((role) =>
-    criteriaForRole(role),
-  );
+  // The reviews that judge the analysis stages; the copy premise check's
+  // own criteria are the writer's and the verifier's (copywriter-input.ts).
+  const stageReviews = ['evidence', 'final'] as const;
+  const criteria = stageReviews.flatMap((role) => criteriaForRole(role));
   const seen = new Set<string>();
   const criteriaText = criteria
     .filter((criterion) => !seen.has(criterion.id) && seen.add(criterion.id))
@@ -190,7 +191,7 @@ export const materializeWorkdir = async (args: {
       ``,
       `## Producer guidance: copy`,
       ``,
-      producerGuidance('copy_block'),
+      producerGuidance('copy_block', stageReviews),
       ``,
       `## Reviewer criteria`,
       ``,
