@@ -5,6 +5,22 @@ mention you, cite you, and who they recommend instead. `literally-aeo` runs
 the audit on your own machine with your own provider keys, and writes a
 portable evidence bundle that anyone can verify offline.
 
+## Made by Literally.dev with <3
+
+[Literally.dev](https://literally.dev) is an AEO and technical content
+agency for tech companies, based in Oslo 🇳🇴. We help developer tools and B2B
+software become the product AI assistants recommend, with content written
+by engineers: AEO, technical blog posts and tutorials. This engine is what
+we measure our own work with, and we publish it so anyone can check the
+numbers.
+
+**Want the report without running anything?** We run a free AEO analysis
+for companies that fit: your buyers' questions asked across ChatGPT, Claude,
+Gemini, Perplexity and Google AI Overviews, plus the coding agents Claude
+Code, Codex and Cursor, on this same engine.
+
+[Get your free AEO analysis at literally.dev/aeo-analysis](https://literally.dev/aeo-analysis)
+
 ## Ask Claude to run this for you
 
 You don't need to be a developer. Open Claude Code (the terminal app, or
