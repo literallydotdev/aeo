@@ -29,12 +29,14 @@ const expectedOutcomes = {
 
 describe('verify - verifyBundle() over frozen bundles', () => {
   it.each([
-    ['schema-1-0.2.0.aeo.zip', 1],
-    ['schema-2-12df4f5-depth-3.aeo.zip', 2],
-    ['schema-2-0.3.0.aeo.zip', 2],
+    ['schema-1-0.2.0.aeo.zip', 1, 1],
+    ['schema-2-12df4f5-depth-3.aeo.zip', 2, 1],
+    ['schema-2-0.3.0.aeo.zip', 2, 1],
+    ['schema-3-0.4.0.aeo.zip', 3, 2],
+    ['schema-3-0.4.0-consumer-apps.aeo.zip', 3, 2],
   ])(
-    'should verify %s, written with bundle schema %i and calculation version 1',
-    async (name, bundleSchemaVersion) => {
+    'should verify %s, written with bundle schema %i and calculation version %i',
+    async (name, bundleSchemaVersion, calculationVersion) => {
       const source = await readBundleSource(path.join(frozenDir, name));
       const verification = verifyBundle(source.files, source.description);
       const outcomes = Object.fromEntries(
@@ -47,7 +49,7 @@ describe('verify - verifyBundle() over frozen bundles', () => {
       );
 
       expect(manifest.bundleSchemaVersion).toBe(bundleSchemaVersion);
-      expect(manifest.calculationVersion).toBe(1);
+      expect(manifest.calculationVersion).toBe(calculationVersion);
       expect(outcomes).toEqual(expectedOutcomes);
       // Done, with the declared limitations of a run without a trace.
       expect(verification.exitCode).toBe(3);

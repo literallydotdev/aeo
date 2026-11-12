@@ -12,10 +12,15 @@
 //   - An answer for an item that already has one is ignored, never a
 //     replacement: a settled judgement is not reopened by a later round.
 //   - The rounds stop when nothing is pending, when `maxRounds` have been
-//     asked, or after a round that added nothing and refused nothing. A model
-//     that answered about none of the pending items will not answer next
-//     time; one whose answer the host refused (a misquote, a wrong roster, a
-//     paraphrase) did address the item, and asking again usually works.
+//     asked, or after a re-ask that added nothing and refused nothing. A
+//     model that was asked again about a gap and still answered about none
+//     of it will not answer next time; one whose answer the host refused (a
+//     misquote, a wrong roster, a paraphrase) did address the item, and
+//     asking again usually works.
+//   - The first round is the exception: an answer that reports on nothing
+//     at all is asked for once more. A reasoning model spent a whole call
+//     thinking and returned an empty list for five answers (a recorded run,
+//     2026-11-12); that is a failed call, not a gap the model chose.
 //   - A thrown `ask` propagates. The answers merged before it stay in the
 //     caller's `answered` map, so a transport failure in a later round never
 //     loses an earlier round's work; the caller decides whether what it has
@@ -116,7 +121,7 @@ export const askUntilCovered = async <Item, Answer>(
       pending: pending.length,
     });
 
-    if (added === 0 && refused === 0) {
+    if (added === 0 && refused === 0 && rounds > 1) {
       break;
     }
   }

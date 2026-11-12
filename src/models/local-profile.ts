@@ -18,8 +18,9 @@ import type { SupportedModel } from './supported-models';
 
 /** Bumped when a role's prompt changes what it asks for. */
 const promptVersions: Partial<Record<InternalModelRole, number>> = {
-  copy: 5,
-  premiseVerifier: 5,
+  // 6: both are held to unsupported_rate_comparison.
+  copy: 6,
+  premiseVerifier: 6,
   analyzer: 3,
   research: 2,
   adjudication: 2,
@@ -44,7 +45,13 @@ type RoleSizing = {
   /** The answer's own room, before any reasoning allowance. */
   maxOutputTokens: number;
   deadlineMs: number;
+  /** Items one batched call may carry on a model that reasons and that the
+   * engine never verified; absent leaves the call site's own ceiling. */
+  cautiousItemsPerCall?: number;
 };
+
+/** The longest one call may take on a model given cautious settings. */
+const cautiousDeadlineCeilingMs = 900_000;
 
 /** What each role is allowed per call. Batched roles keep their call
  * site's own ceiling on items per call. */
@@ -55,15 +62,48 @@ const roleSizing: Record<
   >,
   RoleSizing
 > = {
-  analyzer: { maxOutputTokens: 16_384, deadlineMs: 180_000 },
-  perception: { maxOutputTokens: 16_384, deadlineMs: 300_000 },
+  analyzer: {
+    maxOutputTokens: 16_384,
+    deadlineMs: 180_000,
+    cautiousItemsPerCall: 2,
+  },
+  perception: {
+    maxOutputTokens: 16_384,
+    deadlineMs: 300_000,
+    cautiousItemsPerCall: 5,
+  },
   research: { maxOutputTokens: 4096, deadlineMs: 60_000 },
-  adjudication: { maxOutputTokens: 16_384, deadlineMs: 300_000 },
-  premiseVerifier: { maxOutputTokens: 8192, deadlineMs: 180_000 },
+  adjudication: {
+    maxOutputTokens: 16_384,
+    deadlineMs: 300_000,
+    cautiousItemsPerCall: 8,
+  },
+  premiseVerifier: {
+    maxOutputTokens: 8192,
+    deadlineMs: 180_000,
+    cautiousItemsPerCall: 1,
+  },
   author: { maxOutputTokens: 24_576, deadlineMs: 300_000 },
   copy: { maxOutputTokens: 24_576, deadlineMs: 300_000 },
-  domainClassifier: { maxOutputTokens: 16_384, deadlineMs: 180_000 },
+  domainClassifier: {
+    maxOutputTokens: 16_384,
+    deadlineMs: 180_000,
+    cautiousItemsPerCall: 25,
+  },
   competitorClassifier: { maxOutputTokens: 8192, deadlineMs: 300_000 },
+};
+
+/**
+ * A model that reasons and that the engine never ran on its own roles gets
+ * narrower batches and three times as long per call. A batched call pays
+ * for a wide batch twice on such a model, in output and in time: a recorded
+ * run (2026-11-11) lost a perception call of nine answers to the role's
+ * five minutes, and with it those answers' part of the report. The models
+ * the engine verified keep the settings they were verified with, so their
+ * profiles do not change.
+ */
+const isCautious = (model: SupportedModel): boolean => {
+  return model.thinkingInOutput && model.stageRuntimeVerifiedAt === null;
 };
 
 const createRoleConfig = (
@@ -72,18 +112,25 @@ const createRoleConfig = (
   sizing: RoleSizing,
 ): InternalModelRoleConfig => {
   const allowance = model.thinkingInOutput ? reasoningAllowanceTokens : 0;
+  const cautious = isCautious(model);
 
   const roleConfig: InternalModelRoleConfig = {
     model: model.id,
     providerOptions: model.providerOptions,
     promptVersion: `${name}-grounding-v${promptVersions[name] ?? 1}`,
     schemaVersion: `${name}-v${schemaVersions[name] ?? 1}`,
-    deadlineMs: sizing.deadlineMs,
+    deadlineMs: cautious
+      ? Math.min(sizing.deadlineMs * 3, cautiousDeadlineCeilingMs)
+      : sizing.deadlineMs,
     maxInputTokens: 80_000,
     maxOutputTokens: Math.min(
       sizing.maxOutputTokens + allowance,
       model.maxOutputTokens,
     ),
+    ...(cautious &&
+      sizing.cautiousItemsPerCall !== undefined && {
+        maxItemsPerCall: sizing.cautiousItemsPerCall,
+      }),
     pricingUsdPerMillion: model.pricingUsdPerMillion,
   };
 

@@ -86,7 +86,7 @@ const never = (): never => {
 };
 
 describe('cost-estimate - estimateRunCost()', () => {
-  it("should price each surface's probes at its bound adapter's flat figure, under coefficients version 3", () => {
+  it("should price each surface's probes at its bound adapter's flat figure, under coefficients version 4", () => {
     const plan = {
       units: Array.from({ length: 4 }, (_, index) => ({ index })),
       probesBySurface: new Map<AeoSurface, number>([['chatgpt', 4]]),
@@ -107,7 +107,7 @@ describe('cost-estimate - estimateRunCost()', () => {
       chatgpt: defaultProbeBindings.claude,
     });
 
-    expect(defaults.coefficientsVersion).toBe(3);
+    expect(defaults.coefficientsVersion).toBe(4);
     expect(defaults.categories.probes).toEqual({
       low: probeUsd['gateway.openai@2'].low * 4,
       high: probeUsd['gateway.openai@2'].high * 4,

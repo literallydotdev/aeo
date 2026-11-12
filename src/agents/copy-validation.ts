@@ -34,7 +34,9 @@ import {
 } from './copy-schema';
 
 export const copyCheckerVersion = 7;
-export const premiseVerifierPromptVersion = 3;
+// 4: the verifier refuses a comparison of two rates or counts
+// (unsupported_rate_comparison).
+export const premiseVerifierPromptVersion = 4;
 
 /** Host framing every narrative block rests on whether or not the writer
  * declares it: the report identity and publisher, the captured surfaces,
@@ -794,7 +796,7 @@ export const copyFactsUnchanged = (
   );
 
   return (
-    [1, 2, premiseVerifierPromptVersion].includes(
+    [1, 2, 3, premiseVerifierPromptVersion].includes(
       provenance.verifierPromptVersion,
     ) &&
     canonicalJson(
