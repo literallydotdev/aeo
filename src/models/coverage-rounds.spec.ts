@@ -43,13 +43,38 @@ describe('coverage-rounds - askUntilCovered()', () => {
     expect(result.rounds).toBe(2);
   });
 
-  it('should stop after a round that adds nothing and refuses nothing', async () => {
+  it('should ask once more when the first answer reports on nothing, then stop when the re-ask adds nothing either', async () => {
     const ask = vi.fn().mockResolvedValue({ answered: [] });
 
     const result = await askUntilCovered({ items, maxRounds: 3, ask });
 
-    expect(ask).toHaveBeenCalledTimes(1);
+    // An empty first answer is a failed call; an empty re-ask is the
+    // model's answer.
+    expect(ask).toHaveBeenCalledTimes(2);
     expect(result.pending).toEqual([0, 1, 2, 3]);
+    expect(result.rounds).toBe(2);
+  });
+
+  it('should keep what a second ask returns after an empty first answer', async () => {
+    const ask = vi
+      .fn()
+      .mockResolvedValueOnce({ answered: [] })
+      .mockResolvedValueOnce({
+        answered: items.map((_item, index) => [index, `answer-${index}`]),
+      });
+
+    const result = await askUntilCovered({ items, maxRounds: 3, ask });
+
+    expect(result.pending).toEqual([]);
+    expect(result.rounds).toBe(2);
+  });
+
+  it('should not ask again for an empty answer when one round is all it may ask', async () => {
+    const ask = vi.fn().mockResolvedValue({ answered: [] });
+
+    const result = await askUntilCovered({ items, maxRounds: 1, ask });
+
+    expect(ask).toHaveBeenCalledTimes(1);
     expect(result.rounds).toBe(1);
   });
 
