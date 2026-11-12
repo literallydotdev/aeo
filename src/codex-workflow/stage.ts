@@ -62,6 +62,7 @@ import {
 } from './schemas';
 import type { AnswerFile } from './workdir';
 import { forgetSession, readSession, saveSession } from './session';
+import { reserveWhenAffordable } from './session-gate';
 import { maxReviewRounds } from './quality';
 import type { BatchLayout } from './batch-layout';
 import {
@@ -774,12 +775,45 @@ const reserveSession = async (
   return charge;
 };
 
+type SessionResult = Awaited<ReturnType<typeof execReservedCodex>>;
+
+/** Run one session of a batch once the run's cap can hold its reservation
+ * (session-gate.ts), and tell the gate when it is over. */
+const execCodex = async (
+  ctx: StageContext,
+  target: SessionTarget,
+): Promise<SessionResult> => {
+  let held: { ended: () => void } | undefined;
+  const reserve = async () => {
+    if (!ctx.accounting) {
+      return undefined;
+    }
+
+    const session = await reserveWhenAffordable(
+      ctx.accounting,
+      () => reserveSession(ctx, target),
+      ctx.signal,
+    );
+
+    held = session;
+
+    return session.charge;
+  };
+
+  try {
+    return await execReservedCodex(ctx, target, reserve);
+  } finally {
+    held?.ended();
+  }
+};
+
 /** Run `codex exec` for one session of a batch: a fresh conversation, or
  * the batch's saved one when the stage keeps it and the contract (what the
  * conversation has read) is unchanged. */
-const execCodex = async (
+const execReservedCodex = async (
   ctx: StageContext,
   { stage, batch, feedback, attempt }: SessionTarget,
+  reserve: () => Promise<SessionCharge | undefined>,
 ): Promise<{
   usage: StageRun['usage'];
   exitCode: number;
@@ -864,8 +898,9 @@ const execCodex = async (
   ctx.signal?.throwIfAborted();
 
   // Reserved before the child starts: a session the cap cannot afford is
-  // never started, and the run stops resumable at its budget.
-  const charge = await reserveSession(ctx, { stage, batch, attempt });
+  // never started. It waits while another session may still give budget
+  // back; otherwise the run stops resumable at its budget.
+  const charge = await reserve();
 
   // Recorded before the child starts: a session the host loses track of
   // stays an open operation, an unknown outcome, never a silent success.
