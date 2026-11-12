@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
   ExportBlockedError,
@@ -17,6 +18,8 @@ import { BundleRefusedError } from '../bundle/zip';
 import { readSettings } from '../engine/env-file';
 import { runDirectoryState } from '../engine/local-run';
 import { credentialSettingNames } from '../engine/preflight';
+import { engineResources } from '../engine/resources';
+import { viewerFontFiles } from '../viewer/page';
 import { startViewer } from '../viewer/server';
 import { formatLine, writeErr, writeOut, type Flags } from './io';
 
@@ -204,6 +207,23 @@ export const runVerify = async (flags: Flags, usage: string) => {
   return verification.exitCode;
 };
 
+/** The viewer's fonts, from the engine's own resources. */
+const readViewerFonts = async (): Promise<Map<string, Buffer>> => {
+  const { fonts } = await engineResources();
+  const entries = await Promise.all(
+    Object.values(viewerFontFiles).map(
+      async (file) => [file, await readFile(path.join(fonts, file))] as const,
+    ),
+  ).catch((err: unknown) => {
+    throw new Error(
+      `The viewer's fonts are missing from ${fonts}. In a checkout, run pnpm build to refresh resources/; otherwise reinstall literally-aeo.`,
+      { cause: err },
+    );
+  });
+
+  return new Map(entries);
+};
+
 /** view serves a bundle or a run directory on loopback until Ctrl-C. */
 export const runView = async (flags: Flags, usage: string) => {
   const target = flags.positional[0];
@@ -231,6 +251,7 @@ export const runView = async (flags: Flags, usage: string) => {
   const portOption = flags.options.get('--port');
   const viewer = await startViewer(bundle, {
     port: portOption === undefined ? 0 : Number(portOption),
+    fonts: await readViewerFonts(),
   });
 
   writeOut(

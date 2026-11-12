@@ -9,6 +9,7 @@ import { RunOrigin, toolVersion } from '../bundle/contracts';
 import { parseBundleJson } from '../bundle/json';
 import { verifyBundle } from '../bundle/verify';
 import { viewerPage } from './page';
+import { presentReport } from './presentation';
 
 // ============================================================================
 // `literally-aeo view` (specs/aeo-open-source-cli-spec.md §4.3). Any local
@@ -78,7 +79,8 @@ const plain = (status: number, body: string): Reply => {
   return { status, body, contentType: 'text/plain; charset=utf-8' };
 };
 
-/** The page's metadata and the verifier's result, served beside the files. */
+/** The page's metadata, the verifier's result and the report the page
+ * shows, served beside the files. */
 const derivedDocuments = (bundle: ViewerBundle) => {
   const verification = verifyBundle(bundle.files, bundle.description);
   const manifest = bundle.files.get('manifest.json');
@@ -110,13 +112,21 @@ const derivedDocuments = (bundle: ViewerBundle) => {
       },
     ],
     ['__verification', bundle.workingState ? null : verification],
+    ['__report', presentReport(bundle.files)],
   ]);
+};
+
+export type ViewerOptions = {
+  port?: number;
+  /** The page's fonts by file name (viewerFontFiles), from the engine's
+   * resources; without them the page falls back to system fonts. */
+  fonts?: ReadonlyMap<string, Buffer>;
 };
 
 /** startViewer serves a bundle on loopback until closed. */
 export const startViewer = async (
   bundle: ViewerBundle,
-  { port = 0 }: { port?: number } = {},
+  { port = 0, fonts = new Map() }: ViewerOptions = {},
 ): Promise<ViewerServer> => {
   const token = randomBytes(32).toString('hex');
   const derived = derivedDocuments(bundle);
@@ -143,10 +153,21 @@ export const startViewer = async (
 
       send(response, {
         status: 200,
-        body: viewerPage(nonce),
+        body: viewerPage(nonce, fonts.size > 0 ? token : undefined),
         contentType: 'text/html; charset=utf-8',
-        csp: `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}'; connect-src 'self'; img-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+        csp: `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}'; font-src 'self'; connect-src 'self'; img-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
       });
+
+      return;
+    }
+
+    // Font names are plain ASCII: the path is looked up as sent.
+    const font = url.pathname.startsWith('/fonts/')
+      ? fonts.get(url.pathname.slice('/fonts/'.length))
+      : undefined;
+
+    if (font !== undefined) {
+      send(response, { status: 200, body: font, contentType: 'font/ttf' });
 
       return;
     }

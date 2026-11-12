@@ -3,8 +3,7 @@
 // percents, so the range a reader sees always contains the computed one.
 // Zod-free: the report page's client island imports it, and the fact
 // sentences use it, so every place that states an interval rounds it the
-// same way. The local viewer's page is a self-contained script and carries
-// its own copy of this rule (viewer/page.ts, `intervalText`).
+// same way, the local viewer included (viewer/presentation.ts).
 // ============================================================================
 
 /** The whole-percent range that contains [low, high], two shares in 0..1.
