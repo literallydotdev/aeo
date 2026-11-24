@@ -117,7 +117,7 @@ describe('author-validation - validateAuthorOutput()', () => {
     expect(result.notes?.proposedFacts).toEqual([fact]);
   });
 
-  it('should send an unsafe money page or too many money pages back for repair, and a page on another site to brief_mismatch', async () => {
+  it('should send an unsafe, off-site or excess money page back for repair', async () => {
     const withPages = (moneyPages: string[]) => {
       return validateAuthorOutput({
         ...input,
@@ -143,7 +143,12 @@ describe('author-validation - validateAuthorOutput()', () => {
     expect(tooMany.errors).toEqual([
       expect.stringMatching(/^moneyPages: Keep the 20 pages/),
     ]);
-    expect(offSite.fatal).toBe('brief_mismatch');
+    expect(offSite.fatal).toBeUndefined();
+    expect(offSite.errors).toEqual([
+      expect.stringMatching(
+        /^moneyPages\.0: The site checks fetch only example\.com and its subdomains; drop https:\/\/example\.org\/pricing/,
+      ),
+    ]);
   });
 
   it('should fail mismatched identity and protected clients before any repairable check', async () => {

@@ -278,9 +278,6 @@ export const validateAuthorOutput = async (args: {
 
   if (
     !underHost(normalizeDomain(config.brand.domain), host) ||
-    config.moneyPages.some(
-      (url) => moneyPageProblem(url, { domain: host })?.kind === 'off_site',
-    ) ||
     competitors.some((competitor) =>
       args.protectedClientHosts.some((client) =>
         underHost(normalizeDomain(competitor.domain), normalizeDomain(client)),
@@ -290,7 +287,7 @@ export const validateAuthorOutput = async (args: {
     return {
       flags: [],
       errors: [
-        'Brand/money pages must belong to the submitted host; other client brands cannot be competitors',
+        'The brand must belong to the submitted host; other client brands cannot be competitors',
       ],
       fatal: 'brief_mismatch',
     };
@@ -298,8 +295,17 @@ export const validateAuthorOutput = async (args: {
 
   // The site checks fetch and render every money page: a page the guard
   // would refuse, or more than it may fetch, is the author's to repair.
+  // A page on another site is repairable too: the brand check above already
+  // refuses the wrong company, and a company's docs often live on a sister
+  // domain the site checks may not fetch.
   config.moneyPages.forEach((url, index) => {
     const problem = moneyPageProblem(url, { domain: host });
+
+    if (problem?.kind === 'off_site') {
+      errors.push(
+        `moneyPages.${index}: The site checks fetch only ${host} and its subdomains; drop ${url} or replace it with a page on ${host}`,
+      );
+    }
 
     if (problem?.kind === 'unsafe_url') {
       errors.push(
