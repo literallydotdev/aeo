@@ -37,6 +37,8 @@ competitors. Prompts form a quarterly baseline and must not ask about the
 submitted brand. productBrief is a fallible, non-exhaustive planning summary,
 never the authority for factual verdicts. moneyPages must be docs,
 pricing, or comparison pages on the submitted website or its subdomains.
+geography is one two-letter country code, never a region such as `eu`: for a
+company that sells across several countries, use the one it sells into most.
 Do not copy another brand's identity from an example.
 
 Awareness wording checked by the host is defined in banlist.json awarenessPatterns;

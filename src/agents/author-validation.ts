@@ -2,6 +2,10 @@ import { aeoAuditConfigSchema, type AeoAuditConfig } from '../schema';
 import { normalizeDomain } from '../analysis/scoring';
 import banlist from '../author/banlist.json';
 import { maxMoneyPages, moneyPageProblem } from '../checks/money-pages';
+import {
+  resolveDataForSeoLocale,
+  supportedMarkets,
+} from '../probes/dataforseo-locale';
 import { canonicalResearchUrl, fetchGroundingSource } from '../grounding/fetch';
 import { SourceRetrievalError } from '../grounding/guarded-request';
 import { credentialDetected } from './credentials';
@@ -313,6 +317,14 @@ export const validateAuthorOutput = async (args: {
       );
     }
   });
+
+  // Google AI Overviews and grounding search are placed in this market; a
+  // config the engine cannot place is refused at approval, past any repair.
+  if (!resolveDataForSeoLocale(config.geography, config.language)) {
+    errors.push(
+      `geography: No search market for geography ${JSON.stringify(config.geography)} and language ${JSON.stringify(config.language)}. Use one country code, the country the company sells into most. ${supportedMarkets}`,
+    );
+  }
 
   if (config.moneyPages.length > maxMoneyPages) {
     errors.push(
