@@ -151,6 +151,26 @@ describe('author-validation - validateAuthorOutput()', () => {
     ]);
   });
 
+  it('should send a market the engine cannot place back for repair', async () => {
+    const withMarket = (geography: string) => {
+      return validateAuthorOutput({
+        ...input,
+        output: { ...output, geography, language: 'en' },
+      });
+    };
+
+    const region = await withMarket('eu');
+    const country = await withMarket('gb');
+
+    expect(region.fatal).toBeUndefined();
+    expect(region.errors).toEqual([
+      expect.stringMatching(
+        /^geography: No search market for geography "eu" and language "en"\. Use one country code/,
+      ),
+    ]);
+    expect(country.errors).toEqual([]);
+  });
+
   it('should fail mismatched identity and protected clients before any repairable check', async () => {
     const reachability = vi.fn(input.reachability);
     const thirdParty = {
