@@ -100,6 +100,11 @@ export const progressMeasurementSchema = z
     ]),
     warnings: z.array(warning).max(50),
     reusedCaptures: z.number().int().nonnegative(),
+    // Who captured the answers, when not Literally.dev: a customer's own
+    // local run imported into the platform (website
+    // specs/aeo-bundle-import-spec.md §11). Absent on every pipeline and
+    // operator-imported point, so their stored form is unchanged.
+    capturedBy: z.literal('customer').optional(),
     brandIdentity: digest,
     geography: z.string().min(1).max(100),
     language: z.string().min(1).max(100),

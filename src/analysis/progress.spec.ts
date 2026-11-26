@@ -459,6 +459,32 @@ describe('progress - projectProgressMeasurement()', () => {
     );
   });
 
+  it('should not compare a customer capture like for like with a Literally.dev one', () => {
+    const result = compare(fixture(), {
+      ...fixture({ runId: 'current' }),
+      capturedBy: 'customer',
+    });
+
+    expect(result.status).toBe('partial');
+    expect(result.reasons).toContain('capture_origin_changed');
+    expect(result.reasons).not.toContain('collection_method_changed');
+  });
+
+  it('should compare a pipeline point with an operator import normally', () => {
+    const result = compare(fixture(), {
+      ...fixture({ runId: 'current' }),
+      capturedBy: 'literally',
+    });
+
+    expect(result.reasons).not.toContain('capture_origin_changed');
+    expect(
+      projectProgressMeasurement({
+        ...fixture({ runId: 'current' }),
+        capturedBy: 'literally',
+      }),
+    ).not.toHaveProperty('capturedBy');
+  });
+
   it('should report a changed collection method when only the adapter differs', () => {
     const collection = {
       requestedModel: 'provider/model',

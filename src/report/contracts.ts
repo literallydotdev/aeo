@@ -51,6 +51,24 @@ export type RenderConfig = Omit<ReportConfig, 'sections'> & {
 export const reportCopySchema = aeoReportCopySchema.omit({ actionPlan: true });
 export type ReportCopy = z.infer<typeof reportCopySchema>;
 
+/** Where an imported run's answers came from (website
+ * specs/aeo-bundle-import-spec.md §4): captured locally with this engine by
+ * Literally.dev or by the report's owner, always self-reported. */
+export const reportRunOriginSchema = z
+  .object({
+    capturedBy: z.enum(['literally', 'customer']),
+    toolVersion: z.string().min(1).max(64).nullable(),
+    captureStart: z.iso.datetime().nullable(),
+    captureEnd: z.iso.datetime().nullable(),
+    bundleDigest: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .nullable(),
+  })
+  .strict();
+
+export type ReportRunOrigin = z.infer<typeof reportRunOriginSchema>;
+
 export const reportDisplaySchema = z
   .object({
     config: reportConfigSchema,
@@ -58,6 +76,8 @@ export const reportDisplaySchema = z
     snapshot: aeoSnapshotSchema,
     domainLabels: z.record(z.string(), sourceCategorySchema),
     copyPresentation: z.enum(['generated', 'authored']),
+    // Present only for an imported run; a run a pipeline measured has none.
+    runOrigin: reportRunOriginSchema.optional(),
   })
   .strict();
 
