@@ -8,6 +8,10 @@ export const errorStatus = {
   pipeline_active: 409,
   report_exists: 409,
   gate_not_waiting: 409,
+  // A bundle import's upload is not in storage yet, or is not the archive
+  // the import declared (website specs/aeo-bundle-import-spec.md §12).
+  upload_missing: 409,
+  upload_mismatch: 409,
   over_cost_cap: 429,
   service_unavailable: 503,
   incompatible_report: 503,

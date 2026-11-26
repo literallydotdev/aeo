@@ -54,6 +54,9 @@ export const scopeSchema = z.enum([
   'reports:published:read',
   'reports:public:create',
   'reports:access:write',
+  // Bundle imports (website specs/aeo-bundle-import-spec.md §12).
+  'imports:write',
+  'imports:read',
 ]);
 export type Scope = z.infer<typeof scopeSchema>;
 
@@ -110,6 +113,10 @@ export const pipelineRequestSchema = z
         allowPartial: z.boolean().default(false),
         coverageThresholds: coverageThresholdsSchema.optional(),
         limits: probeLimitsSchema.optional(),
+        /** The completed run a copy regeneration rewrites, instead of the
+         * approved config's latest; only with `mode: 'resume'` and
+         * `copy: 'regenerate'`. */
+        runId: z.string().min(1).max(128).optional(),
       })
       .strict()
       .prefault({}),
@@ -122,6 +129,18 @@ export const pipelineRequestSchema = z
   .refine((value) => Boolean(value.brief ?? value.reportKey), {
     message: 'A brief or explicit reportKey is required',
   })
+  .refine(
+    (value) =>
+      value.run.runId === undefined ||
+      (value.run.mode === 'resume' &&
+        value.copy === 'regenerate' &&
+        value.reportKey !== undefined),
+    {
+      message:
+        'A pinned run is only for a copy regeneration of an existing report (run.mode resume, copy regenerate, reportKey)',
+      path: ['run', 'runId'],
+    },
+  )
   .transform(({ tier: _tier, ...request }) => request);
 export type PipelineRequest = z.infer<typeof pipelineRequestSchema>;
 

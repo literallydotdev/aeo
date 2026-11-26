@@ -17,6 +17,8 @@ import { isDomainCited } from './domain-match';
 
 export type ProgressMeasurementInput = {
   runId: string;
+  /** Who captured the answers; Literally.dev when absent. */
+  capturedBy?: 'literally' | 'customer';
   config: AeoAuditConfig;
   snapshot: AeoSnapshot;
   captureManifest?: unknown;
@@ -339,6 +341,9 @@ export const projectProgressMeasurement = (
     state,
     warnings: [...warnings],
     reusedCaptures: knownReused,
+    ...(input.capturedBy === 'customer'
+      ? { capturedBy: 'customer' as const }
+      : {}),
     brandIdentity: contentHash({
       domain: normalizeDomain(config.brand.domain),
       name: config.brand.name.trim().toLowerCase(),

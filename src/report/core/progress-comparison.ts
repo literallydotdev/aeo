@@ -67,6 +67,10 @@ export type ProgressComparisonReason =
   | 'incomplete_analysis_coverage'
   | 'analyzer_changed'
   | 'collection_method_changed'
+  // One point captured by Literally.dev and the other by the report's
+  // owner on their own machine: a self-reported capture never compares
+  // like for like with Literally.dev's, whatever models both used.
+  | 'capture_origin_changed'
   | 'collection_metadata_unknown'
   | 'historical_metadata_unknown'
   | 'includes_reused_captures';
@@ -399,6 +403,12 @@ export const deriveProgressComparison = (
 
   if (matched.some(slotReasonTests.collection_method_changed)) {
     result.reasons.push('collection_method_changed');
+  }
+
+  if (
+    (baseline.capturedBy ?? 'literally') !== (current.capturedBy ?? 'literally')
+  ) {
+    result.reasons.push('capture_origin_changed');
   }
 
   if (matched.some(slotReasonTests.collection_metadata_unknown)) {
